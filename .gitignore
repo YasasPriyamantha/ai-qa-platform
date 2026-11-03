@@ -1,3 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
+
 # OS files
 Thumbs.db
 .DS_Store
@@ -6,5 +17,35 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Secrets
+# Claude Code local settings (not skills)
+.claude/settings.local.json
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Environment and secrets
 .env
+.env.local
+.env.*.local
+
+# Playwright
+playwright-report/
+test-results/
+
+# Playwright authentication state (secrets)
+**/auth-state.json
+**/storage-state.json
+**/.auth/
+
+# Generated project artifacts
+project-data/**/artifacts/
+tests/fixtures/**/artifacts/
+
+# Do NOT ignore:
+# - Source code and tests (*.ts)
+# - Project configurations (project.config.json)
+# - Fixture source files and configs
+# - TypeScript configs
+# - package.json

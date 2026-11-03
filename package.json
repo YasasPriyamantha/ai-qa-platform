@@ -1,0 +1,33 @@
+{
+  "name": "ai-qa-platform",
+  "version": "0.1.0",
+  "description": "AI-powered QA automation platform for browser-based web applications",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --project tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "qa": "node dist/cli/index.js"
+  },
+  "keywords": [
+    "qa",
+    "automation",
+    "playwright",
+    "testing",
+    "ai"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^4.1.12",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

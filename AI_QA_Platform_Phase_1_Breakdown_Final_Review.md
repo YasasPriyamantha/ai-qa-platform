@@ -166,6 +166,22 @@ Requirements
     - project-data/**/artifacts/
     - tests/fixtures/**/artifacts/
     Do not blanket-ignore tests/fixtures/ because fixture source/configuration must be committed.
+12. Update the existing README.md with a concise project overview.
+
+Include:
+- Project purpose
+- Current development status (Phase 1)
+- Links to the four Phase 0 documents:
+  docs/PROJECT_SPEC.md
+  docs/ARCHITECTURE.md
+  docs/IMPLEMENTATION_PLAN.md
+  docs/DECISIONS.md
+
+Do not duplicate the contents of those documents.
+Do not claim features have been implemented when they have not.
+
+Verification:
+Confirm README.md is no longer empty and all four relative document links resolve correctly.
 
 Constraints / non-goals
 

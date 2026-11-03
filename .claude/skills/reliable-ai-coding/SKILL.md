@@ -121,9 +121,9 @@ Verification
 Inspect first, implement the smallest root-cause change, run available checks, review the full diff, and report exact results. Do not invent APIs or claim checks passed unless they were run. State significant assumptions or blockers.
 ```
 
-## Task-specific templates and evidence
+## Task-specific templates
 
-Load `assets/prompt-templates.md` when a ready-to-copy prompt for a feature, bug, refactor, code review, test design, or skill evaluation is useful. Load `assets/evaluation-cases.md` when changing or assessing this skill. Consult `references/research-and-resources.md` for the research papers, source links, and the limits of the evidence; do not load it for every routine code change.
+When ready-to-copy prompts for features, bugs, refactors, code reviews, test design, or skill evaluation would be useful, create them following the prompt structure above. Supporting assets and references may be added to `assets/` and `references/` subdirectories in this skill folder as needed.
 
 ## Avoid universal prompting recipes
 
