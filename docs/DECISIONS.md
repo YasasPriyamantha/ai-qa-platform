@@ -244,3 +244,29 @@ Cleanup failures must be surfaced. Cross-platform logic should be isolated behin
 **Status:** Accepted
 
 **Decision:** Phase 1 contains no AI or MCP integration. The deterministic execution engine must work without any AI model. Each task is small, tested, and reviewed before the next task begins.
+
+## DEC-026 — Use custom validation for Phase 1 project configuration
+
+**Status:** Accepted
+
+**Decision:** Implement Phase 1 project configuration validation using custom TypeScript code without adding a schema validation library.
+
+**Reason:** The Phase 1 configuration schema is small (7 required fields). A custom validator provides clear, field-specific error messages and avoids adding a dependency for minimal benefit at this stage. The implementation is straightforward to understand for a beginner working with AI coding assistance.
+
+**Consequences:**
+
+- Validation logic is explicit and testable in `src/projects/loader.ts`.
+- Error messages are specific and actionable (field name + reason).
+- No additional runtime dependencies are needed for Phase 1.
+- When AI JSON validation is introduced in later phases, this decision may be revisited. A schema validation library (such as Zod) could be adopted if the complexity of structured output validation justifies the dependency.
+
+**Validation rules implemented:**
+
+1. All seven fields are required: `projectId`, `name`, `baseUrl`, `environment`, `allowedDomains`, `testDirectory`, `artifactDirectory`.
+2. URL syntax validation using the URL constructor.
+3. `environment` must be one of `local`, `development`, `demo`, `staging`; `production` is rejected.
+4. `allowedDomains` must be a non-empty array of strings.
+5. `baseUrl` hostname must appear in `allowedDomains`.
+6. HTTPS required except for `localhost` (`127.0.0.1` requires HTTPS).
+7. Path containment validated using `path.resolve` + `path.relative` with Windows drive-letter case normalization.
+8. Test directory must exist; run directory must exist and be inside artifact directory.
