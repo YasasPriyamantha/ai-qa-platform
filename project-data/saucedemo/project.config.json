@@ -1,0 +1,9 @@
+{
+  "projectId": "saucedemo",
+  "name": "SauceDemo Demo",
+  "baseUrl": "https://www.saucedemo.com/",
+  "environment": "demo",
+  "allowedDomains": ["www.saucedemo.com"],
+  "testDirectory": "tests/approved",
+  "artifactDirectory": "artifacts"
+}

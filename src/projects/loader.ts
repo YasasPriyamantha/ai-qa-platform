@@ -194,6 +194,12 @@ function validateEnvironment(obj: Record<string, unknown>): Environment {
 
 /**
  * Validate the allowedDomains field.
+ *
+ * Each entry must be a bare hostname:
+ * - No scheme (http://, https://)
+ * - No path (/)
+ * - No port (:8080)
+ * - Valid hostname characters only
  */
 function validateAllowedDomains(obj: Record<string, unknown>): string[] {
   const value = obj.allowedDomains;
@@ -227,13 +233,84 @@ function validateAllowedDomains(obj: Record<string, unknown>): string[] {
         value
       );
     }
+
+    // Validate bare hostname format
+    validateBareHostname(domain, i);
   }
 
   return value as string[];
 }
 
 /**
+ * Validate that a domain entry is a bare hostname.
+ *
+ * Rejects:
+ * - Schemes (contains "://")
+ * - Paths (contains "/" after the hostname)
+ * - Ports (contains ":" followed by digits)
+ * - Empty or whitespace-only strings
+ */
+function validateBareHostname(domain: string, index: number): void {
+  const trimmed = domain.trim();
+
+  // Reject schemes (e.g., http://, https://, ftp://)
+  if (trimmed.includes('://')) {
+    throw new ConfigValidationError(
+      `Domain at index ${index} must be a bare hostname, not a URL (contains scheme "://")`,
+      'allowedDomains',
+      domain
+    );
+  }
+
+  // Reject paths (e.g., example.com/path)
+  if (trimmed.includes('/')) {
+    throw new ConfigValidationError(
+      `Domain at index ${index} must be a bare hostname, not contain a path (contains "/")`,
+      'allowedDomains',
+      domain
+    );
+  }
+
+  // Reject ports (e.g., example.com:8080)
+  // Port syntax: hostname followed by : and digits
+  if (/:(\d+)$/.test(trimmed) || /:(\d+)/.test(trimmed)) {
+    throw new ConfigValidationError(
+      `Domain at index ${index} must be a bare hostname, not contain a port (contains ":")`,
+      'allowedDomains',
+      domain
+    );
+  }
+
+  // Validate it looks like a valid hostname
+  // Allow: letters, digits, dots, hyphens
+  // Must not start or end with hyphen or dot
+  // Must not have consecutive dots
+  if (!/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/.test(trimmed) && trimmed !== 'localhost') {
+    // Single character hostnames like "a" or numeric like "1" are allowed
+    if (!/^[a-zA-Z0-9]$/.test(trimmed)) {
+      throw new ConfigValidationError(
+        `Domain at index ${index} contains invalid hostname characters`,
+        'allowedDomains',
+        domain
+      );
+    }
+  }
+
+  // Reject consecutive dots
+  if (trimmed.includes('..')) {
+    throw new ConfigValidationError(
+      `Domain at index ${index} contains invalid hostname (consecutive dots)`,
+      'allowedDomains',
+      domain
+    );
+  }
+}
+
+/**
  * Validate the baseUrl field.
+ *
+ * Hostname matching uses exact equality, case-insensitive.
+ * Subdomains and parent domains are not interchangeable.
  */
 function validateBaseUrl(baseUrl: string, allowedDomains: string[]): void {
   let url: URL;
@@ -268,10 +345,17 @@ function validateBaseUrl(baseUrl: string, allowedDomains: string[]): void {
     );
   }
 
-  // Check hostname is in allowed domains
-  if (!allowedDomains.includes(url.hostname)) {
+  // Check hostname is in allowed domains using case-insensitive exact match.
+  // URL.hostname is already normalized to lowercase by the URL constructor.
+  // We compare with lowercased allowedDomains entries for case-insensitivity.
+  const urlHostnameLower = url.hostname.toLowerCase();
+  const isAllowed = allowedDomains.some(
+    (domain) => domain.toLowerCase() === urlHostnameLower
+  );
+
+  if (!isAllowed) {
     throw new ConfigValidationError(
-      `URL hostname '${url.hostname}' is not in allowedDomains`,
+      `URL hostname '${url.hostname}' is not in allowedDomains (exact match required)`,
       'baseUrl',
       baseUrl
     );

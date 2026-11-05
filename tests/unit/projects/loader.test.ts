@@ -181,6 +181,216 @@ describe('loadProjectConfig', () => {
     });
   });
 
+  describe('allowedDomains format validation', () => {
+    it('should reject URL-form entries with scheme (http://)', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://www.saucedemo.com/',
+        allowedDomains: ['http://www.saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('allowedDomains');
+        expect((err as ConfigValidationError).message).toContain('contains scheme');
+      }
+    });
+
+    it('should reject URL-form entries with scheme (https://)', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://example.com/',
+        allowedDomains: ['https://example.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('allowedDomains');
+        expect((err as ConfigValidationError).message).toContain('contains scheme');
+      }
+    });
+
+    it('should reject entries containing paths', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://example.com/',
+        allowedDomains: ['example.com/path'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('allowedDomains');
+        expect((err as ConfigValidationError).message).toContain('contains "/"');
+      }
+    });
+
+    it('should reject entries containing ports', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://example.com/',
+        allowedDomains: ['example.com:8080'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('allowedDomains');
+        expect((err as ConfigValidationError).message).toContain('contains ":"');
+      }
+    });
+
+    it('should reject entries with consecutive dots', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://example.com/',
+        allowedDomains: ['example..com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('allowedDomains');
+        expect((err as ConfigValidationError).message).toContain('consecutive dots');
+      }
+    });
+  });
+
+  describe('hostname exact match validation', () => {
+    it('should accept exact hostname match', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://www.saucedemo.com/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      const result = loadProjectConfig(configPath);
+      expect(result.baseUrl).toBe('https://www.saucedemo.com/');
+    });
+
+    it('should accept case-insensitive exact hostname match (lowercase domain, uppercase URL)', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://WWW.SAUCEDEMO.COM/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      const result = loadProjectConfig(configPath);
+      // URL constructor normalizes hostname to lowercase
+      expect(result.baseUrl).toBe('https://WWW.SAUCEDEMO.COM/');
+    });
+
+    it('should accept case-insensitive exact hostname match (uppercase domain, lowercase URL)', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://www.saucedemo.com/',
+        allowedDomains: ['WWW.SAUCEDEMO.COM'],
+      });
+      const result = loadProjectConfig(configPath);
+      expect(result.baseUrl).toBe('https://www.saucedemo.com/');
+    });
+
+    it('should accept case-insensitive exact hostname match (mixed case)', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://Www.SauceDemo.Com/',
+        allowedDomains: ['wWw.sAuCeDeMo.cOm'],
+      });
+      const result = loadProjectConfig(configPath);
+      expect(result.baseUrl).toBe('https://Www.SauceDemo.Com/');
+    });
+
+    it('should reject parent domain when subdomain is in URL', () => {
+      // allowedDomains has parent, but baseUrl uses www subdomain
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://www.saucedemo.com/',
+        allowedDomains: ['saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('baseUrl');
+        expect((err as ConfigValidationError).message).toContain('not in allowedDomains');
+      }
+    });
+
+    it('should reject subdomain when parent domain is in URL', () => {
+      // allowedDomains has subdomain, but baseUrl uses parent
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://saucedemo.com/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('baseUrl');
+        expect((err as ConfigValidationError).message).toContain('not in allowedDomains');
+      }
+    });
+
+    it('should reject lookalike domain (attacker domain containing target as prefix)', () => {
+      // www.saucedemo.com.evil.test should NOT match www.saucedemo.com
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://www.saucedemo.com.evil.test/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('baseUrl');
+        expect((err as ConfigValidationError).message).toContain('not in allowedDomains');
+      }
+    });
+
+    it('should reject lookalike domain (target as suffix)', () => {
+      // evil-www.saucedemo.com should NOT match www.saucedemo.com
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://evil-www.saucedemo.com/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('baseUrl');
+        expect((err as ConfigValidationError).message).toContain('not in allowedDomains');
+      }
+    });
+
+    it('should reject lookalike domain (target as substring)', () => {
+      // evil.www.saucedemo.com.bad should NOT match www.saucedemo.com
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://evil.www.saucedemo.com.bad/',
+        allowedDomains: ['www.saucedemo.com'],
+      });
+      expect(() => loadProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).field).toBe('baseUrl');
+        expect((err as ConfigValidationError).message).toContain('not in allowedDomains');
+      }
+    });
+
+    it('should accept multiple allowed domains with exact match', () => {
+      writeConfig({
+        ...validConfig,
+        baseUrl: 'https://api.example.com/',
+        allowedDomains: ['www.example.com', 'api.example.com', 'cdn.example.com'],
+      });
+      const result = loadProjectConfig(configPath);
+      expect(result.baseUrl).toBe('https://api.example.com/');
+    });
+  });
+
   describe('environment validation', () => {
     it('should reject production environment', () => {
       writeConfig({ ...validConfig, environment: 'production' });
