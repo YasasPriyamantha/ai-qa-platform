@@ -1,0 +1,216 @@
+
+> ai-qa-platform@0.1.0 test
+> vitest run --reporter=verbose
+
+
+ RUN  v4.1.12 D:/ai-qa-platform
+
+ ✓ tests/unit/test-execution/playwright-cli.test.ts > resolvePlaywrightCli > should resolve the Playwright CLI path 11ms
+ ✓ tests/unit/test-execution/playwright-cli.test.ts > resolvePlaywrightCli > should resolve to the installed @playwright/test package 3ms
+ ✓ tests/unit/test-execution/playwright-cli.test.ts > resolvePlaywrightCli > should not hardcode node_modules path 5ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > valid configuration > should load a valid configuration 28ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > valid configuration > should accept all valid environments 27ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing projectId 23ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing name 15ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > valid environment > should load configuration from valid environment variables 59ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > valid environment > should derive correct outputDir inside runDir 26ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing baseUrl 17ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing environment 78ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > missing environment variables > should reject missing QA_PROJECT_CONFIG_PATH 37ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > missing environment variables > should reject empty QA_PROJECT_CONFIG_PATH 12ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > missing environment variables > should reject whitespace-only QA_PROJECT_CONFIG_PATH 19ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing allowedDomains 15ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing testDirectory 46ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing required fields > should reject missing artifactDirectory 16ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > malformed JSON > should reject invalid JSON syntax 25ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > missing environment variables > should reject missing QA_RUN_DIR 82ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > missing environment variables > should reject empty QA_RUN_DIR 14ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > invalid run directory > should reject non-existent run directory 64ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should generate a valid UTC timestamp-based run ID 11ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should return the base ID when no collision exists 4ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should add suffix -2 when an exact collision is detected 8ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should generate unique IDs for rapid successive calls 10ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should never return an ID that already exists as a directory 6ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should create different base IDs when called with time gap 7ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should handle suffix collision correctly 5ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > malformed JSON > should reject non-object JSON 16ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > malformed JSON > should reject array JSON 11ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > malformed JSON > should reject null JSON 10ms
+ × tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should reject with ProcessStartupError when child process fails to start 418ms
+   → promise resolved "{ exitCode: 1, signal: null, …(5) }" instead of rejecting
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > invalid run directory > should reject run directory that is a file 46ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > invalid run directory > should reject relative run directory path 26ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > run directory containment > should reject run directory outside artifact directory 33ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > run directory containment > should reject run directory with path traversal 19ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > invalid URL/domain > should reject invalid URL syntax 82ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > invalid URL/domain > should reject URL hostname not in allowedDomains 15ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > empty allowedDomains > should reject empty allowedDomains array 16ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > empty allowedDomains > should reject allowedDomains with empty strings 19ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > empty allowedDomains > should reject non-array allowedDomains 29ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > allowedDomains format validation > should reject URL-form entries with scheme (http://) 17ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > run directory containment > should accept run directory inside artifact directory 18ms
+ ✓ tests/unit/projects/environment.test.ts > loadPlaywrightConfig > run directory containment > should reject run directory equal to artifact directory 26ms
+ ✓ tests/unit/projects/environment.test.ts > Windows-specific path handling > should handle Windows paths with forward slashes 16ms
+ ✓ tests/unit/projects/environment.test.ts > Windows-specific path handling > should handle Windows drive letter case differences 19ms
+ ✓ tests/unit/projects/environment.test.ts > Cross-drive path containment (Windows behavior) > should detect different-drive paths via path.relative 1ms
+ ✓ tests/unit/projects/environment.test.ts > Cross-drive path containment (Windows behavior) > should detect same-drive containment correctly 1ms
+ ✓ tests/unit/projects/environment.test.ts > Cross-drive path containment (Windows behavior) > should detect equality case via empty relative path 0ms
+ ✓ tests/unit/projects/environment.test.ts > Cross-drive path containment (Windows behavior) > should detect parent directory escape via .. 1ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > allowedDomains format validation > should reject URL-form entries with scheme (https://) 36ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > allowedDomains format validation > should reject entries containing paths 20ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > allowedDomains format validation > should reject entries containing ports 48ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > allowedDomains format validation > should reject entries with consecutive dots 76ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should accept exact hostname match 13ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should accept case-insensitive exact hostname match (lowercase domain, uppercase URL) 84ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should accept case-insensitive exact hostname match (uppercase domain, lowercase URL) 14ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should accept case-insensitive exact hostname match (mixed case) 14ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should reject parent domain when subdomain is in URL 62ms
+ ✓ tests/unit/test-execution/run-id.test.ts > generateRunId > should throw error after 1000 collision attempts for same timestamp 968ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should reject subdomain when parent domain is in URL 17ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should reject lookalike domain (attacker domain containing target as prefix) 14ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should reject lookalike domain (target as suffix) 33ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should reject lookalike domain (target as substring) 22ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > hostname exact match validation > should accept multiple allowed domains with exact match 13ms
+ × tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should include partial result in startup error 616ms
+   → expected AssertionError: Expected ProcessStartupEr… { …(3) } to be an instance of ProcessStartupError
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > environment validation > should reject production environment 36ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > environment validation > should reject unsupported environment values 18ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > environment validation > should reject non-string environment 12ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > HTTP/HTTPS validation > should allow HTTP for localhost 21ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > HTTP/HTTPS validation > should reject HTTP for 127.0.0.1 15ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > HTTP/HTTPS validation > should reject HTTP for non-localhost 15ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > HTTP/HTTPS validation > should allow HTTPS for any domain 13ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > HTTP/HTTPS validation > should reject non-http/https protocols 30ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing test directory > should reject non-existent test directory 41ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > missing test directory > should reject test directory that is a file 19ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > path traversal outside workspace > should reject testDirectory with ../ 49ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > path traversal outside workspace > should reject artifactDirectory with ../ 74ms
+ × tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should not hang when process startup fails 450ms
+   → promise resolved "{ exitCode: 1, signal: null, …(5) }" instead of rejecting
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > path traversal outside workspace > should reject absolute paths outside workspace 38ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > config path validation > should reject non-existent config file 7ms
+ ✓ tests/unit/projects/loader.test.ts > loadProjectConfig > config path validation > should reject relative config path 14ms
+ ✓ tests/unit/projects/loader.test.ts > Windows path handling > should handle Windows path separators in testDirectory 16ms
+ ✓ tests/unit/version.test.ts > version > should export version constant 7ms
+ ✓ tests/unit/version.test.ts > version > should export platform name 1ms
+ ✓ tests/unit/version.test.ts > version > should format version info string 2ms
+ ✓ tests/unit/test-execution/runner-collision.test.ts > runPlaywrightTests - collision safety > should never overwrite an existing run directory 3547ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should execute passing fixture and report success 5785ms
+ ✓ tests/unit/test-execution/runner-collision.test.ts > runPlaywrightTests - collision safety > should preserve contents of existing run directory 2600ms
+ ✓ tests/unit/test-execution/runner-collision.test.ts > runPlaywrightTests - collision safety > should handle multiple existing run directories with suffixes 1979ms
+ ✓ tests/unit/test-execution/runner-collision.test.ts > runPlaywrightTests - collision safety > should create parent artifact directory if it does not exist 2361ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should execute failing fixture and report non-zero exit 8919ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should execute no-tests fixture and report non-zero exit 1568ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should create unique run directories for successive runs 7163ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should never overwrite a previous run directory 7212ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should capture stdout and stderr from process 3476ms
+ ✓ tests/integration/test-execution/runner.test.ts > runPlaywrightTests > should record process start and end times 3481ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should reject with ProcessStartupError when child process fails to start
+AssertionError: promise resolved "{ exitCode: 1, signal: null, …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "duration": 354,
++   "endTime": "2026-11-09T12:52:10.402Z",
++   "exitCode": 1,
++   "signal": null,
++   "startTime": "2026-11-09T12:52:10.046Z",
++   "stderr": "node:internal/modules/cjs/loader:1252
++   throw err;
++   ^
++ 
++ Error: Cannot find module 'D:\\nonexistent\\path\\to\\playwright-cli.js'
++     at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
++     at Function._load (node:internal/modules/cjs/loader:1075:27)
++     at TracingChannel.traceSync (node:diagnostics_channel:315:14)
++     at wrapModuleLoad (node:internal/modules/cjs/loader:218:24)
++     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:170:5)
++     at node:internal/main/run_main_module:36:49 {
++   code: 'MODULE_NOT_FOUND',
++   requireStack: []
++ }
++ 
++ Node.js v22.11.0
++ ",
++   "stdout": "",
+  }
+
+ ❯ tests/unit/test-execution/process-manager.test.ts:21:50
+     19|
+     20|     // Should reject with ProcessStartupError
+     21|     await expect(launchPlaywrightProcess(options)).rejects.toThrow(Pro…
+       |                                                  ^
+     22|   });
+     23|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should include partial result in startup error
+AssertionError: expected AssertionError: Expected ProcessStartupEr… { …(3) } to be an instance of ProcessStartupError
+ ❯ tests/unit/test-execution/process-manager.test.ts:39:19
+     37|       expect.fail('Expected ProcessStartupError to be thrown');
+     38|     } catch (err) {
+     39|       expect(err).toBeInstanceOf(ProcessStartupError);
+       |                   ^
+     40|
+     41|       const startupErr = err as ProcessStartupError;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/unit/test-execution/process-manager.test.ts > launchPlaywrightProcess > should not hang when process startup fails
+AssertionError: promise resolved "{ exitCode: 1, signal: null, …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "duration": 444,
++   "endTime": "2026-11-09T12:52:11.520Z",
++   "exitCode": 1,
++   "signal": null,
++   "startTime": "2026-11-09T12:52:11.076Z",
++   "stderr": "node:internal/modules/cjs/loader:1252
++   throw err;
++   ^
++ 
++ Error: Cannot find module 'D:\\nonexistent\\path\\to\\playwright-cli.js'
++     at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)
++     at Function._load (node:internal/modules/cjs/loader:1075:27)
++     at TracingChannel.traceSync (node:diagnostics_channel:315:14)
++     at wrapModuleLoad (node:internal/modules/cjs/loader:218:24)
++     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:170:5)
++     at node:internal/main/run_main_module:36:49 {
++   code: 'MODULE_NOT_FOUND',
++   requireStack: []
++ }
++ 
++ Node.js v22.11.0
++ ",
++   "stdout": "",
+  }
+
+ ❯ tests/unit/test-execution/process-manager.test.ts:80:5
+     78|         timeoutPromise
+     79|       ])
+     80|     ).rejects.toThrow(ProcessStartupError);
+       |     ^
+     81|   });
+     82| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 7 passed (8)
+      Tests  3 failed | 94 passed (97)
+   Start at  18:22:08
+   Duration  38.98s (transform 1.48s, setup 0ms, import 2.74s, tests 52.60s, environment 4ms)
+
