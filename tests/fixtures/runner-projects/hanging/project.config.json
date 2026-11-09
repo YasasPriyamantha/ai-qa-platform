@@ -1,0 +1,9 @@
+{
+  "projectId": "fixture-hanging",
+  "name": "Hanging Fixture",
+  "baseUrl": "http://localhost",
+  "environment": "local",
+  "allowedDomains": ["localhost"],
+  "testDirectory": "tests/approved",
+  "artifactDirectory": "artifacts"
+}

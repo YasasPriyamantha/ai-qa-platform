@@ -107,4 +107,59 @@ describe('launchPlaywrightProcess', () => {
     expect(result.signal).toBeNull();
     expect(result.stderr).toContain('MODULE_NOT_FOUND');
   });
+
+  it('should capture final stdout output after process exits', async () => {
+    // This test verifies that stdout is fully captured even if data arrives
+    // just before or around the time of process exit.
+    // The implementation waits for 'close' event after 'exit' to collect remaining output.
+
+    // Create a script that outputs data and exits
+    const script = `
+      console.log('LINE_1');
+      console.log('LINE_2');
+      console.log('FINAL_LINE');
+      process.exit(0);
+    `;
+
+    const options = {
+      cliPath: '-e',  // Node's -e flag for inline script
+      args: [script],
+      cwd: process.cwd(),
+      env: process.env,
+    };
+
+    const result = await launchPlaywrightProcess(options);
+
+    expect(result.exitCode).toBe(0);
+    // All lines should be captured
+    expect(result.stdout).toContain('LINE_1');
+    expect(result.stdout).toContain('LINE_2');
+    expect(result.stdout).toContain('FINAL_LINE');
+    // outputIncomplete should not be set for normal completion
+    expect(result.outputIncomplete).toBeUndefined();
+  });
+
+  it('should capture stderr output completely', async () => {
+    // Test that stderr is also fully captured
+    const script = `
+      console.error('ERROR_1');
+      console.error('ERROR_2');
+      console.error('FINAL_ERROR');
+      process.exit(1);
+    `;
+
+    const options = {
+      cliPath: '-e',
+      args: [script],
+      cwd: process.cwd(),
+      env: process.env,
+    };
+
+    const result = await launchPlaywrightProcess(options);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('ERROR_1');
+    expect(result.stderr).toContain('ERROR_2');
+    expect(result.stderr).toContain('FINAL_ERROR');
+  });
 });

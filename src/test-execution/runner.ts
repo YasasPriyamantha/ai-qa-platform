@@ -2,8 +2,7 @@
  * Generic Playwright runner
  *
  * Executes Playwright Test for a validated project configuration.
- * This is the normal execution path without timeout/process-tree termination.
- * Task 1.5b will add timeout handling.
+ * Supports runner-level timeout with cross-platform process tree/group cleanup.
  */
 
 import { mkdirSync, existsSync } from 'node:fs';
@@ -11,7 +10,11 @@ import { join } from 'node:path';
 import type { ResolvedConfig } from '../projects/config.js';
 import { generateRunId } from './run-id.js';
 import { resolvePlaywrightCli } from './playwright-cli.js';
-import { launchPlaywrightProcess, type ProcessResult } from './process-manager.js';
+import {
+  launchPlaywrightProcess,
+  type ProcessResult,
+  type CleanupResult,
+} from './process-manager.js';
 
 /**
  * Options for running tests.
@@ -19,6 +22,26 @@ import { launchPlaywrightProcess, type ProcessResult } from './process-manager.j
 export interface RunOptions {
   /** Additional Playwright CLI arguments (e.g., '--grep', '--project') */
   additionalArgs?: string[];
+
+  /**
+   * Runner-level timeout in milliseconds.
+   * If the Playwright process exceeds this duration, it will be terminated.
+   * Set to 0 or undefined to disable timeout.
+   */
+  timeoutMs?: number;
+
+  /**
+   * Optional callback for streaming stdout data.
+   * Called with each chunk as it arrives, before the process exits.
+   * Useful for observing output markers while the process is running.
+   */
+  onStdout?: (chunk: string) => void;
+
+  /**
+   * Optional callback for streaming stderr data.
+   * Called with each chunk as it arrives, before the process exits.
+   */
+  onStderr?: (chunk: string) => void;
 }
 
 /**
@@ -41,17 +64,21 @@ export interface RunMetadata {
   processResult: ProcessResult;
 }
 
+// Re-export types for convenience
+export type { ProcessResult, CleanupResult };
+
 /**
  * Execute Playwright Test for a validated project configuration.
  *
  * Creates a unique run directory, resolves the Playwright CLI, launches the process,
  * and returns structured execution metadata.
  *
- * This implementation does NOT include timeout or process-tree cleanup.
- * Those features are deferred to Task 1.5b.
+ * Supports runner-level timeout with cross-platform process tree/group cleanup:
+ * - Windows: Uses taskkill /T /F /PID (no detached:true to avoid console window)
+ * - Linux/macOS: Uses detached:true with process group SIGTERM → SIGKILL
  *
  * @param config - Validated and resolved project configuration
- * @param options - Run options
+ * @param options - Run options including optional timeout
  * @returns Promise resolving to run metadata
  * @throws Error if runner setup or process launch fails
  */
@@ -140,13 +167,15 @@ export async function runPlaywrightTests(
     QA_RUN_DIR: runDirectory,
   };
 
-  // Launch Playwright process
-  // Working directory is the platform root (current working directory)
+  // Launch Playwright process with optional timeout and stream callbacks
   const processResult = await launchPlaywrightProcess({
     cliPath,
     args,
     cwd: process.cwd(),
     env,
+    timeoutMs: options.timeoutMs,
+    onStdout: options.onStdout,
+    onStderr: options.onStderr,
   });
 
   return {
