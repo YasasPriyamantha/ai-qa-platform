@@ -1,12 +1,13 @@
 /**
  * CLI output formatting
  *
- * Handles display of run status, progress, and results.
- * Keeps output formatting separate from command logic.
+ * Handles display of run status, progress, and final results.
+ * Implements the final status model from DEC-017 and DEC-021.
  */
 
 import type { ResolvedConfig } from '../projects/config.js';
-import type { RunMetadata, ProcessResult } from '../test-execution/runner.js';
+import type { RunMetadata } from '../test-execution/runner.js';
+import type { RunResult, Finding } from '../reporting/index.js';
 
 /**
  * Display run start information.
@@ -50,54 +51,14 @@ function formatDuration(ms: number): string {
 }
 
 /**
- * Provisional outcome of a test run.
- * Task 1.7 will implement final status with report parsing.
- */
-export type ProvisionalOutcome =
-  | 'PROVISIONAL SUCCESS'
-  | 'PROVISIONAL FAILURE'
-  | 'TIMEOUT'
-  | 'RUNNER ERROR';
-
-/**
- * Determine the provisional outcome from process result.
- *
- * Exit 0 only when:
- * - Runner process exit code is 0
- * - Run did not time out
- * - No startup/cleanup errors
- *
- * Until Task 1.7, results are explicitly labeled PROVISIONAL.
- */
-export function determineProvisionalOutcome(
-  processResult: ProcessResult
-): ProvisionalOutcome {
-  // Timeout takes precedence
-  if (processResult.timedOut) {
-    return 'TIMEOUT';
-  }
-
-  // Cleanup failure
-  if (processResult.cleanup && !processResult.cleanup.success) {
-    return 'RUNNER ERROR';
-  }
-
-  // Process exit code
-  if (processResult.exitCode === 0) {
-    return 'PROVISIONAL SUCCESS';
-  }
-
-  return 'PROVISIONAL FAILURE';
-}
-
-/**
- * Display run completion information.
+ * Display run completion with final status.
  */
 export function displayRunComplete(
   metadata: RunMetadata,
-  outcome: ProvisionalOutcome
+  result: RunResult
 ): void {
   const { processResult, runId, runDirectory, projectId } = metadata;
+  const { stats, runStatus, reportStatus, primaryReason, primaryMessage, additionalFindings } = result;
 
   console.log('');
   console.log('───────────────────────────────────────────────────────────────────');
@@ -107,75 +68,90 @@ export function displayRunComplete(
   console.log(`  Project:     ${projectId}`);
   console.log(`  Run ID:      ${runId}`);
   console.log(`  Duration:    ${formatDuration(processResult.duration)}`);
-  console.log(`  Artifacts:   ${runDirectory}`);
   console.log('');
 
-  // Display outcome with appropriate styling
-  displayOutcome(outcome);
+  // Display test counts
+  displayTestCounts(stats);
 
-  // Display warnings
-  displayWarnings(processResult);
+  // Display status
+  displayStatus(runStatus, reportStatus);
+
+  // Display primary reason if present
+  if (primaryReason && primaryMessage) {
+    displayPrimaryReason(primaryReason, primaryMessage);
+  }
+
+  // Display additional findings
+  if (additionalFindings.length > 0) {
+    displayFindings(additionalFindings);
+  }
+
+  // Display artifact paths
+  console.log('');
+  console.log('  Artifacts:');
+  console.log(`    Directory:   ${runDirectory}`);
+  if (result.jsonReportPath) {
+    console.log(`    JSON Report: ${result.jsonReportPath}`);
+  }
+  if (result.htmlReportPath) {
+    console.log(`    HTML Report: ${result.htmlReportPath}`);
+  } else if (reportStatus === 'partial') {
+    console.log(`    HTML Report: (not found)`);
+  }
 
   console.log('');
 }
 
 /**
- * Display the provisional outcome.
+ * Display test count summary.
  */
-function displayOutcome(outcome: ProvisionalOutcome): void {
-  switch (outcome) {
-    case 'PROVISIONAL SUCCESS':
-      console.log('  ┌─────────────────────────────────────────────┐');
-      console.log('  │  OUTCOME: PROVISIONAL SUCCESS               │');
-      console.log('  │  (Final verification pending Task 1.7)      │');
-      console.log('  └─────────────────────────────────────────────┘');
-      break;
-
-    case 'PROVISIONAL FAILURE':
-      console.log('  ┌─────────────────────────────────────────────┐');
-      console.log('  │  OUTCOME: PROVISIONAL FAILURE               │');
-      console.log('  │  (Tests failed or non-zero exit)            │');
-      console.log('  └─────────────────────────────────────────────┘');
-      break;
-
-    case 'TIMEOUT':
-      console.log('  ┌─────────────────────────────────────────────┐');
-      console.log('  │  OUTCOME: TIMEOUT                           │');
-      console.log('  │  (Runner timeout exceeded)                  │');
-      console.log('  └─────────────────────────────────────────────┘');
-      break;
-
-    case 'RUNNER ERROR':
-      console.log('  ┌─────────────────────────────────────────────┐');
-      console.log('  │  OUTCOME: RUNNER ERROR                      │');
-      console.log('  │  (Process or cleanup failure)               │');
-      console.log('  └─────────────────────────────────────────────┘');
-      break;
-  }
+function displayTestCounts(stats: { total: number; passed: number; failed: number; skipped: number }): void {
+  console.log('  Test Results:');
+  console.log(`    Total:   ${stats.total}`);
+  console.log(`    Passed:  ${stats.passed}`);
+  console.log(`    Failed:  ${stats.failed}`);
+  console.log(`    Skipped: ${stats.skipped}`);
+  console.log('');
 }
 
 /**
- * Display warnings for cleanup failure or incomplete output.
+ * Display run and report status.
  */
-function displayWarnings(processResult: ProcessResult): void {
-  const warnings: string[] = [];
+function displayStatus(runStatus: string, reportStatus: string): void {
+  const runStatusDisplay = runStatus.toUpperCase().replace(/_/g, ' ');
+  const reportStatusDisplay = reportStatus.toUpperCase();
 
-  // Cleanup failure warning
-  if (processResult.cleanup && !processResult.cleanup.success) {
-    warnings.push(`Cleanup failed: ${processResult.cleanup.error || 'Unknown error'}`);
-  }
+  // Determine status box styling
+  const isSuccess = runStatus === 'passed' && reportStatus === 'complete';
+  const statusSymbol = isSuccess ? '✓' : '✗';
+  const statusLabel = isSuccess ? 'SUCCESS' : 'FAILED';
 
-  // Output incomplete warning
-  if (processResult.outputIncomplete) {
-    warnings.push('Output collection may be incomplete (stdio pipes not fully drained)');
-  }
+  console.log('  ┌─────────────────────────────────────────────┐');
+  console.log(`  │  ${statusSymbol} ${statusLabel.padEnd(40)} │`);
+  console.log('  ├─────────────────────────────────────────────┤');
+  console.log(`  │  Run Status:    ${runStatusDisplay.padEnd(26)} │`);
+  console.log(`  │  Report Status: ${reportStatusDisplay.padEnd(26)} │`);
+  console.log('  └─────────────────────────────────────────────┘');
+}
 
-  if (warnings.length > 0) {
-    console.log('');
-    console.log('  ⚠ WARNINGS:');
-    for (const warning of warnings) {
-      console.log(`    • ${warning}`);
-    }
+/**
+ * Display primary reason for non-passed runs.
+ */
+function displayPrimaryReason(reason: string, message: string): void {
+  console.log('');
+  console.log('  Primary Reason:');
+  console.log(`    Code:    ${reason}`);
+  console.log(`    Message: ${message}`);
+}
+
+/**
+ * Display additional findings.
+ */
+function displayFindings(findings: Finding[]): void {
+  console.log('');
+  console.log('  Additional Findings:');
+  for (const finding of findings) {
+    console.log(`    • [${finding.code}] ${finding.message}`);
   }
 }
 
@@ -201,4 +177,37 @@ export function displayError(message: string, details?: string): void {
  */
 export function displayStartupError(error: Error): void {
   displayError('Failed to start test run', error.message);
+}
+
+/**
+ * Display spawn failure as a run result.
+ */
+export function displaySpawnFailure(
+  projectId: string,
+  runId: string,
+  runDirectory: string,
+  error: Error
+): void {
+  console.log('');
+  console.log('───────────────────────────────────────────────────────────────────');
+  console.log('  Run Complete');
+  console.log('───────────────────────────────────────────────────────────────────');
+  console.log('');
+  console.log(`  Project:     ${projectId}`);
+  console.log(`  Run ID:      ${runId}`);
+  console.log('');
+  console.log('  ┌─────────────────────────────────────────────┐');
+  console.log('  │  ✗ INFRASTRUCTURE ERROR                    │');
+  console.log('  ├─────────────────────────────────────────────┤');
+  console.log('  │  Run Status:    INFRASTRUCTURE ERROR       │');
+  console.log('  │  Report Status: FAILED                     │');
+  console.log('  └─────────────────────────────────────────────┘');
+  console.log('');
+  console.log('  Primary Reason:');
+  console.log('    Code:    playwright_process_error');
+  console.log(`    Message: ${error.message}`);
+  console.log('');
+  console.log('  Artifacts:');
+  console.log(`    Directory:   ${runDirectory}`);
+  console.log('');
 }

@@ -48,6 +48,10 @@ export default defineConfig({
 
   use: {
     baseURL: envConfig.baseURL,
+    // Capture traces on failure for debugging (DEC-016)
+    trace: 'retain-on-failure',
+    // Capture screenshots on failure for debugging
+    screenshot: 'only-on-failure',
   },
 
   // Output directory for test artifacts (traces, screenshots)
@@ -57,6 +61,14 @@ export default defineConfig({
   // Disable retries for Phase 1 execution (DEC-018)
   retries: 0,
 
-  // Reporter configuration is deferred to Task 1.7
-  // Do not configure JSON or HTML reporters here
+  // Reporter configuration (Task 1.7)
+  // Use terminal list reporter alongside JSON and HTML for live progress
+  reporter: [
+    // Terminal list reporter for live progress output
+    ['list'],
+    // JSON reporter for machine-readable results
+    ['json', { outputFile: envConfig.jsonReportPath }],
+    // HTML reporter with open: 'never' for unattended runs (DEC-016)
+    ['html', { outputFolder: envConfig.htmlReportDir, open: 'never' }],
+  ],
 });

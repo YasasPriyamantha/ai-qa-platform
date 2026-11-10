@@ -270,3 +270,46 @@ Cleanup failures must be surfaced. Cross-platform logic should be isolated behin
 6. HTTPS required except for `localhost` (`127.0.0.1` requires HTTPS).
 7. Path containment validated using `path.resolve` + `path.relative` with Windows drive-letter case normalization.
 8. Test directory must exist; run directory must exist and be inside artifact directory.
+
+## DEC-027 — Distinguish individual timedOut and interrupted Playwright test statuses
+
+**Status:** Accepted
+
+**Relationship:** Clarifies and amends the primary reason precedence in DEC-021.
+
+**Decision:** Handle Playwright's individual test-level `timedOut` and `interrupted` statuses differently:
+
+**Individual `timedOut` mapping:**
+- A Playwright test that times out at the individual test level (not the runner timeout) receives status `timedOut`.
+- Map `timedOut` to the normalized Phase 1 status `failed`.
+- Count it as an ordinary test failure.
+- Preserve the original Playwright status in diagnostic information (`originalStatus` field).
+- Results in primary reason `test_failures` unless a higher-priority condition applies.
+
+**Individual `interrupted` mapping:**
+- A Playwright test marked `interrupted` indicates the worker process or execution was terminated unexpectedly (for example, SIGTERM, external kill, or internal crash).
+- Do NOT count interrupted tests as ordinary test failures.
+- Do NOT silently map them to `skipped`.
+- Track interrupted tests separately in `ParsedReport.interruptedTests`.
+- Record `tests_interrupted` as an additional finding with affected test names.
+
+**Interrupted execution precedence:**
+- If one or more tests are interrupted AND the platform's runner timeout did NOT fire:
+  - Set run status to `infrastructure_error`.
+  - Use primary reason `playwright_process_error`.
+  - Record `tests_interrupted` as an additional finding.
+  - This takes precedence over ordinary `test_failures`.
+
+- If the platform's runner timeout DID fire:
+  - Preserve `timed_out` as the run status.
+  - Preserve `runner_timeout` as the primary reason.
+  - Record `tests_interrupted` as an additional finding if interrupted tests appear in the JSON.
+
+**Reason:** An interrupted test is evidence of abnormal termination, not a test logic failure. Classifying it as `infrastructure_error` with `playwright_process_error` surfaces the execution anomaly rather than hiding it as a test failure. The runner timeout remains the highest priority because the platform explicitly initiated that termination.
+
+**Consequences:**
+- The normalized Phase 1 individual test status enum remains `passed | failed | skipped`.
+- Interrupted tests are tracked in a separate `interruptedTests` array, not counted in `stats.failed`.
+- The amended precedence rule is: `runner_timeout` > `playwright_process_error` (spawn/exit) > `report_invalid` > `tests_interrupted` > `no_tests_found` > `test_failures` > `cleanup_failed` > `playwright_process_error` (signals/errors) > `exit_report_mismatch`.
+- Note: `tests_interrupted` comes before `no_tests_found` because interrupted tests ARE discovered tests.
+- An interrupted run can never become a successful or ordinary test-failure-only result.

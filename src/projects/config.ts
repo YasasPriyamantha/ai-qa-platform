@@ -74,6 +74,12 @@ export interface PlaywrightEnvConfig {
 
   /** Derived outputDir for Playwright (test-output within runDir) */
   outputDir: string;
+
+  /** Path for JSON reporter output (results.json within runDir) */
+  jsonReportPath: string;
+
+  /** Path for HTML reporter output directory (html-report within runDir) */
+  htmlReportDir: string;
 }
 
 /**

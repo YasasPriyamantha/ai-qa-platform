@@ -106,6 +106,8 @@ export function loadPlaywrightConfig(env: EnvironmentVariables): PlaywrightEnvCo
     testDir: config.resolvedTestDirectory,
     baseURL: config.baseUrl,
     outputDir: join(runDir, 'test-output'),
+    jsonReportPath: join(runDir, 'results.json'),
+    htmlReportDir: join(runDir, 'html-report'),
   };
 }
 

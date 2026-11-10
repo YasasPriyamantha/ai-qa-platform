@@ -818,6 +818,69 @@ Add parser/status tests for:
 
 Run all four fixtures and inspect actual results.json and html-report/index.html paths. Confirm the terminal reporter is active alongside JSON and HTML, and the Task 1.5b readiness marker still reaches the runner's captured stdout while the hanging child is active. Confirm HTML does not open a browser or leave the process waiting. Run build, type-check, and relevant Vitest tests. Inspect the full diff.
 
+### Additional Task 1.7 Requirements and Preservation Rules
+
+#### 1. Replace provisional outcomes with verified final outcomes
+
+- Replace Task 1.6's provisional CLI labels with the final run status, report status, primary reason, human-readable message, and additional findings model.
+- Follow the accepted status definitions and primary reason precedence in DEC-017, DEC-021, and the Phase 1 implementation review.
+- Every unsuccessful run must have exactly one primary machine-readable reason.
+- Preserve secondary problems separately in `additionalFindings`.
+- Keep the CLI's existing 30-minute default runner timeout (`30 * 60 * 1000` milliseconds) unchanged. Do not move it into `project.config.json` or introduce a different default.
+- Do not classify a run as passed unless both process evidence and report evidence satisfy the established success rules.
+
+#### 2. Preserve process cleanup and incomplete-output findings
+
+The runner result already exposes cleanup information and `outputIncomplete`. Do not discard either when implementing final report reconciliation.
+
+- Preserve the cleanup result and surface cleanup failures as `cleanup_failed`.
+- Record incomplete captured stdout/stderr as an additional finding with code `output_incomplete`.
+- Do not introduce `output_incomplete` as a new primary reason unless the accepted architecture decisions are explicitly revised.
+- Both cleanup failure and incomplete output must force a non-zero CLI exit, even if the tests passed and both reports were collected.
+- Apply the existing primary reason precedence. For example, `runner_timeout` remains primary when timeout and cleanup failure happen together; `cleanup_failed` becomes an additional finding.
+- Do not replace higher-priority reasons with cleanup or output-collection findings.
+- Add tests covering cleanup failure and incomplete output alongside otherwise successful execution, as well as their overlap with timeout and test failures.
+
+#### 3. Verify SauceDemo reporting through the CLI
+
+After configuring the JSON and HTML reporters:
+
+- Run the SauceDemo smoke test using the existing CLI command and platform-owned Playwright config.
+- Identify the actual run ID and artifact directory created by that invocation.
+- Verify that `results.json` exists and contains valid, parseable Playwright JSON.
+- Verify that `html-report/index.html` exists.
+- Verify that `test-output/` remains separate from `html-report/`.
+- Report the exact paths inspected and actual results.
+- Do not claim either report exists based only on the CLI exit code.
+- If the external SauceDemo website is unavailable, report the environmental failure honestly; do not manufacture a passing result.
+
+#### 4. Preserve terminal output and timeout readiness verification
+
+Retain the Task 1.5b readiness-marker verification after configuring all reporters.
+
+- Keep a terminal reporter active alongside JSON and HTML.
+- Confirm that the hanging fixture's readiness marker still reaches the runner's captured stdout while the child is active.
+- If the installed built-in terminal reporter does not forward worker output, implement the smallest appropriate forwarding solution using the reporter API.
+- Confirm the HTML reporter uses `open: 'never'` and does not leave the CLI waiting for browser interaction.
+
+#### 5. Command execution and file preservation
+
+- Run any manual PowerShell verification from Bash inside a single `powershell.exe -NoProfile -Command` invocation.
+- Never delete files or folders that were not created by the current Task 1.7 work.
+- Do not remove existing manual artifacts, previous run directories, or user-created files.
+- Only clean up temporary files/directories created by this task when their ownership is clear.
+- Preserve all existing changes outside Task 1.7.
+
+#### 6. Final verification report
+
+- Run `npm run build`, `npm run typecheck`, and `npm test`.
+- Paste the raw Vitest summary lines, including test-file count, total test count, and duration.
+- Do not generate a manually calculated per-file test table.
+- Report actual command exit codes and distinguish completed commands from interrupted or timed-out commands.
+- List the exact JSON and HTML report paths that were verified.
+- Report all primary reasons, additional findings, fixture outcomes, and remaining limitations.
+- Do not commit anything. Leave the final Git diff and status available for review.
+
 Final report
 
 List status rules implemented, precedence order, test cases, fixture outcomes, exact commands/results, report paths actually verified, unverified behavior, and risks.

@@ -24,6 +24,28 @@ const originalConsoleError = console.error;
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
 
+/**
+ * Create a valid Playwright JSON report.
+ */
+function createValidJsonReport(overrides: {
+  expected?: number;
+  unexpected?: number;
+  skipped?: number;
+  duration?: number;
+} = {}): string {
+  return JSON.stringify({
+    stats: {
+      expected: overrides.expected ?? 1,
+      unexpected: overrides.unexpected ?? 0,
+      flaky: 0,
+      skipped: overrides.skipped ?? 0,
+      duration: overrides.duration ?? 1000,
+    },
+    errors: [],
+    suites: [],
+  });
+}
+
 describe('executeRunCommand - timeout wiring', () => {
   let tempDir: string;
   let configPath: string;
@@ -79,9 +101,17 @@ describe('executeRunCommand - timeout wiring', () => {
     // Capture the options passed to runPlaywrightTests
     mockedRunner.mockImplementation(async (_config, options) => {
       capturedTimeoutMs = options?.timeoutMs;
+      const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+      mkdirSync(runDir, { recursive: true });
+
+      // Create report files
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport());
+      mkdirSync(join(runDir, 'html-report'), { recursive: true });
+      writeFileSync(join(runDir, 'html-report', 'index.html'), '<html></html>');
+
       return {
         runId: '2026-01-01T00-00-00-000Z',
-        runDirectory: join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z'),
+        runDirectory: runDir,
         projectConfigPath: configPath,
         projectId: 'cli-test',
         processResult: {
@@ -133,49 +163,16 @@ describe('executeRunCommand - timeout wiring', () => {
       },
     });
 
+    // Create run directory (even though no reports, simulating timeout)
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+    mkdirSync(runDir, { recursive: true });
+
     const { executeRunCommand } = await import('../../../src/cli/run-command.js');
     const exitCode = await executeRunCommand(configPath);
 
     // Timeout should result in non-zero exit code
     expect(exitCode).not.toBe(0);
     expect(exitCode).toBe(1);
-  });
-
-  it('should classify timeout distinctly from ordinary test failure', async () => {
-    const { determineProvisionalOutcome } = await import('../../../src/cli/output.js');
-    type Signals = NodeJS.Signals;
-
-    // Mock runner to return a timed-out result
-    const timedOutResult = {
-      exitCode: null as number | null,
-      signal: 'SIGTERM' as Signals | null,
-      stdout: '',
-      stderr: '',
-      startTime: '2026-01-01T00:00:00.000Z',
-      endTime: '2026-01-01T00:30:00.000Z',
-      duration: 1800000,
-      timedOut: true,
-    };
-
-    // Mock runner for ordinary failure
-    const failureResult = {
-      exitCode: 1,
-      signal: null as Signals | null,
-      stdout: '',
-      stderr: '',
-      startTime: '2026-01-01T00:00:00.000Z',
-      endTime: '2026-01-01T00:00:10.000Z',
-      duration: 10000,
-      timedOut: false,
-    };
-
-    // Verify classification is different
-    const timeoutOutcome = determineProvisionalOutcome(timedOutResult);
-    const failureOutcome = determineProvisionalOutcome(failureResult);
-
-    expect(timeoutOutcome).toBe('TIMEOUT');
-    expect(failureOutcome).toBe('PROVISIONAL FAILURE');
-    expect(timeoutOutcome).not.toBe(failureOutcome);
   });
 });
 
@@ -220,25 +217,34 @@ describe('executeRunCommand - exit codes', () => {
     }
   });
 
-  it('should return exit code 0 for successful run', async () => {
+  it('should return exit code 0 for successful run with complete report', async () => {
     const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
     const mockedRunner = vi.mocked(runPlaywrightTests);
 
-    mockedRunner.mockResolvedValue({
-      runId: '2026-01-01T00-00-00-000Z',
-      runDirectory: join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z'),
-      projectConfigPath: configPath,
-      projectId: 'exit-test',
-      processResult: {
-        exitCode: 0,
-        signal: null,
-        stdout: '',
-        stderr: '',
-        startTime: '2026-01-01T00:00:00.000Z',
-        endTime: '2026-01-01T00:00:10.000Z',
-        duration: 10000,
-        timedOut: false,
-      },
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+
+    mockedRunner.mockImplementation(async () => {
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport());
+      mkdirSync(join(runDir, 'html-report'), { recursive: true });
+      writeFileSync(join(runDir, 'html-report', 'index.html'), '<html></html>');
+
+      return {
+        runId: '2026-01-01T00-00-00-000Z',
+        runDirectory: runDir,
+        projectConfigPath: configPath,
+        projectId: 'exit-test',
+        processResult: {
+          exitCode: 0,
+          signal: null,
+          stdout: '',
+          stderr: '',
+          startTime: '2026-01-01T00:00:00.000Z',
+          endTime: '2026-01-01T00:00:10.000Z',
+          duration: 10000,
+          timedOut: false,
+        },
+      };
     });
 
     const { executeRunCommand } = await import('../../../src/cli/run-command.js');
@@ -251,21 +257,30 @@ describe('executeRunCommand - exit codes', () => {
     const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
     const mockedRunner = vi.mocked(runPlaywrightTests);
 
-    mockedRunner.mockResolvedValue({
-      runId: '2026-01-01T00-00-00-000Z',
-      runDirectory: join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z'),
-      projectConfigPath: configPath,
-      projectId: 'exit-test',
-      processResult: {
-        exitCode: 1,
-        signal: null,
-        stdout: '',
-        stderr: '',
-        startTime: '2026-01-01T00:00:00.000Z',
-        endTime: '2026-01-01T00:00:10.000Z',
-        duration: 10000,
-        timedOut: false,
-      },
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+
+    mockedRunner.mockImplementation(async () => {
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport({ expected: 0, unexpected: 1 }));
+      mkdirSync(join(runDir, 'html-report'), { recursive: true });
+      writeFileSync(join(runDir, 'html-report', 'index.html'), '<html></html>');
+
+      return {
+        runId: '2026-01-01T00-00-00-000Z',
+        runDirectory: runDir,
+        projectConfigPath: configPath,
+        projectId: 'exit-test',
+        processResult: {
+          exitCode: 1,
+          signal: null,
+          stdout: '',
+          stderr: '',
+          startTime: '2026-01-01T00:00:00.000Z',
+          endTime: '2026-01-01T00:00:10.000Z',
+          duration: 10000,
+          timedOut: false,
+        },
+      };
     });
 
     const { executeRunCommand } = await import('../../../src/cli/run-command.js');
@@ -278,28 +293,109 @@ describe('executeRunCommand - exit codes', () => {
     const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
     const mockedRunner = vi.mocked(runPlaywrightTests);
 
-    mockedRunner.mockResolvedValue({
-      runId: '2026-01-01T00-00-00-000Z',
-      runDirectory: join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z'),
-      projectConfigPath: configPath,
-      projectId: 'exit-test',
-      processResult: {
-        exitCode: 0,
-        signal: null,
-        stdout: '',
-        stderr: '',
-        startTime: '2026-01-01T00:00:00.000Z',
-        endTime: '2026-01-01T00:00:10.000Z',
-        duration: 10000,
-        timedOut: false,
-        cleanup: {
-          requested: true,
-          success: false,
-          method: 'taskkill',
-          duration: 100,
-          error: 'Cleanup failed',
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+
+    mockedRunner.mockImplementation(async () => {
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport());
+      mkdirSync(join(runDir, 'html-report'), { recursive: true });
+      writeFileSync(join(runDir, 'html-report', 'index.html'), '<html></html>');
+
+      return {
+        runId: '2026-01-01T00-00-00-000Z',
+        runDirectory: runDir,
+        projectConfigPath: configPath,
+        projectId: 'exit-test',
+        processResult: {
+          exitCode: 0,
+          signal: null,
+          stdout: '',
+          stderr: '',
+          startTime: '2026-01-01T00:00:00.000Z',
+          endTime: '2026-01-01T00:00:10.000Z',
+          duration: 10000,
+          timedOut: false,
+          cleanup: {
+            requested: true,
+            success: false,
+            method: 'taskkill',
+            duration: 100,
+            error: 'Cleanup failed',
+          },
         },
-      },
+      };
+    });
+
+    const { executeRunCommand } = await import('../../../src/cli/run-command.js');
+    const exitCode = await executeRunCommand(configPath);
+
+    expect(exitCode).toBe(1);
+  });
+
+  it('should return exit code 1 for partial report (missing HTML)', async () => {
+    const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
+    const mockedRunner = vi.mocked(runPlaywrightTests);
+
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+
+    mockedRunner.mockImplementation(async () => {
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport());
+      // Do NOT create html-report
+
+      return {
+        runId: '2026-01-01T00-00-00-000Z',
+        runDirectory: runDir,
+        projectConfigPath: configPath,
+        projectId: 'exit-test',
+        processResult: {
+          exitCode: 0,
+          signal: null,
+          stdout: '',
+          stderr: '',
+          startTime: '2026-01-01T00:00:00.000Z',
+          endTime: '2026-01-01T00:00:10.000Z',
+          duration: 10000,
+          timedOut: false,
+        },
+      };
+    });
+
+    const { executeRunCommand } = await import('../../../src/cli/run-command.js');
+    const exitCode = await executeRunCommand(configPath);
+
+    expect(exitCode).toBe(1);
+  });
+
+  it('should return exit code 1 for output incomplete', async () => {
+    const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
+    const mockedRunner = vi.mocked(runPlaywrightTests);
+
+    const runDir = join(tempDir, 'artifacts', '2026-01-01T00-00-00-000Z');
+
+    mockedRunner.mockImplementation(async () => {
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(join(runDir, 'results.json'), createValidJsonReport());
+      mkdirSync(join(runDir, 'html-report'), { recursive: true });
+      writeFileSync(join(runDir, 'html-report', 'index.html'), '<html></html>');
+
+      return {
+        runId: '2026-01-01T00-00-00-000Z',
+        runDirectory: runDir,
+        projectConfigPath: configPath,
+        projectId: 'exit-test',
+        processResult: {
+          exitCode: 0,
+          signal: null,
+          stdout: '',
+          stderr: '',
+          startTime: '2026-01-01T00:00:00.000Z',
+          endTime: '2026-01-01T00:00:10.000Z',
+          duration: 10000,
+          timedOut: false,
+          outputIncomplete: true,
+        },
+      };
     });
 
     const { executeRunCommand } = await import('../../../src/cli/run-command.js');

@@ -2,19 +2,26 @@
  * Run command implementation
  *
  * Executes Playwright tests for a configured project.
- * Reuses the shared config loader and generic runner.
+ * Reuses the shared config loader, runner, and report reconciliation.
  */
 
 import { resolve, isAbsolute } from 'node:path';
 import { loadProjectConfig, ConfigValidationError } from '../projects/index.js';
-import { runPlaywrightTests, ProcessStartupError } from '../test-execution/index.js';
+import {
+  runPlaywrightTests,
+  ProcessStartupError,
+  createCollisionSafeRunDirectory,
+} from '../test-execution/index.js';
+import {
+  reconcileRunResult,
+  shouldExitNonZero,
+} from '../reporting/index.js';
 import {
   displayRunStart,
   displayRunComplete,
   displayStartupError,
   displayError,
-  determineProvisionalOutcome,
-  type ProvisionalOutcome,
+  displaySpawnFailure,
 } from './output.js';
 
 /**
@@ -70,56 +77,34 @@ export async function executeRunCommand(configPath: string): Promise<number> {
     });
   } catch (err) {
     if (err instanceof ProcessStartupError) {
-      displayError('Playwright process failed to start', err.message);
-    } else {
-      displayStartupError(err as Error);
+      // Process startup failed - create a minimal run directory for artifacts
+      const { runId, runDirectory } = createCollisionSafeRunDirectory(
+        config.resolvedArtifactDirectory
+      );
+
+      displaySpawnFailure(
+        config.projectId,
+        runId,
+        runDirectory,
+        err
+      );
+      return EXIT_FAILURE;
     }
+    displayStartupError(err as Error);
     return EXIT_FAILURE;
   }
 
-  // Determine provisional outcome
-  const outcome = determineProvisionalOutcome(metadata.processResult);
+  // Reconcile process evidence with report evidence
+  const result = reconcileRunResult({
+    processResult: metadata.processResult,
+    runDir: metadata.runDirectory,
+  });
 
-  // Display completion information
-  displayRunComplete(metadata, outcome);
+  // Display completion information with final status
+  displayRunComplete(metadata, result);
 
-  // Determine exit code based on outcome
-  return determineExitCode(outcome, metadata.processResult);
-}
-
-/**
- * Determine CLI exit code from provisional outcome.
- *
- * Exit 0 only when:
- * - Runner process exit code is 0
- * - Run did not time out
- * - No startup/cleanup errors
- * - Output collection was complete
- *
- * Non-zero exit for:
- * - Non-zero runner exit
- * - Timeout
- * - Invalid config (handled above)
- * - Spawn error (handled above)
- * - Cleanup failure
- * - Output incomplete
- */
-function determineExitCode(
-  outcome: ProvisionalOutcome,
-  processResult: { cleanup?: { success: boolean }; outputIncomplete?: boolean }
-): number {
-  // Any non-success outcome is a failure
-  if (outcome !== 'PROVISIONAL SUCCESS') {
-    return EXIT_FAILURE;
-  }
-
-  // Cleanup failure forces non-zero exit
-  if (processResult.cleanup && !processResult.cleanup.success) {
-    return EXIT_FAILURE;
-  }
-
-  // Output incomplete forces non-zero exit (unverified result)
-  if (processResult.outputIncomplete) {
+  // Determine exit code
+  if (shouldExitNonZero(result, metadata.processResult)) {
     return EXIT_FAILURE;
   }
 
