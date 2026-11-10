@@ -635,6 +635,21 @@ Requirements
 8. Keep CLI argument parsing/output separate from runner and application logic.
 9. Compile platform TypeScript to dist/ and execute emitted JavaScript with Node.js, following the package setup from Task 1.1.
 
+Additional Task 1.6 requirements
+
+Default runner timeout
+- When the CLI starts a run, supply a default runner timeout of 30 minutes (30 * 60 * 1000 ms) through the existing RunOptions.timeoutMs option.
+- Do not add this setting to project.config.json, and do not hard-code a default inside the runner. Keep the runner's timeout configurable through RunOptions for future callers.
+- Wait for timeout termination and process cleanup to complete before the CLI prints the final status.
+- A timed-out run must be reported as a PROVISIONAL timeout with a non-zero exit code, not as an ordinary test failure. Do not implement the final status/reason model; that is Task 1.7.
+
+Cleanup and output evidence
+- Confirm the runner result exposes timedOut, cleanup, and outputIncomplete to the CLI. If outputIncomplete is dropped between process-manager and runner, pass it through with the smallest change.
+- Never treat a cleanup failure as successful termination. The CLI shows a clear warning when cleanup failed or output was incomplete, and either condition forces a non-zero exit.
+
+Verification and reporting
+- Run any manual PowerShell verification inside a single powershell.exe -NoProfile -Command invocation.
+- In the final report, paste the raw Vitest summary lines. Do not produce a per-file test count table.
 Expected fixture behavior at this interim stage:
 - passing: provisional success, CLI exit 0 if runner exit code is 0 and no timeout/runner error.
 - failing: provisional failure, non-zero CLI exit.

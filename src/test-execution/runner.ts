@@ -17,6 +17,107 @@ import {
 } from './process-manager.js';
 
 /**
+ * Result of creating a collision-safe run directory.
+ */
+export interface RunDirectoryResult {
+  /** Unique run identifier (UTC timestamp-based, possibly with suffix) */
+  runId: string;
+  /** Absolute path to the created run directory */
+  runDirectory: string;
+}
+
+/**
+ * Options for creating a run directory.
+ */
+export interface CreateRunDirectoryOptions {
+  /** Maximum number of collision retry attempts (default: 10) */
+  maxAttempts?: number;
+}
+
+/**
+ * Create a collision-safe run directory in the artifact directory.
+ *
+ * This function is extracted from runPlaywrightTests for testability.
+ * It handles:
+ * - Creating the parent artifact directory if missing
+ * - Generating a unique run ID with collision suffixes
+ * - Atomic directory creation (throws EEXIST if already exists)
+ * - Retrying up to maxAttempts times on collision
+ *
+ * @param artifactDirectory - Absolute path to the artifact directory
+ * @param options - Optional configuration
+ * @returns The run ID and run directory path
+ * @throws Error if directory creation fails after all attempts
+ */
+export function createCollisionSafeRunDirectory(
+  artifactDirectory: string,
+  options: CreateRunDirectoryOptions = {}
+): RunDirectoryResult {
+  const maxAttempts = options.maxAttempts ?? 10;
+
+  // Ensure parent artifact directory exists
+  if (!existsSync(artifactDirectory)) {
+    try {
+      mkdirSync(artifactDirectory, { recursive: true });
+    } catch (err) {
+      throw new Error(
+        `Failed to create artifact directory: ${(err as Error).message}. ` +
+        `Path: ${artifactDirectory}`
+      );
+    }
+  }
+
+  // Generate collision-safe run ID and create directory atomically
+  let runId: string | undefined;
+  let runDirectory: string | undefined;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    const candidateRunId = generateRunId(artifactDirectory);
+    const candidateRunDirectory = join(artifactDirectory, candidateRunId);
+
+    try {
+      // Create run directory WITHOUT recursive flag
+      // This will throw EEXIST if the directory already exists
+      mkdirSync(candidateRunDirectory, { recursive: false });
+      // Success - directory created atomically
+      runId = candidateRunId;
+      runDirectory = candidateRunDirectory;
+      break;
+    } catch (err) {
+      const nodeErr = err as NodeJS.ErrnoException;
+      if (nodeErr.code === 'EEXIST') {
+        // Directory already exists (collision detected)
+        // Try again with a new timestamp
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw new Error(
+            `Failed to create unique run directory after ${maxAttempts} attempts. ` +
+            `Last attempted: ${candidateRunDirectory}`
+          );
+        }
+        // Continue to next iteration
+        continue;
+      }
+      // Other error - fail immediately
+      throw new Error(
+        `Failed to create run directory: ${nodeErr.message}. ` +
+        `Path: ${candidateRunDirectory}`
+      );
+    }
+  }
+
+  // This should never happen if maxAttempts > 0
+  if (!runId || !runDirectory) {
+    throw new Error(
+      'Failed to create run directory: maximum attempts reached without success'
+    );
+  }
+
+  return { runId, runDirectory };
+}
+
+/**
  * Options for running tests.
  */
 export interface RunOptions {
@@ -86,67 +187,10 @@ export async function runPlaywrightTests(
   config: ResolvedConfig,
   options: RunOptions = {}
 ): Promise<RunMetadata> {
-  // Ensure parent artifact directory exists
-  // Use recursive creation for the parent directory only
-  if (!existsSync(config.resolvedArtifactDirectory)) {
-    try {
-      mkdirSync(config.resolvedArtifactDirectory, { recursive: true });
-    } catch (err) {
-      throw new Error(
-        `Failed to create artifact directory: ${(err as Error).message}. ` +
-        `Path: ${config.resolvedArtifactDirectory}`
-      );
-    }
-  }
-
-  // Generate collision-safe run ID and create directory atomically
-  // Try up to 10 times in case of rapid concurrent executions
-  let runId: string | undefined;
-  let runDirectory: string | undefined;
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  while (attempts < maxAttempts) {
-    const candidateRunId = generateRunId(config.resolvedArtifactDirectory);
-    const candidateRunDirectory = join(config.resolvedArtifactDirectory, candidateRunId);
-
-    try {
-      // Create run directory WITHOUT recursive flag
-      // This will throw EEXIST if the directory already exists
-      mkdirSync(candidateRunDirectory, { recursive: false });
-      // Success - directory created atomically
-      runId = candidateRunId;
-      runDirectory = candidateRunDirectory;
-      break;
-    } catch (err) {
-      const nodeErr = err as NodeJS.ErrnoException;
-      if (nodeErr.code === 'EEXIST') {
-        // Directory already exists (collision detected)
-        // Try again with a new timestamp
-        attempts++;
-        if (attempts >= maxAttempts) {
-          throw new Error(
-            `Failed to create unique run directory after ${maxAttempts} attempts. ` +
-            `Last attempted: ${candidateRunDirectory}`
-          );
-        }
-        // Continue to next iteration
-        continue;
-      }
-      // Other error - fail immediately
-      throw new Error(
-        `Failed to create run directory: ${nodeErr.message}. ` +
-        `Path: ${candidateRunDirectory}`
-      );
-    }
-  }
-
-  // Ensure directory was created successfully
-  if (!runId || !runDirectory) {
-    throw new Error(
-      'Failed to create run directory: maximum attempts reached without success'
-    );
-  }
+  // Create collision-safe run directory
+  const { runId, runDirectory } = createCollisionSafeRunDirectory(
+    config.resolvedArtifactDirectory
+  );
 
   // Resolve Playwright CLI entry point from installed package
   const cliPath = resolvePlaywrightCli();

@@ -107,3 +107,4 @@ For each task, report:
 - Remaining risks or assumptions
 
 Never claim a check passed unless it was actually executed and its output observed.
+Never delete files or folders you did not create in the current task (including artifact and run folders). Ask the user first.

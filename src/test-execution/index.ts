@@ -6,10 +6,13 @@
 
 export {
   runPlaywrightTests,
+  createCollisionSafeRunDirectory,
   type RunOptions,
   type RunMetadata,
   type ProcessResult,
   type CleanupResult,
+  type RunDirectoryResult,
+  type CreateRunDirectoryOptions,
 } from './runner.js';
 export { generateRunId } from './run-id.js';
 export { resolvePlaywrightCli } from './playwright-cli.js';
