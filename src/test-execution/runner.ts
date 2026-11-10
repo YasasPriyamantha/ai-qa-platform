@@ -5,7 +5,7 @@
  * Supports runner-level timeout with cross-platform process tree/group cleanup.
  */
 
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ResolvedConfig } from '../projects/config.js';
 import { generateRunId } from './run-id.js';
@@ -13,7 +13,7 @@ import { resolvePlaywrightCli } from './playwright-cli.js';
 import {
   launchPlaywrightProcess,
   type ProcessResult,
-  type CleanupResult,
+  type LogPersistenceResult,
 } from './process-manager.js';
 
 /**
@@ -166,7 +166,59 @@ export interface RunMetadata {
 }
 
 // Re-export types for convenience
-export type { ProcessResult, CleanupResult };
+export type { ProcessResult, LogPersistenceResult } from './process-manager.js';
+export type { CleanupResult } from './process-cleanup.js';
+
+/**
+ * Persist captured stdout and stderr to log files (DEC-016).
+ *
+ * Creates <run-dir>/logs/ containing stdout.log and stderr.log.
+ * Preserves available output for successful runs, test failures, timeouts, and process errors.
+ *
+ * @param runDirectory - Absolute path to the run directory
+ * @param stdout - Captured stdout content
+ * @param stderr - Captured stderr content
+ * @returns Result indicating what was persisted
+ */
+export function persistExecutionLogs(
+  runDirectory: string,
+  stdout: string,
+  stderr: string
+): LogPersistenceResult {
+  const logsDir = join(runDirectory, 'logs');
+  const result: LogPersistenceResult = {
+    logsDirectoryCreated: false,
+    stdoutWritten: false,
+    stderrWritten: false,
+  };
+
+  try {
+    // Create logs directory
+    mkdirSync(logsDir, { recursive: true });
+    result.logsDirectoryCreated = true;
+
+    // Write stdout.log (may be empty)
+    try {
+      writeFileSync(join(logsDir, 'stdout.log'), stdout, 'utf-8');
+      result.stdoutWritten = true;
+    } catch (err) {
+      result.error = `Failed to write stdout.log: ${(err as Error).message}`;
+    }
+
+    // Write stderr.log (may be empty)
+    try {
+      writeFileSync(join(logsDir, 'stderr.log'), stderr, 'utf-8');
+      result.stderrWritten = true;
+    } catch (err) {
+      const msg = `Failed to write stderr.log: ${(err as Error).message}`;
+      result.error = result.error ? `${result.error}; ${msg}` : msg;
+    }
+  } catch (err) {
+    result.error = `Failed to create logs directory: ${(err as Error).message}`;
+  }
+
+  return result;
+}
 
 /**
  * Execute Playwright Test for a validated project configuration.
@@ -222,11 +274,26 @@ export async function runPlaywrightTests(
     onStderr: options.onStderr,
   });
 
+  // Persist captured stdout and stderr to log files (DEC-016)
+  // This preserves output for successful runs, failures, timeouts, and process errors
+  const logResult = persistExecutionLogs(
+    runDirectory,
+    processResult.stdout,
+    processResult.stderr
+  );
+
+  // Include log persistence status in process result for diagnostic purposes
+  // (The result is informational; log persistence failures don't change run status)
+  const processResultWithLogs: ProcessResult = {
+    ...processResult,
+    logPersistence: logResult,
+  };
+
   return {
     runId,
     runDirectory,
     projectConfigPath: config.configPath,
     projectId: config.projectId,
-    processResult,
+    processResult: processResultWithLogs,
   };
 }

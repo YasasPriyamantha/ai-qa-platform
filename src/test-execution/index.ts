@@ -7,10 +7,12 @@
 export {
   runPlaywrightTests,
   createCollisionSafeRunDirectory,
+  persistExecutionLogs,
   type RunOptions,
   type RunMetadata,
   type ProcessResult,
   type CleanupResult,
+  type LogPersistenceResult,
   type RunDirectoryResult,
   type CreateRunDirectoryOptions,
 } from './runner.js';

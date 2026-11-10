@@ -398,6 +398,8 @@ describe('reconcileRunResult', () => {
       expect(result.primaryReason).toBe('playwright_process_error');
       expect(result.primaryMessage).toContain('interrupted');
       expect(result.additionalFindings.some((f) => f.code === 'tests_interrupted')).toBe(true);
+      // CRITICAL: tests_interrupted is NEVER a primary reason (DEC-027)
+      expect(result.primaryReason).not.toBe('tests_interrupted');
     });
 
     it('should treat interrupted tests as higher priority than test_failures', () => {
@@ -409,6 +411,8 @@ describe('reconcileRunResult', () => {
       expect(result.primaryReason).toBe('playwright_process_error');
       // test_failures should be noted as additional finding
       expect(result.additionalFindings.some((f) => f.message.includes('failed before interruption'))).toBe(true);
+      // CRITICAL: tests_interrupted is NEVER a primary reason (DEC-027)
+      expect(result.primaryReason).not.toBe('tests_interrupted');
     });
 
     it('should add tests_interrupted finding when runner timeout fires with interrupted tests', () => {
@@ -427,6 +431,8 @@ describe('reconcileRunResult', () => {
       expect(result.runStatus).toBe('timed_out');
       expect(result.primaryReason).toBe('runner_timeout');
       expect(result.additionalFindings.some((f) => f.code === 'tests_interrupted')).toBe(true);
+      // CRITICAL: tests_interrupted is NEVER a primary reason (DEC-027)
+      expect(result.primaryReason).not.toBe('tests_interrupted');
     });
 
     it('should handle interrupted tests with otherwise passing tests', () => {
@@ -438,6 +444,8 @@ describe('reconcileRunResult', () => {
       expect(result.primaryReason).toBe('playwright_process_error');
       expect(result.stats.passed).toBe(2);
       expect(result.stats.failed).toBe(0); // Interrupted tests not counted as failed
+      // CRITICAL: tests_interrupted is NEVER a primary reason (DEC-027)
+      expect(result.primaryReason).not.toBe('tests_interrupted');
     });
 
     it('should never classify interrupted run as passed', () => {
@@ -447,6 +455,8 @@ describe('reconcileRunResult', () => {
 
       expect(result.runStatus).not.toBe('passed');
       expect(result.runStatus).toBe('infrastructure_error');
+      // CRITICAL: tests_interrupted is NEVER a primary reason (DEC-027)
+      expect(result.primaryReason).not.toBe('tests_interrupted');
     });
   });
 });

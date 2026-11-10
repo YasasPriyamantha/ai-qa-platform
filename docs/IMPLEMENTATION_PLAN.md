@@ -1,8 +1,9 @@
 # Implementation Plan — AI-Powered QA Automation Platform
 
-**Document status:** Revised Phase 0 baseline, ready for Phase 1  
-**Planning style:** Small, verifiable increments  
+**Document status:** Phase 1 complete; ready for feasibility spike and Phase 2 breakdown
+**Planning style:** Small, verifiable increments
 **Estimated focused effort:** Approximately 113–196 hours, including the separate local AI/MCP feasibility spike; re-estimate after each phase
+**Actual Phase 1 effort:** To be filled in by the user
 
 ---
 
@@ -170,6 +171,8 @@ Tasks:
 
 **Verification:** Provide actual command output or observed results for the environment and Git checks. Do not initialize Git or overwrite files as part of this read-only task.
 
+**Status:** Complete.
+
 ### Task 1.1 — TypeScript foundation and platform test setup
 
 **Effort:** 1.5–2 hours.
@@ -193,6 +196,8 @@ Tasks:
 
 **Verification:** Run the actual build, type-check, and Vitest commands. Confirm a Playwright `.spec.ts` fixture is not picked up by Vitest.
 
+**Status:** Complete.
+
 ### Task 1.2 — Install Playwright Test and create the permanent config entry point
 
 **Effort:** 45–75 minutes.
@@ -210,6 +215,8 @@ Tasks:
 **Acceptance criteria:** `@playwright/test` is installed; the matching browser can launch; the one root Playwright config exists; no per-project or fixture-specific Playwright config is created.
 
 **Verification:** Record actual installed Playwright version and browser launch result. Do not assume a cached browser is compatible merely because it exists.
+
+**Status:** Complete.
 
 ### Task 1.3 — Execution configuration schema, loader, and validation
 
@@ -247,6 +254,8 @@ Tasks:
 **Acceptance criteria:** A valid config loads; missing/malformed config, invalid URL/domain, missing test directory, escaping path, missing environment variables, and invalid run directory all fail before browser launch. The same config file is used for all target and fixture projects.
 
 **Verification:** Add Vitest tests for the config loader/validator, including path traversal, unsupported environment values (including `production`), allowed localhost HTTP, rejected non-localhost HTTP, and missing/invalid environment inputs. Confirm the Playwright config reports a clear failure when either required environment variable is absent.
+
+**Status:** Complete. Uses custom runtime validator (DEC-026) rather than Zod.
 
 ### Task 1.4 — Create the SauceDemo example project and smoke test
 
@@ -292,7 +301,9 @@ If PowerShell blocks `npx` with an execution-policy error, use `npx.cmd playwrig
 
 Do not create a SauceDemo-specific Playwright config or invent a temporary shortcut config. Record the actual commands and result; Task 1.5 will later automate this same environment-variable path.
 
-### Task 1.5 — Build the Playwright runner service and deterministic fixtures
+**Status:** Complete. SauceDemo smoke test verified through CLI.
+
+### Task 1.5 (split into 1.5a and 1.5b) — Build the Playwright runner service and deterministic fixtures
 
 **Effort:** 3.5–5 hours.
 
@@ -348,6 +359,8 @@ Process termination requirements:
 
 **Verification:** Run all four fixtures and record actual results. On Windows, verify process cleanup manually. Test runner startup failure and cleanup failure handling where practical.
 
+**Status:** Complete. Task was split into 1.5a (runner service) and 1.5b (fixtures and process cleanup). Windows timeout cleanup verified manually with Task Manager. Linux/macOS process-group cleanup not verified (no test environment available).
+
 ### Task 1.6 — Build the CLI execution command
 
 **Effort:** 1–1.5 hours.
@@ -373,6 +386,8 @@ Tasks:
 **Acceptance criteria:** A user can execute SauceDemo and each local fixture using the same documented CLI command shape and a different config path. Invalid configuration stops before browser launch.
 
 **Verification:** Run valid and invalid CLI invocations and inspect their actual exit codes.
+
+**Status:** Complete. CLI includes 30-minute timeout (verified by unit test only).
 
 ### Task 1.7 — Implement report collection, parsing, and execution summary
 
@@ -408,6 +423,8 @@ Tasks:
 
 **Verification:** Test passing, failing, no-tests, and hanging fixtures. Include a parser test for a valid report with a top-level error and a deliberately inconsistent process/report combination. Confirm the HTML reporter does not open a browser or leave the process waiting for user input.
 
+**Status:** Complete. JSON and HTML reports persisted; logs/ directory added for stdout/stderr capture.
+
 ### Task 1.8 — Final Phase 1 integration and verification
 
 **Effort:** 3.5–5 hours.
@@ -441,6 +458,34 @@ Tasks:
 - Build, type-check, and relevant tests pass with observed evidence.
 
 **Final output from the coding assistant:** List changed files, commands actually run, test/build/type-check results, artifacts produced, unverified items, and remaining risks. Do not state that Phase 1 is complete unless all exit criteria are met.
+
+**Status:** Complete.
+
+### Phase 1 completion summary
+
+**Verification evidence:**
+
+- 209 tests passing (Vitest unit and integration tests)
+- `npm run build` passing
+- `npm run typecheck` passing
+- All four runner fixtures verified through CLI (passing, failing, no-tests, hanging)
+- SauceDemo smoke test verified through CLI
+- Windows timeout cleanup verified manually (Task Manager inspection)
+- JSON reports (`results.json`) persisted in run directories
+- HTML reports (`html-report/`) persisted in run directories
+- Logs (`logs/stdout.log`, `logs/stderr.log`) persisted in run directories
+
+**Decisions added during Phase 1:**
+
+- DEC-026: Custom config validator — Uses a hand-written runtime validator instead of Zod to avoid adding a dependency for Phase 1's simple schema
+- DEC-027: interrupted/timedOut mapping — Maps Playwright's `interrupted` and `timedOut` test statuses to run-level `timed_out` status when runner timeout fired
+
+**Limitations:**
+
+- Linux/macOS process-group cleanup: Implemented but not verified (no test environment available on Windows)
+- 30-minute CLI timeout: Verified by unit test only; not exercised in real-time integration test
+
+**Actual effort:** To be filled in by the user.
 
 ## 6. Phase 2 — Project and workflow-document management
 
@@ -593,11 +638,8 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Confirm the four documents are present in `D:\ai-qa-platform\docs\`.
-2. Run Task 1.0, the read-only repository and environment audit.
-3. Resolve any missing Phase 0 setup items without overwriting existing work.
-4. Begin Task 1.1 only after the audit is reviewed.
-5. Schedule the local AI/MCP feasibility spike after the repository audit and before substantial implementation in Phases 3–5. It does not block Phase 1.
+1. Run the local AI/MCP feasibility spike (Pre-Phase 3) to validate the riskiest product assumption before investing in AI-dependent phases.
+2. Based on feasibility spike results, create the detailed Phase 2 task breakdown.
 
 ## References
 

@@ -922,16 +922,77 @@ Requirements
 5. Verify safe process launch, timeout behavior, OS-specific cleanup, readiness-marker test, and cleanup evidence.
 6. Verify the Task 1.7 reporter set includes terminal progress/output plus JSON and HTML; HTML uses open: never; test-output and html-report are siblings. Confirm the Task 1.5b readiness marker reaches the runner's captured stdout while the hanging process is active after all reporters are configured.
 7. Verify status precedence, including spawn failure and missing JSON with non-zero exit mapping to primary playwright_process_error; verify report_invalid remains primary for malformed JSON or missing JSON with exit code 0. Verify additional findings, the required-report rule, terminal marker forwarding, and all CLI exit codes.
+### Interrupted-test classification
+
+Read and follow the latest `docs/DECISIONS.md`, including DEC-027, which amends DEC-021.
+
+Verify that:
+
+- Individual Playwright `timedOut` maps to normalized test status `failed`.
+- Individual Playwright `interrupted` is retained separately and is not counted as an ordinary test failure or skipped test.
+- `tests_interrupted` appears only as an additional finding, never as a primary reason.
+- Interrupted tests without a platform runner timeout produce run status `infrastructure_error` and primary reason `playwright_process_error`.
+- Interrupted tests during a platform runner timeout retain run status `timed_out` and primary reason `runner_timeout`.
+- Ordinary test-failure information is not discarded when interrupted and failed tests appear together.
+- The CLI displays these findings accurately.
+- Add or retain explicit assertions that the primary reason is never `tests_interrupted`.
+
+Do not change the established normalized individual test status enum or introduce a new primary reason solely for interrupted tests.
 8. Verify Vitest includes only tests/unit/**/*.test.ts and tests/integration/**/*.test.ts and excludes tests/fixtures/** and project-data/**.
 9. Verify no-emit type checking includes src/, root Playwright config, Vitest tests, fixtures, and target-project Playwright tests.
 10. Verify production build emits only src/ into dist/.
 11. Verify .gitignore excludes generated artifacts under both project-data/**/artifacts/ and tests/fixtures/**/artifacts/, while preserving fixture source/configuration and approved project tests.
+### Run artifact ownership and preservation
+
+- Inspect all test setup and teardown code, including `beforeEach`, `afterEach`, `beforeAll`, `afterAll`, temporary-directory cleanup, and filesystem removal operations.
+- Tests must only delete run directories that they created and can identify as their own.
+- Never recursively delete an entire configured project or fixture `artifacts/` directory merely to clean up after a test.
+- If a test creates an isolated temporary project root, it may clean up that temporary root only when the entire root was created and owned by that test.
+- Narrow any existing cleanup operation that removes an entire artifacts directory to the exact run directories created by that test.
+- Add a regression test that creates a pre-existing run directory containing a sentinel file, performs another run, and verifies that the pre-existing directory and its contents remain unchanged.
+- Confirm that earlier manual runs and reports are preserved.
+- Do not automatically delete historical run artifacts after test execution.
 12. Verify AGENTS.md contains concise standing rules, preserves other instructions, and does not claim a skill file is available if it is not.
-13. Run passing, failing, no-tests, and hanging fixtures through the CLI.
+13. Run the passing, failing, and no-tests fixtures through the CLI. For controlled hanging-fixture timeout and process-cleanup verification, use the existing runner integration test in `tests/integration/test-execution/runner.test.ts` with its existing short timeout.
+
+Do not invoke the hanging fixture through the CLI using its 30-minute default timeout. Do not add a CLI timeout flag, configuration property, or environment variable to shorten the timeout.
+
+Verify that:
+- The existing integration test observes the `FIXTURE_PAGE_READY` marker.
+- The platform's own runner timeout fires.
+- The Playwright child process and process tree are terminated.
+- The result is classified as `timed_out` with primary reason `runner_timeout`.
+- Cleanup failures and incomplete output are preserved as additional findings when applicable.
+- The existing CLI unit tests still verify timeout classification and non-zero exit behavior.
+
+Do not use an external Bash `timeout` command to simulate the platform timeout.
 14. Run SauceDemo smoke test through the CLI and root config.
 15. Verify invalid config and missing environment variables stop before browser launch.
 16. Inspect results.json and html-report/index.html. Verify missing HTML yields report partial and non-zero CLI; missing JSON with non-zero process exit yields primary playwright_process_error plus report_invalid additional; missing JSON with exit code 0 or malformed JSON without timeout yields primary report_invalid; timeout remains primary when it overlaps other problems.
+### Persistent execution logs
+
+Implement and verify the run-log persistence required by DEC-016.
+
+- Create `<run-dir>/logs/` for each execution.
+- Persist captured stdout and stderr in separate files, preferably `stdout.log` and `stderr.log`.
+- Preserve available output for successful runs, test failures, timeouts, and process errors.
+- Ensure log streams are flushed and files are closed appropriately before final run completion.
+- Do not silently discard available output when a process times out or terminates unexpectedly.
+- Do not log environment variables, credentials, or authentication secrets.
+- Add focused tests covering log directory creation, stdout/stderr persistence, and preservation of partial logs when a run is interrupted or times out.
+- Ensure log persistence does not interfere with the existing in-memory stdout/stderr capture or readiness-marker forwarding.
+
+If log collection itself is incomplete, report that limitation honestly rather than claiming complete log collection.
 17. On Windows, inspect tasklist or Task Manager after timeout to check for orphaned Playwright/browser processes.
+### Windows process verification
+
+- Perform a before-and-after process check around the controlled hanging-fixture integration test.
+- Check relevant process names, including `chrome-headless-shell.exe`, `chrome.exe`, and `node.exe`.
+- Compare against the baseline so unrelated processes that existed before the test are not mistaken for orphans.
+- Confirm that processes belonging to the terminated Playwright run do not remain.
+- Do not terminate unrelated Node.js or browser processes.
+- Execute manual PowerShell checks through a single `powershell.exe -NoProfile -Command` invocation when running from Bash.
+- Document that Linux/macOS process-group cleanup remains unverified if no suitable environment is available.
 18. Inspect the full diff for unrelated edits, duplicate validators, duplicate run/status logic, unsafe shell use, Windows detached:true, swallowed errors, missing cleanup, hardcoded SauceDemo logic in core, ignored fixture source, or secrets.
 19. Fix only genuine Phase 1 defects. Document items belonging to later phases rather than expanding scope.
 20. Update docs/IMPLEMENTATION_PLAN.md with actual task status, actual effort where known, verification results, limitations, and deferred issues.
@@ -956,6 +1017,14 @@ Constraints
 - Do not weaken/delete assertions to make tests pass.
 - Preserve all pre-existing user changes.
 - Do not commit, push, or deploy. Provide a suggested commit message only.
+- Record actual effort per Phase 1 task where it can be established.
+- Record that Linux/macOS process-group termination has not been tested
+  if verification was only performed on Windows.
+- Record that the CLI's 30-minute default timeout was verified through
+  unit-level wiring and classification tests, not by waiting 30 minutes.
+- Record whether stdout/stderr persistence was successfully implemented.
+- Record the interrupted-test classification and DEC-027 adoption.
+- List any remaining Phase 1 limitations honestly.
 
 Verification
 

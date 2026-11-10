@@ -48,6 +48,20 @@ export interface ProcessLaunchOptions {
 }
 
 /**
+ * Result of persisting execution logs.
+ */
+export interface LogPersistenceResult {
+  /** Whether logs directory was created */
+  logsDirectoryCreated: boolean;
+  /** Whether stdout was written */
+  stdoutWritten: boolean;
+  /** Whether stderr was written */
+  stderrWritten: boolean;
+  /** Error message if log persistence partially failed */
+  error?: string;
+}
+
+/**
  * Result of a completed process execution.
  */
 export interface ProcessResult {
@@ -84,6 +98,12 @@ export interface ProcessResult {
    * This can happen if a descendant process holds inherited stdio pipes.
    */
   outputIncomplete?: boolean;
+
+  /**
+   * Result of log persistence (DEC-016).
+   * Added by the runner after process completes.
+   */
+  logPersistence?: LogPersistenceResult;
 }
 
 /**
