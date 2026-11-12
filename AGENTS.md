@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 1 implementation in progress
+**Current status:** Phase 1 complete; Phase 2 next
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -40,7 +40,7 @@ This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that
 npm run build      # Compile src/ to dist/
 npm run typecheck  # Type-check all TypeScript (no emit)
 npm test           # Run platform unit/integration tests (Vitest)
-npm run qa         # Execute CLI (placeholder in Phase 1)
+npm run qa -- run --config <path>  # Execute project tests via CLI
 ```
 
 ## Project structure
@@ -80,10 +80,10 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 
 ## Phase boundaries
 
-- **Phase 1 (current):** Generic Playwright execution engine
-  - Build system, configuration, CLI, runner, reporting
+- **Phase 2 (current):** Project and workflow-document management
+  - Project workspaces, document ingestion, requirement schema, role profiles
   - No AI, no MCP, no SQLite, no web UI yet
-  - Deterministic execution must work without AI
+  - Deterministic document and requirement handling
 
 Later phases add AI integration, MCP exploration, test generation, release comparison, and local UI.
 

@@ -90,7 +90,7 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 - [x] Create `IMPLEMENTATION_PLAN.md`.
 - [x] Save the three documents under the repository's `docs/` folder (user-reported).
 - [x] Add `DECISIONS.md` as the supporting architecture/implementation decision log.
-- [ ] Confirm the files are present in the actual repository and commit the reviewed baseline.
+- [x] Confirm the files are present in the actual repository and commit the reviewed baseline.
 
 **Done when:** The documents are in the repository, reviewed, and committed before feature implementation proceeds.
 
@@ -98,9 +98,9 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 
 - [x] Create the new project folder `D:\ai-qa-platform` and its `docs/` folder (user-reported).
 - [x] Place the project documents under `docs/` (user-reported).
-- [ ] Confirm a Git repository exists and is separate from the JavaScript tutorial project.
-- [ ] Add or review a minimal `README.md` linking to the project documents.
-- [ ] Confirm `.gitignore` excludes dependencies, build output, secrets, authentication state, and generated run artifacts without excluding tests.
+- [x] Confirm a Git repository exists and is separate from the JavaScript tutorial project.
+- [x] Add or review a minimal `README.md` linking to the project documents.
+- [x] Confirm `.gitignore` excludes dependencies, build output, secrets, authentication state, and generated run artifacts without excluding tests.
 - [x] Use one bounded coding task per prompt, tests/checks after each change, diff review, and a commit after a working checkpoint.
 
 **Done when:** A clean repository exists with documentation, README, appropriate ignore rules, and a baseline commit. No AI agents or UI need to exist yet.
@@ -113,7 +113,7 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 - [x] The local-first/no-required-paid-AI constraint is recorded.
 - [x] Candidate versus approved tests and safety rules are documented.
 - [x] The architecture separates MCP exploration from Playwright Test execution.
-- [ ] Git state, README, ignore rules, and baseline commit are verified in the local repository.
+- [x] Git state, README, ignore rules, and baseline commit are verified in the local repository.
 
 ## 4. Pre-Phase 3 — Local AI and Playwright MCP feasibility spike
 

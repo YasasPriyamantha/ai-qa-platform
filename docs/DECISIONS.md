@@ -55,25 +55,29 @@ A decision may be revisited when evidence or requirements change. When that happ
 
 ## DEC-006 — Local AI first; hosted provider optional
 
-**Status:** Accepted
+**Status:** Superseded by DEC-028
 
-**Decision:** No paid AI API or paid Playwright feature is mandatory. Begin with a local model provider (candidate: Ollama) behind a replaceable provider interface. An optional hosted provider may be added later.
+**Supersession note:** The local-model-first requirement is superseded by DEC-028, which adopts a hosted AI provider API for model inference. The principle that paid AI usage is not mandatory without user approval remains valid.
 
-**Reason:** The user's first implementation should run without required subscription/API spending while retaining the option to use a stronger provider later.
+**Original decision:** No paid AI API or paid Playwright feature is mandatory. Begin with a local model provider (candidate: Ollama) behind a replaceable provider interface. An optional hosted provider may be added later.
 
-**Consequence:** Local model capability must be experimentally validated against browser tool use and Playwright test generation before substantial AI integration work.
+**Original reason:** The user's first implementation should run without required subscription/API spending while retaining the option to use a stronger provider later.
+
+**Original consequence:** Local model capability must be experimentally validated against browser tool use and Playwright test generation before substantial AI integration work.
 
 ## DEC-007 — Run a standalone local-model/MCP feasibility spike
 
-**Status:** Accepted; schedule before major AI integration work
+**Status:** Superseded by DEC-028
 
-**Decision:** Run a disposable 2–4-hour proof of concept using a candidate local model, Playwright MCP, and a small client/script before committing substantial effort to Phases 3–5. The spike is separate from platform code and does not block the deterministic Phase 1 runner.
+**Supersession note:** This local-model feasibility experiment is replaced by a hosted-API/Playwright-MCP feasibility experiment as described in DEC-028. The experimental approach, pass criteria methodology, and honest outcome reporting principles remain valid, but the experiment targets a hosted provider API rather than a local model.
 
-**Reason:** The platform's central AI workflow depends on the model's ability to call browser tools and generate usable Playwright tests. This risk should be tested early.
+**Original decision:** Run a disposable 2–4-hour proof of concept using a candidate local model, Playwright MCP, and a small client/script before committing substantial effort to Phases 3–5. The spike is separate from platform code and does not block the deterministic Phase 1 runner.
 
-**Initial experiment:** Check hardware first; connect a local model to Playwright MCP; explore the SauceDemo login workflow; generate one Playwright test with requirement-linked assertions; run it independently.
+**Original reason:** The platform's central AI workflow depends on the model's ability to call browser tools and generate usable Playwright tests. This risk should be tested early.
 
-**Initial pass criteria:**
+**Original initial experiment:** Check hardware first; connect a local model to Playwright MCP; explore the SauceDemo login workflow; generate one Playwright test with requirement-linked assertions; run it independently.
+
+**Original pass criteria:**
 
 1. MCP connection succeeds and available tools can be discovered.
 2. The model explores the agreed SauceDemo workflow within a pre-agreed tool-call budget (initial target: about 15 calls; adjust if the workflow genuinely requires more).
@@ -82,7 +86,7 @@ A decision may be revisited when evidence or requirements change. When that happ
 5. The test runs through Playwright Test and its actual result is recorded.
 6. Model/version, hardware, response time, tool-call count, corrections, errors, and outcome are documented.
 
-**Outcome:** Green (criteria met), amber (exploration works but generation needs limited correction), or red (tool use or generation is not reliable enough). The outcome informs model choice, provider fallback, and scope; it does not silently change the zero-cost-first requirement.
+**Original outcome classification:** Green (criteria met), amber (exploration works but generation needs limited correction), or red (tool use or generation is not reliable enough). The outcome informs model choice, provider fallback, and scope; it does not silently change the zero-cost-first requirement.
 
 ## DEC-008 — Keep candidate and approved tests separate
 
@@ -313,3 +317,50 @@ Cleanup failures must be surfaced. Cross-platform logic should be isolated behin
 - The amended precedence rule is: `runner_timeout` > `playwright_process_error` (spawn/exit) > `report_invalid` > `tests_interrupted` > `no_tests_found` > `test_failures` > `cleanup_failed` > `playwright_process_error` (signals/errors) > `exit_report_mismatch`.
 - Note: `tests_interrupted` comes before `no_tests_found` because interrupted tests ARE discovered tests.
 - An interrupted run can never become a successful or ordinary test-failure-only result.
+
+## DEC-028 — Adopt a Hosted AI Provider API for Model Inference
+
+**Status:** Accepted
+
+**Decision:** Use a hosted AI provider API for model inference instead of requiring a local model. The platform itself remains locally run/local-first for its CLI, project files, documents, tests, and artifacts. Model inference is performed by an external provider when implemented.
+
+**Reason:** The development laptop's hardware is not suitable for running the intended capable local model. A hosted provider API allows using more capable models without local hardware constraints.
+
+**Supersedes:** This decision supersedes the local-model-first requirement in DEC-006 and replaces the local-model feasibility experiment in DEC-007 with a hosted-API/Playwright-MCP feasibility experiment.
+
+**Constraints and implementation requirements:**
+
+1. **API key handling:**
+   - Authentication uses a platform-level API key, not project-specific application credentials.
+   - No real API key may be committed, logged, placed in project configuration, or exposed in prompts or reports.
+   - Secret values must be separated from project/application test credentials.
+   - The API key belongs in platform-local environment configuration (e.g., `.env`), never in `project.config.json` or project-role credential fields.
+
+2. **Provider selection (deferred):**
+   - The provider and model have not yet been selected.
+   - Selection must evaluate tool-calling/MCP compatibility, structured-output support, latency, context limits, reliability, pricing, rate limits, and data-handling terms.
+   - Provider-specific assumptions must not be added to Phase 2 project configuration.
+
+3. **Paid usage authorization:**
+   - Paid API usage is not authorized until the user explicitly approves a spending budget and usage limits.
+   - The still-valid principle from DEC-006 that paid AI usage is not mandatory without user approval is preserved.
+
+4. **Implementation architecture:**
+   - The future implementation should use a replaceable provider adapter so the platform is not coupled to one vendor.
+   - Structured-output validation, mock-provider testing, explicit timeouts, error handling, rate-limit handling, and honest reporting remain important.
+
+5. **Data handling and privacy:**
+   - External inference sends selected prompt/context data to a third-party provider.
+   - Data minimization and provider data-handling review are required before implementation.
+   - External provider calls should be controllable and capable of being disabled.
+
+6. **Testing:**
+   - Most tests should use mock providers to avoid API costs and flakiness.
+   - Real provider integration tests are reserved for specific verification.
+
+**Consequences:**
+
+- Phase 3 will implement a hosted provider adapter instead of a local model runtime.
+- The pre-Phase 3 feasibility experiment targets a hosted API + Playwright MCP instead of a local model.
+- `PROJECT_SPEC.md`, `ARCHITECTURE.md` section 3.4, and `IMPLEMENTATION_PLAN.md` Phase 3 must be aligned with this decision before Phase 3 implementation.
+- The platform remains local-first for all non-inference operations; only model inference crosses the external API boundary.
