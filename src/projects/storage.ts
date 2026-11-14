@@ -26,7 +26,7 @@
  * See DECISIONS.md DEC-029 for storage lifecycle decisions.
  */
 
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 /**
  * Well-known directory names within a project workspace.
@@ -148,4 +148,98 @@ export function getRelativeSnapshotPath(
  */
 export function getProposalPath(proposalsDir: string, proposalId: string): string {
   return join(proposalsDir, `${proposalId}.json`);
+}
+
+/**
+ * Result of resolving a snapshot path.
+ */
+export interface ResolveSnapshotPathResult {
+  /** The resolved absolute path */
+  absolutePath: string;
+  /** Whether the path is safely contained within the documents directory */
+  isContained: boolean;
+  /** Error message if path is invalid or escapes containment */
+  error?: string;
+}
+
+/**
+ * Resolve a relative snapshotPath to an absolute filesystem path.
+ *
+ * This is the canonical resolver for document snapshot paths stored in
+ * DocumentVersion records. All code that needs to access snapshot files
+ * should use this function rather than constructing paths independently.
+ *
+ * snapshotPath convention:
+ * - Stored relative to the project's documents/ directory
+ * - Format: sources/<sha256>.<ext>
+ * - Example: sources/abc123def456...xyz.md
+ *
+ * The actual file location is:
+ * <project-workspace>/documents/sources/<sha256>.<ext>
+ *
+ * @param snapshotPath - Relative path as stored in DocumentVersion.snapshotPath
+ * @param documentsDir - Absolute path to the project's documents directory
+ * @returns Resolution result with absolute path and containment status
+ */
+export function resolveDocumentSnapshotPath(
+  snapshotPath: string,
+  documentsDir: string
+): ResolveSnapshotPathResult {
+  // Reject obviously invalid paths
+  if (!snapshotPath || typeof snapshotPath !== 'string') {
+    return {
+      absolutePath: '',
+      isContained: false,
+      error: 'Invalid snapshotPath: must be a non-empty string',
+    };
+  }
+
+  // Reject absolute paths - snapshotPath must be relative
+  if (snapshotPath.startsWith('/') || /^[a-zA-Z]:/.test(snapshotPath)) {
+    return {
+      absolutePath: '',
+      isContained: false,
+      error: `Invalid snapshotPath: must be relative, got absolute path '${snapshotPath}'`,
+    };
+  }
+
+  // Resolve the path
+  const absolutePath = join(documentsDir, snapshotPath);
+
+  // Check containment - the resolved path must be inside documentsDir
+  // Use path normalization to handle .. traversal
+  const normalizedDocs = documentsDir.replace(/\\/g, '/').toLowerCase();
+  const normalizedResolved = absolutePath.replace(/\\/g, '/').toLowerCase();
+
+  // The resolved path must start with the documents directory
+  if (!normalizedResolved.startsWith(normalizedDocs + '/') &&
+      normalizedResolved !== normalizedDocs) {
+    return {
+      absolutePath,
+      isContained: false,
+      error: `snapshotPath '${snapshotPath}' resolves to '${absolutePath}' ` +
+             `which escapes documents directory '${documentsDir}'`,
+    };
+  }
+
+  // Additional check for path traversal attempts
+  if (snapshotPath.includes('..')) {
+    // After normalization, check if we're still contained
+    const resolved = resolve(documentsDir, snapshotPath);
+    const resolvedNormalized = resolved.replace(/\\/g, '/').toLowerCase();
+
+    if (!resolvedNormalized.startsWith(normalizedDocs + '/')) {
+      return {
+        absolutePath: resolved,
+        isContained: false,
+        error: `snapshotPath '${snapshotPath}' contains traversal and escapes ` +
+               `documents directory '${documentsDir}'`,
+      };
+    }
+  }
+
+  return {
+    absolutePath,
+    isContained: true,
+  };
 }

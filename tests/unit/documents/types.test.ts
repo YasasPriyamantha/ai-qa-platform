@@ -35,9 +35,11 @@ describe('inferFormatFromExtension', () => {
     expect(inferFormatFromExtension('md')).toBe('markdown');
   });
 
-  it('should infer markdown from .markdown', () => {
-    expect(inferFormatFromExtension('.markdown')).toBe('markdown');
-    expect(inferFormatFromExtension('markdown')).toBe('markdown');
+  it('should reject .markdown (not supported)', () => {
+    // .markdown is explicitly NOT supported per task requirements
+    // Only .md and .txt are accepted
+    expect(inferFormatFromExtension('.markdown')).toBeNull();
+    expect(inferFormatFromExtension('markdown')).toBeNull();
   });
 
   it('should infer text from .txt', () => {
@@ -59,11 +61,15 @@ describe('inferFormatFromExtension', () => {
     expect(inferFormatFromExtension('.html')).toBeNull();
     expect(inferFormatFromExtension('.json')).toBeNull();
     expect(inferFormatFromExtension('')).toBeNull();
+    // .markdown is also unsupported
+    expect(inferFormatFromExtension('.MARKDOWN')).toBeNull();
   });
 });
 
 describe('DocumentVersion structure', () => {
-  it('should support complete version metadata', () => {
+  it('should support complete version metadata (no status field)', () => {
+    // Note: status field was removed - the last entry in versions[]
+    // is the current version, earlier entries are historical
     const version: DocumentVersion = {
       contentHash: 'abc123def456',
       snapshotPath: 'sources/abc123def456.md',
@@ -72,13 +78,12 @@ describe('DocumentVersion structure', () => {
       versionLabel: 'v1.0',
       sourcePath: 'docs/requirements.md',
       format: 'markdown',
-      status: 'active',
       notes: 'Initial version',
     };
 
     expect(version.contentHash).toBe('abc123def456');
-    expect(version.status).toBe('active');
     expect(version.versionLabel).toBe('v1.0');
+    expect(version.notes).toBe('Initial version');
   });
 
   it('should allow minimal version without optional fields', () => {
@@ -89,7 +94,6 @@ describe('DocumentVersion structure', () => {
       ingestedAt: '2026-01-16T10:00:00Z',
       sourcePath: 'notes.txt',
       format: 'text',
-      status: 'superseded',
     };
 
     expect(version.versionLabel).toBeUndefined();
@@ -98,7 +102,8 @@ describe('DocumentVersion structure', () => {
 });
 
 describe('DocumentRecord structure', () => {
-  it('should support document with multiple versions', () => {
+  it('should support document with multiple versions (last is current)', () => {
+    // No status field - version ordering indicates current version
     const record: DocumentRecord = {
       documentId: 'login-requirements',
       name: 'Login Requirements',
@@ -112,7 +117,6 @@ describe('DocumentRecord structure', () => {
           ingestedAt: '2026-01-10T10:00:00Z',
           sourcePath: 'docs/login.md',
           format: 'markdown',
-          status: 'superseded',
           versionLabel: 'v1.0',
         },
         {
@@ -122,15 +126,16 @@ describe('DocumentRecord structure', () => {
           ingestedAt: '2026-01-20T10:00:00Z',
           sourcePath: 'docs/login.md',
           format: 'markdown',
-          status: 'active',
           versionLabel: 'v2.0',
         },
       ],
     };
 
     expect(record.versions).toHaveLength(2);
-    expect(record.versions[0].status).toBe('superseded');
-    expect(record.versions[1].status).toBe('active');
+    // Last version (index 1) is the current version
+    expect(record.versions[record.versions.length - 1].contentHash).toBe('hash-v2');
+    // First version (index 0) is historical
+    expect(record.versions[0].contentHash).toBe('hash-v1');
   });
 
   it('should preserve version history without overwriting', () => {
@@ -142,7 +147,7 @@ describe('DocumentRecord structure', () => {
       versions: [],
     };
 
-    // Simulate adding versions
+    // Simulate adding versions - no status field needed
     const v1: DocumentVersion = {
       contentHash: 'hash1',
       snapshotPath: 'sources/hash1.md',
@@ -150,12 +155,10 @@ describe('DocumentRecord structure', () => {
       ingestedAt: '2026-01-01T00:00:00Z',
       sourcePath: 'doc.md',
       format: 'markdown',
-      status: 'active',
     };
     record.versions.push(v1);
 
-    // Add second version - first becomes superseded
-    v1.status = 'superseded';
+    // Add second version - first is implicitly historical by position
     const v2: DocumentVersion = {
       contentHash: 'hash2',
       snapshotPath: 'sources/hash2.md',
@@ -163,7 +166,6 @@ describe('DocumentRecord structure', () => {
       ingestedAt: '2026-01-02T00:00:00Z',
       sourcePath: 'doc.md',
       format: 'markdown',
-      status: 'active',
     };
     record.versions.push(v2);
 
@@ -171,6 +173,8 @@ describe('DocumentRecord structure', () => {
     expect(record.versions).toHaveLength(2);
     expect(record.versions[0].contentHash).toBe('hash1');
     expect(record.versions[1].contentHash).toBe('hash2');
+    // Last version is current
+    expect(record.versions[record.versions.length - 1]).toBe(v2);
   });
 });
 
@@ -193,7 +197,6 @@ describe('DocumentRegistry structure', () => {
               ingestedAt: '2026-01-10T10:00:00Z',
               sourcePath: 'a.md',
               format: 'markdown',
-              status: 'active',
             },
           ],
         },
@@ -210,7 +213,6 @@ describe('DocumentRegistry structure', () => {
               ingestedAt: '2026-01-15T10:00:00Z',
               sourcePath: 'b.txt',
               format: 'text',
-              status: 'active',
             },
           ],
         },

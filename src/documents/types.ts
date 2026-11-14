@@ -21,21 +21,21 @@
 export type DocumentFormat = 'markdown' | 'text';
 
 /**
- * Document version status.
+ * Note: DocumentVersion.status was removed as redundant.
  *
- * - active: The current/latest version of the document
- * - superseded: A previous version that has been replaced by newer content
- *
- * Note: 'archived' was removed as it lacks a clear source requirement.
- * Version history is preserved through the versions array, not status flags.
+ * The last entry in versions[] is always the current/active version.
+ * Earlier entries are implicitly superseded by their position in the array.
+ * This single source of truth eliminates the risk of status/position inconsistency.
  */
-export type DocumentStatus = 'active' | 'superseded';
 
 /**
  * A single version of a document.
  *
  * Each ingestion of changed content creates a new version.
  * Previous versions remain accessible for history and traceability.
+ *
+ * Version ordering: The last entry in versions[] is always the current version.
+ * Earlier entries are historical versions in chronological order.
  */
 export interface DocumentVersion {
   /**
@@ -49,6 +49,9 @@ export interface DocumentVersion {
    * Path to immutable snapshot relative to project documents directory.
    * Format: sources/<sha256>.<ext>
    * Example: sources/abc123...def.md
+   *
+   * To resolve to an absolute path, use resolveDocumentSnapshotPath()
+   * from src/projects/storage.ts with the project's documents directory.
    */
   snapshotPath: string;
 
@@ -72,9 +75,6 @@ export interface DocumentVersion {
 
   /** Document format at ingestion time */
   format: DocumentFormat;
-
-  /** Version status */
-  status: DocumentStatus;
 
   /**
    * Optional notes about this version.
@@ -125,8 +125,8 @@ export interface DocumentRecord {
  * Invariants:
  * - Each documentId maps to exactly one DocumentRecord
  * - DocumentRecord.versions array is never empty
- * - Exactly one version per document should have status 'active'
- * - All other versions should have status 'superseded'
+ * - The last entry in versions[] is always the current version
+ * - Earlier entries are historical versions in chronological order
  */
 export interface DocumentRegistry {
   /** Schema version for migration support */
@@ -157,6 +157,9 @@ export function getExtensionForFormat(format: DocumentFormat): string {
 
 /**
  * Infer document format from file extension.
+ *
+ * Only .md and .txt are supported in Phase 2.
+ * Note: .markdown is NOT supported and must be rejected.
  */
 export function inferFormatFromExtension(ext: string): DocumentFormat | null {
   const normalized = ext.toLowerCase().startsWith('.')
@@ -165,7 +168,6 @@ export function inferFormatFromExtension(ext: string): DocumentFormat | null {
 
   switch (normalized) {
     case '.md':
-    case '.markdown':
       return 'markdown';
     case '.txt':
       return 'text';

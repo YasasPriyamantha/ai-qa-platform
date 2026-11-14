@@ -11,6 +11,7 @@ import {
   getDocumentSnapshotPath,
   getRelativeSnapshotPath,
   getProposalPath,
+  resolveDocumentSnapshotPath,
 } from '../../../src/projects/storage.js';
 
 describe('PROJECT_DIRECTORIES', () => {
@@ -116,5 +117,114 @@ describe('getProposalPath', () => {
     expect(getProposalPath(proposalsDir, 'proposal-abc-123')).toBe(
       join('/projects/test/requirements/proposals', 'proposal-abc-123.json')
     );
+  });
+});
+
+describe('resolveDocumentSnapshotPath', () => {
+  const documentsDir = process.platform === 'win32'
+    ? 'D:\\projects\\myapp\\documents'
+    : '/projects/myapp/documents';
+
+  describe('valid paths', () => {
+    it('should resolve a standard snapshotPath', () => {
+      const snapshotPath = 'sources/abc123def456.md';
+      const result = resolveDocumentSnapshotPath(snapshotPath, documentsDir);
+
+      expect(result.isContained).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(result.absolutePath).toBe(join(documentsDir, snapshotPath));
+    });
+
+    it('should resolve a .txt snapshot path', () => {
+      const snapshotPath = 'sources/xyz789.txt';
+      const result = resolveDocumentSnapshotPath(snapshotPath, documentsDir);
+
+      expect(result.isContained).toBe(true);
+      expect(result.absolutePath).toBe(join(documentsDir, 'sources', 'xyz789.txt'));
+    });
+
+    it('should handle Windows-style documentsDir', () => {
+      const winDocsDir = 'C:\\Users\\dev\\project\\documents';
+      const snapshotPath = 'sources/abc123.md';
+      const result = resolveDocumentSnapshotPath(snapshotPath, winDocsDir);
+
+      expect(result.isContained).toBe(true);
+      expect(result.absolutePath).toBe(join(winDocsDir, snapshotPath));
+    });
+  });
+
+  describe('invalid paths', () => {
+    it('should reject empty snapshotPath', () => {
+      const result = resolveDocumentSnapshotPath('', documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toContain('non-empty string');
+    });
+
+    it('should reject null/undefined snapshotPath', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = resolveDocumentSnapshotPath(null as any, documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it('should reject absolute paths (Unix)', () => {
+      const result = resolveDocumentSnapshotPath('/etc/passwd', documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toContain('must be relative');
+    });
+
+    it('should reject absolute paths (Windows)', () => {
+      const result = resolveDocumentSnapshotPath('C:\\Windows\\System32\\config', documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toContain('must be relative');
+    });
+
+    it('should reject path traversal via ../', () => {
+      const result = resolveDocumentSnapshotPath('../../../etc/passwd', documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toContain('escapes');
+    });
+
+    it('should reject sneaky path traversal', () => {
+      const result = resolveDocumentSnapshotPath('sources/../../../secrets.txt', documentsDir);
+
+      expect(result.isContained).toBe(false);
+      expect(result.error).toContain('escapes');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should accept path within sources subdirectory', () => {
+      const snapshotPath = 'sources/subdir/file.md';
+      const result = resolveDocumentSnapshotPath(snapshotPath, documentsDir);
+
+      expect(result.isContained).toBe(true);
+    });
+
+    it('should be case-insensitive on Windows-style containment check', () => {
+      // This test verifies the containment check handles case correctly
+      const lowerDocs = 'd:\\projects\\myapp\\documents';
+      const snapshotPath = 'sources/file.md';
+      const result = resolveDocumentSnapshotPath(snapshotPath, lowerDocs);
+
+      expect(result.isContained).toBe(true);
+    });
+
+    it('should resolve path consistently with getDocumentSnapshotPath', () => {
+      const hash = 'abc123def456';
+      const ext = '.md';
+      const snapshotPath = getRelativeSnapshotPath(hash, ext);
+      const sourcesDir = join(documentsDir, 'sources');
+
+      const absoluteFromResolver = resolveDocumentSnapshotPath(snapshotPath, documentsDir).absolutePath;
+      const absoluteFromHelper = getDocumentSnapshotPath(sourcesDir, hash, ext);
+
+      expect(absoluteFromResolver).toBe(absoluteFromHelper);
+    });
   });
 });

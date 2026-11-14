@@ -633,6 +633,164 @@ Requirements
 10. Handle missing files, unreadable files, invalid paths, empty files, unsupported formats, malformed text decoding, and snapshot-write failures deliberately. Do not swallow errors.
 11. Add tests using temporary .md/.txt files, including changed content and attempted path traversal.
 
+### Additional requirements from previous task reviews
+
+#### 1. Symbolic-link and junction safety
+
+Task 2.3 did not verify symbolic-link traversal.
+
+Use the shared containment utilities in `src/projects/path-safety.ts`.
+
+For existing source files:
+
+1. Check lexical path containment first.
+2. Resolve the real project workspace path using `fs.realpath`.
+3. Resolve the real source file path using `fs.realpath`.
+4. Verify that the source's real path remains inside the real project workspace.
+5. Reject files whose actual paths escape the selected workspace.
+
+Apply equivalent protection to the snapshot destination directory:
+
+- Verify that the actual `documents/sources/` directory remains inside the real project workspace.
+- Do not write snapshots through a symbolic link or junction that redirects outside the workspace.
+- Resolve and verify the real destination directory before writing.
+
+Testing requirements:
+
+- On Windows, attempt to create a directory junction pointing outside the project workspace using `fs.symlinkSync(target, linkPath, 'junction')`. Use an absolute target.
+- Test that document ingestion rejects a source reached through that junction.
+- Test that snapshot creation rejects a redirected snapshot destination directory.
+- Also test an individual file symlink pointing outside the workspace where the environment permits it.
+- If a test cannot be performed, report the exact reason and error. Do not silently mark it as passed.
+
+Never modify original source files.
+
+#### 2. One source of truth for the current document version
+
+Inspect the existing `DocumentVersion`, `DocumentStatus`, and `DocumentRecord` types and all their consumers.
+
+The existing model contains both per-version `active/superseded` status and an ordering rule where the last entry in `versions[]` is the current version.
+
+Prefer the ordered versions list as the single source of truth:
+
+- The last entry represents the current document version.
+- Earlier entries represent historical versions.
+- Remove the redundant per-version status field if no existing consumer genuinely requires it.
+
+If status must be retained for a demonstrated reason, enforce that exactly one version is active and it is always the final entry.
+
+Add regression tests for the chosen invariant.
+
+Do not introduce semantic document versions, release comparison, or unnecessary lifecycle states.
+
+Repeated ingestion of unchanged bytes must reuse the existing content-addressed snapshot.
+
+#### 3. Atomic registry persistence
+
+`documents/documents.json` is the authoritative registry of ingested document metadata under DEC-030.
+
+Protect registry updates against partial or truncated writes.
+
+Implement the following sequence:
+
+1. Build and validate the new registry in memory.
+2. Serialize the complete registry.
+3. Create a uniquely named temporary file in the same directory as `documents.json`.
+4. Write the complete contents to the temporary file.
+5. Replace the existing registry using an appropriate filesystem replacement operation only after the temporary write succeeds.
+6. Clean up only the temporary file created by the current operation when an error occurs.
+
+Failure handling:
+
+- If replacement fails with errors such as `EPERM` or `EBUSY`, preserve the previous registry byte-for-byte.
+- Do not delete the existing registry before attempting replacement.
+- Do not implement an automatic retry loop.
+- Return a clear, actionable error identifying the registry update failure.
+- Remove the temporary file created by the failed operation.
+
+Add tests simulating failed registry replacement, including `EPERM` and `EBUSY`.
+
+Verify that the original registry remains unchanged and the failed operation's temporary files are cleaned up.
+
+#### 4. Safe and immutable snapshot writes
+
+Do not write snapshot contents directly to their final content-addressed filenames.
+
+For each new snapshot:
+
+1. Calculate SHA-256 from the exact original source bytes.
+2. Determine the expected snapshot path under `documents/sources/`.
+3. If the snapshot already exists:
+   - Read its actual bytes.
+   - Verify its content hash against the expected hash.
+   - Reuse it only when the bytes and hash match.
+   - If verification fails, stop with a clear corrupted-snapshot error that identifies the path.
+   - Never overwrite or silently repair a corrupted existing snapshot.
+4. If the snapshot does not exist:
+   - Write the complete source bytes to a uniquely named temporary file in the same snapshot directory.
+   - Publish the completed file under its final content-addressed name only after the write succeeds.
+   - Use an atomic no-overwrite publication mechanism. Do not assume ordinary `rename()` cannot overwrite an existing destination on POSIX systems.
+   - If another operation creates the destination first, verify the existing snapshot and reuse it only if it matches.
+5. Clean up only temporary files created by the current operation after failures.
+
+A same-directory hard-link publication using `fs.link()` is one possible atomic create-if-absent approach, provided it is supported by the target filesystem. Another approach is acceptable if its no-overwrite behaviour is demonstrated and justified across the supported platforms.
+
+Testing requirements:
+
+- Matching existing snapshots are reused.
+- Mismatched existing snapshots produce an explicit corruption error.
+- Corrupted snapshots are never overwritten.
+- Interrupted/failed temporary snapshot writing does not leave a partial file under the final hash-based name.
+- Existing snapshots remain byte-for-byte unchanged.
+- Concurrent destination creation or an `EEXIST` condition is handled without overwriting existing data.
+
+#### 5. Snapshot and registry failure interaction
+
+Consider the case where a snapshot has been successfully published but the subsequent registry update fails.
+
+- Do not corrupt or overwrite the immutable snapshot.
+- Do not destroy the previous registry.
+- Report any newly created snapshot that remains unreferenced.
+- Do not delete a snapshot that may already be referenced elsewhere.
+- Keep the recovery behaviour explicit and limited to this task.
+
+Do not introduce a general-purpose transaction system or database.
+
+#### 6. Final verification
+
+In addition to the original Task 2.4 acceptance criteria, verify:
+
+- Exact source bytes are preserved.
+- Snapshot bytes match the calculated SHA-256 hash.
+- Source files remain unchanged.
+- Lexical and real-path containment work.
+- Symbolic-link and junction traversal is rejected where tested.
+- Existing matching snapshots are reused.
+- Corrupted snapshots are reported without overwriting them.
+- Failed snapshot writes cannot leave truncated final snapshots.
+- Failed registry replacements preserve the old registry.
+- Document version ordering remains consistent.
+
+Run focused document-service tests, relevant project tests, the full Vitest suite, typecheck, and build.
+
+Inspect the complete diff.
+
+Do not commit.
+
+#### 7. Final report additions
+
+Include:
+
+- Symlink and junction test results, including the operating system and any unverified cases.
+- The selected DocumentVersion model and justification.
+- Registry atomic-write implementation and failure-test results.
+- Snapshot atomic-publication implementation and no-overwrite evidence.
+- Results for `EPERM`, `EBUSY`, and existing corrupted snapshots.
+- Snapshot/registry failure interaction and orphaned snapshot handling.
+- Exact test counts and raw Vitest summary.
+- Typecheck and build results.
+- Anything remaining unverified.
+
 Constraints / non-goals
 
 - Do not extract structured requirements in this task.
