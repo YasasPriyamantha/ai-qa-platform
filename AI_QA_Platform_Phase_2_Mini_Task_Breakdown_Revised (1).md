@@ -863,6 +863,16 @@ Constraints
 - Do not invent domain-specific business requirements.
 - Do not commit.
 
+Additional schema-alignment constraints
+- Inspect src/requirements/types.ts and src/requirements/validation.ts before writing the convention.
+- Lifecycle status is active or retired only.
+- Unresolved is a separate marker containing a reason, not a lifecycle status.
+- expectedResult may be absent only when the requirement is marked unresolved.
+- Every negative case must contain both its condition and expected outcome.
+- The convention must match the existing types. Do not modify the implementation or schema during Task 2.5.
+- If the convention requires a field that the existing types do not support, or exposes a mismatch with the specification, record it as an open schema question for Task 2.6.
+- Support only .md and .txt documents. Document identity comes from the caller-supplied documentId, not the filename.
+
 Verification
 
 Check the template against the documented convention. Confirm every required field is represented and every negative case has an explicit expected-outcome example. Run documentation/link checks only if the repository has them; do not invent a documentation-check script.
