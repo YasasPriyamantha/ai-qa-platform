@@ -364,3 +364,108 @@ Cleanup failures must be surfaced. Cross-platform logic should be isolated behin
 - The pre-Phase 3 feasibility experiment targets a hosted API + Playwright MCP instead of a local model.
 - `PROJECT_SPEC.md`, `ARCHITECTURE.md` section 3.4, and `IMPLEMENTATION_PLAN.md` Phase 3 must be aligned with this decision before Phase 3 implementation.
 - The platform remains local-first for all non-inference operations; only model inference crosses the external API boundary.
+
+## DEC-029 — Project Storage Lifecycle: Files/JSON Through Phase 5, SQLite in Phase 6
+
+**Status:** Accepted
+
+**Decision:** Project, document, requirement, and proposal records use file-based JSON persistence through Phase 5. Phase 6 introduces SQLite for structured operational metadata alongside file-based storage for durable documents, specs, tests, and artifacts.
+
+**Reason:** File-based storage is simpler to inspect, debug, and version-control during early development. SQLite adds value when querying structured metadata becomes important (run history, test mappings, release comparisons). Deferring SQLite avoids premature complexity.
+
+**Storage layout (Phase 2–5, project-scoped):**
+
+```text
+<project-workspace>/
+├── project.config.json             # Project configuration
+├── documents/
+│   ├── sources/<sha256>.<ext>      # Immutable source snapshots
+│   └── documents.json              # Document metadata registry
+├── requirements/
+│   ├── registry.json               # Authoritative requirement registry
+│   └── proposals/<proposal-id>.json # Proposal records
+├── tests/
+│   ├── approved/                   # Approved test files
+│   └── candidates/                 # Candidate test files (future)
+└── artifacts/                      # Run artifacts
+```
+
+**Storage formats:**
+
+- **UTF-8 JSON** with documented schemas for all registry and record files
+- **Immutable snapshots:** Original document content stored by content hash (SHA-256)
+- **Registry files:** Single JSON file per registry type with schema version
+- **Proposal files:** One JSON file per proposal containing proposed requirements and review records
+
+**Key invariants:**
+
+1. Immutable snapshots are never modified after creation; new content creates new snapshots
+2. Registry files include `schemaVersion` for future migration support
+3. Retired requirements remain in the registry; IDs are never reused
+4. Proposal files preserve the complete proposal lifecycle including reviews
+
+**Phase 6 transition:**
+
+- SQLite database for structured operational metadata: run history, test-requirement mappings, release comparisons, approval workflows
+- File-based storage continues for: source documents, document snapshots, test files, artifacts
+- Migration utilities convert existing JSON registries to SQLite as needed
+- Schema versioning enables forward-compatible migrations
+
+**Directories NOT created prematurely:**
+
+- `requirements/releases/` — Created when release comparison is implemented (Phase 7)
+- Any directories for features not yet implemented
+
+**Consequences:**
+
+- Phase 2–5 implementations use file I/O and JSON parsing
+- Schema version fields enable non-breaking format evolution
+- No external database dependencies before Phase 6
+- File-based approach is transparent and Git-friendly for development
+
+## DEC-030 — Document Reference vs. Document Registry Responsibilities
+
+**Status:** Accepted
+
+**Decision:** The `documents` property in `project.config.json` and the `documents.json` registry serve distinct purposes:
+
+1. **`config.documents`** (in `project.config.json`): Declaration of source documents associated with the project
+   - Specifies which documents should be tracked
+   - Contains: documentId, sourcePath, format
+   - Represents the *intent* - "these documents belong to this project"
+   - Edited by the user when adding/removing documents from the project
+
+2. **`documents.json`** (in `documents/documents.json`): Authoritative registry of ingested document metadata
+   - Contains actual ingested version data with content hashes, snapshots, timestamps
+   - Represents the *state* - "these documents have been ingested with these versions"
+   - Managed by the platform during document ingestion (Task 2.4)
+
+**Relationship during document ingestion (Task 2.4):**
+
+1. Read document entries from `config.documents`
+2. For each document reference:
+   - Read content from `sourcePath`
+   - Compute SHA-256 content hash
+   - Create immutable snapshot at `documents/sources/<hash>.<ext>`
+   - Add/update `DocumentRecord` in `documents.json` registry
+3. If content differs from the last ingested version, create a new `DocumentVersion`
+4. Mark previous versions as `superseded`, new version as `active`
+
+**documentId consistency:**
+
+- The `documentId` must match between `config.documents` and `documents.json`
+- `config.documents[i].documentId` corresponds to `documents[documentId]` in the registry
+- This enables linking project configuration to ingested document state
+
+**Reason:** Separating declaration (config) from state (registry) allows:
+- Users to declare documents before ingestion
+- Platform to track version history independently
+- Clear distinction between project setup and runtime state
+- Re-ingestion to detect changes via content hash comparison
+
+**Consequences:**
+
+- `config.documents` is not redundant with `documents.json` - they serve different purposes
+- Document ingestion reads from config.documents and writes to documents.json
+- Version history is preserved in the registry, not in the config
+- The config remains a simple declaration that doesn't change with each ingestion
