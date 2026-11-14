@@ -367,6 +367,38 @@ Requirements
 10. Keep filesystem operations testable. Use temporary directories in tests; do not write test data into the user's real project-data directory.
 11. Add tests for create/load success, duplicate project creation, invalid project IDs, missing config, malformed JSON, and path traversal.
 
+### Additional requirements from Task 2.1 review
+
+**1. Workspace creation and configuration validation order**
+
+The Phase 1 configuration validator (DEC-026) requires the configured `testDirectory` to exist.
+
+When creating a new project:
+
+- Validate the project ID and workspace/path boundaries before performing filesystem writes.
+- Create the required workspace directories before invoking the complete configuration validator.
+- Ensure the configured `testDirectory` exists before validation.
+- Do not weaken or bypass the existing Phase 1 filesystem validation.
+- Do not create unnecessary future-phase directories merely to make validation succeed.
+- If workspace creation or validation fails, handle the partially created workspace safely without deleting pre-existing user data.
+
+Explain the creation and validation sequence in the final report.
+
+**2. Use the correct configuration loader**
+
+Project workspace creation and loading must use the existing Phase 2 configuration loader (`src/projects/phase2-loader.ts`), which reuses the Phase 1 loader and validates Phase 2-specific fields.
+
+Do not call the Phase 1 loader alone for the project-management `loadProject()` operation.
+
+Important distinction:
+
+- Project management must validate the complete Phase 2 project configuration.
+- The existing `npm run qa` execution path currently uses the Phase 1 loader and validates only the seven execution fields.
+- Do not change the CLI execution path in Task 2.2.
+- Record this known limitation in the final report so Task 2.9 or Task 2.12 can determine whether the CLI execution path should also perform Phase 2 validation.
+
+Add tests proving that project loading rejects invalid Phase 2 configuration while still accepting valid legacy Phase 1 configurations.
+
 Constraints / non-goals
 
 - Do not add SQLite or a database.

@@ -16,6 +16,44 @@ import {
 } from './config.js';
 
 /**
+ * Validate configuration structure and non-filesystem rules.
+ * This performs in-memory validation only, with no filesystem access.
+ *
+ * Use this to validate configuration before persisting to disk.
+ *
+ * @param raw - Raw configuration object to validate
+ * @returns Validated execution configuration
+ * @throws ConfigValidationError for validation failures
+ */
+export function validateConfigInMemory(raw: unknown): ExecutionConfig {
+  return validateConfigStructure(raw);
+}
+
+/**
+ * Check if a relative path would escape its parent directory.
+ * Uses path.relative-based containment checking.
+ * Handles Windows drive-letter case differences.
+ *
+ * @param relativePath - The relative path to check
+ * @param workspace - The workspace directory
+ * @returns true if the path is contained within workspace
+ */
+export function isRelativePathContained(relativePath: string, workspace: string): boolean {
+  const resolved = resolve(workspace, relativePath);
+  const rel = relative(workspace, resolved);
+
+  if (rel.startsWith('..') || isAbsolutePath(rel)) {
+    return false;
+  }
+
+  // Normalize and compare for Windows drive-letter case differences
+  const normalizedWorkspace = normalizeWindowsPath(workspace);
+  const normalizedResolved = normalizeWindowsPath(resolved);
+
+  return normalizedResolved.toLowerCase().startsWith(normalizedWorkspace.toLowerCase());
+}
+
+/**
  * Load and validate a project configuration from a JSON file.
  *
  * @param configPath - Absolute path to the project.config.json file

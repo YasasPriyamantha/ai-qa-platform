@@ -30,7 +30,11 @@ export {
 } from './config.js';
 
 // Phase 1 loading and validation
-export { loadProjectConfig } from './loader.js';
+export {
+  loadProjectConfig,
+  validateConfigInMemory,
+  isRelativePathContained,
+} from './loader.js';
 
 // Environment loading for Playwright
 export {
@@ -52,9 +56,12 @@ export type {
 // Phase 2 loading and validation
 export {
   loadPhase2ProjectConfig,
+  validatePhase2Fields,
   looksLikeSecret,
   isValidEnvVarName,
 } from './phase2-loader.js';
+
+export type { ValidatedPhase2Fields } from './phase2-loader.js';
 
 // Project storage layout
 export {
@@ -67,3 +74,22 @@ export {
 } from './storage.js';
 
 export type { ProjectStoragePaths } from './storage.js';
+
+// Project workspace service
+export {
+  createProject,
+  loadProject,
+  projectExists,
+  validateProjectId,
+  isPathContained,
+  resolveProjectPath,
+  getDefaultProjectDataRoot,
+  ProjectServiceError,
+} from './service.js';
+
+export type {
+  ProjectServiceOptions,
+  CreateProjectInput,
+  LoadedProject,
+  ProjectErrorCode,
+} from './service.js';

@@ -104,6 +104,34 @@ export function isValidEnvVarName(name: string): boolean {
 }
 
 /**
+ * Validated Phase 2 fields (in-memory, no filesystem access).
+ * Used by createProject to validate before persisting.
+ */
+export interface ValidatedPhase2Fields {
+  roles?: RoleProfile[];
+  documents?: DocumentReference[];
+  description?: string;
+}
+
+/**
+ * Validate Phase 2-specific fields from a raw configuration object.
+ * This performs in-memory validation only, with no filesystem access.
+ *
+ * Use this to validate configuration before persisting to disk.
+ *
+ * @param rawConfig - Raw configuration object to validate
+ * @returns Validated Phase 2 fields
+ * @throws ConfigValidationError for validation failures
+ */
+export function validatePhase2Fields(rawConfig: Record<string, unknown>): ValidatedPhase2Fields {
+  const roles = validateRoles(rawConfig);
+  const documents = validateDocuments(rawConfig);
+  const description = validateDescription(rawConfig);
+
+  return { roles, documents, description };
+}
+
+/**
  * Load and validate a Phase 2 project configuration.
  *
  * Extends Phase 1 validation with:
@@ -127,16 +155,12 @@ export function loadPhase2ProjectConfig(configPath: string): ResolvedPhase2Confi
   const rawConfig = JSON.parse(rawContent) as Record<string, unknown>;
 
   // Validate and extract Phase 2 fields
-  const roles = validateRoles(rawConfig);
-  const documents = validateDocuments(rawConfig);
-  const description = validateDescription(rawConfig);
+  const phase2Fields = validatePhase2Fields(rawConfig);
 
   // Return combined configuration
   return {
     ...phase1Config,
-    roles,
-    documents,
-    description,
+    ...phase2Fields,
   };
 }
 
