@@ -457,6 +457,120 @@ Requirements
 9. Keep tests deterministic and independent of public websites or external services.
 10. If tests expose a real defect, make the smallest root-cause fix and add a regression assertion. Do not refactor unrelated code.
 
+### Additional requirements from Task 2.2 review
+
+#### 1. Consolidate path-containment logic
+
+Task 2.2 review identified three implementations:
+
+- `resolveAndContain()` in `src/projects/loader.ts`
+- `isRelativePathContained()` in `src/projects/loader.ts`
+- `isPathContained()` in `src/projects/service.ts`
+
+Inspect their actual responsibilities.
+
+Consolidate the underlying path-containment calculation, including Windows drive-letter case normalization, into one shared boolean helper.
+
+Requirements:
+
+- All three existing callers must use the shared helper.
+- Each caller must retain its own path resolution and error handling.
+- Preserve `ConfigValidationError` behaviour.
+- Preserve `ProjectServiceError` behaviour.
+- Preserve existing error messages and Phase 1 validation behaviour.
+- Do not introduce a new error type solely for this refactoring.
+- Avoid circular imports.
+- Keep the shared helper focused on path containment rather than introducing another general-purpose validation module.
+
+Add tests exercising the shared helper through every existing caller, not just directly.
+
+#### 2. Phase 1 validation must have one source of truth (mandatory investigation)
+
+Task 2.2 review found that `validateConfigInMemory()` appears only at its definition in the initial source inspection.
+
+Inspect:
+
+- `validateConfigInMemory()`
+- `loadProjectConfig()`
+- Any internal helpers called by either function.
+
+Determine whether both functions actually share the same underlying Phase 1 non-filesystem validation implementation.
+
+If they already share the same implementation, report the call path and do not change anything unnecessarily.
+
+Otherwise, make `validateConfigInMemory()` the single source of Phase 1 non-filesystem validation rules, including:
+
+- Required field presence and types.
+- URL syntax.
+- Environment validation.
+- Allowed-domain validation.
+- Other non-filesystem Phase 1 configuration rules.
+
+Make `loadProjectConfig()` call this function before performing its filesystem-dependent checks.
+
+Do not duplicate or independently reimplement these rules.
+
+Preserve Phase 1 behaviour and existing error messages. Existing Phase 1 tests must pass unchanged.
+
+#### 3. Windows-safe project IDs
+
+Extend project-ID validation and project-isolation tests to cover:
+
+- IDs differing only by letter case, such as `Alpha` and `alpha`.
+- IDs ending in an ASCII period, such as `alpha.`.
+- IDs ending in an ASCII space, such as `alpha `.
+- Attempts to create two project IDs that would collide on Windows.
+
+Inspect existing project ID conventions and all currently used IDs, including `saucedemo`.
+
+A lowercase slug convention such as:
+
+`^[a-z0-9]+(?:-[a-z0-9]+)*$`
+
+is a candidate, not an automatic requirement. Justify the chosen convention and avoid restrictions beyond those needed for safe, portable project identity.
+
+Requirements:
+
+- Reject unsafe IDs before any filesystem operation.
+- Do not rely on Windows mkdir behaviour when testing trailing periods or spaces.
+- Test validation directly.
+- Ensure `validateProjectId()` and the Phase 1 loader's projectId validation accept and reject the same IDs.
+- Prefer one shared project-ID validation rule if practical, without introducing circular dependencies.
+- Ensure the existing SauceDemo project remains valid and its QA execution still works.
+
+Add regression tests and explain the chosen convention in the final report.
+
+#### 4. Verification
+
+In addition to the original Task 2.3 acceptance criteria:
+
+- Verify two independent projects remain isolated.
+- Verify both projects retain their own configuration and resolved paths.
+- Verify path traversal and sibling-prefix attacks are rejected.
+- Verify absolute paths cannot escape the selected workspace.
+- Verify Windows drive-letter case behaviour.
+- Verify the same project ID cannot be represented through conflicting filesystem names.
+- Run existing Phase 1 configuration tests unchanged.
+- Run the existing SauceDemo QA execution test.
+- Run the complete Vitest suite, typecheck and build.
+
+Inspect the complete diff and Git status.
+
+Do not commit.
+
+#### 5. Final report additions
+
+Include:
+
+- The previous three containment implementations and the resulting shared implementation.
+- Evidence that all callers use the shared helper.
+- Whether `loadProjectConfig()` now calls `validateConfigInMemory()` directly, or an explanation of the existing shared call path.
+- Evidence that Phase 1 validation and error messages remain compatible.
+- The selected project-ID convention and rationale.
+- Tests proving consistent project-ID validation across Phase 1 and Phase 2.
+- Confirmation that `saucedemo` still loads and runs.
+- Remaining unverified platform-specific behaviour.
+
 Constraints
 
 - Do not add a new storage system or service abstraction solely for tests.

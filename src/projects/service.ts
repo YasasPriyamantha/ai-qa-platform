@@ -24,19 +24,28 @@ import {
 } from 'node:fs';
 import {
   resolve,
-  relative,
   dirname,
   join,
   basename,
-  parse as parsePath,
 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ConfigValidationError } from './config.js';
 import { validateConfigInMemory, isRelativePathContained } from './loader.js';
 import { loadPhase2ProjectConfig, validatePhase2Fields } from './phase2-loader.js';
 import { getProjectStoragePaths, PROJECT_FILES } from './storage.js';
+import {
+  isAbsolutePath,
+  isPathContained as isPathContainedShared,
+} from './path-safety.js';
+import {
+  PROJECT_ID_PATTERN,
+  validateProjectIdFormat,
+} from './validation.js';
 import type { Phase2ProjectConfig, ResolvedPhase2Config } from './phase2-config.js';
 import type { ProjectStoragePaths } from './storage.js';
+
+// Re-export the pattern for backward compatibility
+export { PROJECT_ID_PATTERN };
 
 /**
  * Error thrown when project operations fail.
@@ -149,78 +158,25 @@ export function getDefaultProjectDataRoot(): string {
  *
  * Project IDs must:
  * - Be non-empty
- * - Not contain path separators (/ or \)
- * - Not contain path traversal segments (. or ..)
- * - Not contain invalid filesystem characters
- * - Not be too long
+ * - Match the lowercase slug pattern: [a-z0-9]+(?:-[a-z0-9]+)*
+ * - Not be too long (max 64 characters for practical usage)
+ * - Not be a reserved Windows name
+ *
+ * The lowercase slug convention prevents:
+ * - Case-collision issues on Windows (Alpha vs alpha)
+ * - Trailing period/space issues on Windows
+ * - Path separator injection
+ * - Path traversal attacks
+ * - Invalid filesystem characters
  *
  * @param projectId - The project ID to validate
  * @throws ProjectServiceError if the ID is invalid
  */
 export function validateProjectId(projectId: string): void {
-  // Check for empty or whitespace-only
-  if (!projectId || projectId.trim() === '') {
+  const result = validateProjectIdFormat(projectId);
+  if (!result.valid) {
     throw new ProjectServiceError(
-      'Project ID cannot be empty',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  const trimmed = projectId.trim();
-
-  // Check for path separators
-  if (trimmed.includes('/') || trimmed.includes('\\')) {
-    throw new ProjectServiceError(
-      'Project ID cannot contain path separators (/ or \\)',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  // Check for path traversal segments
-  if (trimmed === '.' || trimmed === '..') {
-    throw new ProjectServiceError(
-      'Project ID cannot be a path traversal segment (. or ..)',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  // Check for hidden file prefix (starts with .)
-  if (trimmed.startsWith('.')) {
-    throw new ProjectServiceError(
-      'Project ID cannot start with a dot',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  // Check for invalid filesystem characters (Windows-focused)
-  // < > : " | ? * and control characters 0-31
-  const invalidChars = /[<>:"|?*\x00-\x1f]/;
-  if (invalidChars.test(trimmed)) {
-    throw new ProjectServiceError(
-      'Project ID contains invalid filesystem characters',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  // Check length (reasonable limit for filesystem compatibility)
-  if (trimmed.length > 255) {
-    throw new ProjectServiceError(
-      'Project ID is too long (max 255 characters)',
-      'INVALID_PROJECT_ID',
-      projectId
-    );
-  }
-
-  // Check for reserved Windows names
-  const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
-  if (reservedNames.test(trimmed)) {
-    throw new ProjectServiceError(
-      'Project ID cannot be a reserved Windows name',
+      result.error!,
       'INVALID_PROJECT_ID',
       projectId
     );
@@ -231,63 +187,17 @@ export function validateProjectId(projectId: string): void {
  * Check if a resolved path is contained within a base directory.
  * Uses path.relative-based checks that work on Windows.
  *
+ * This is a re-export of the shared implementation from path-safety.ts
+ * for backward compatibility.
+ *
  * @param resolvedPath - The resolved absolute path to check
  * @param baseDir - The base directory that should contain the path
  * @returns true if resolvedPath is inside baseDir
  */
 export function isPathContained(resolvedPath: string, baseDir: string): boolean {
-  // Normalize both paths for comparison
-  const normalizedBase = normalizePath(resolve(baseDir));
-  const normalizedPath = normalizePath(resolve(resolvedPath));
-
-  // Use path.relative to check containment
-  const rel = relative(normalizedBase, normalizedPath);
-
-  // If the relative path starts with '..' or is absolute, it escapes
-  if (rel.startsWith('..') || isAbsolutePath(rel)) {
-    return false;
-  }
-
-  // Also do case-insensitive prefix check for Windows
-  if (!normalizedPath.toLowerCase().startsWith(normalizedBase.toLowerCase())) {
-    return false;
-  }
-
-  return true;
+  return isPathContainedShared(resolvedPath, baseDir);
 }
 
-/**
- * Normalize a path for comparison.
- * Handles Windows drive letter case and path separators.
- */
-function normalizePath(p: string): string {
-  // Normalize path separators to forward slashes
-  let normalized = p.replace(/\\/g, '/');
-
-  // Ensure drive letter is lowercase for comparison
-  if (/^[A-Z]:/.test(normalized)) {
-    normalized = normalized[0].toLowerCase() + normalized.slice(1);
-  }
-
-  // Remove trailing slash for consistent comparison
-  if (normalized.endsWith('/') && normalized.length > 1) {
-    normalized = normalized.slice(0, -1);
-  }
-
-  return normalized;
-}
-
-/**
- * Check if a path is absolute.
- */
-function isAbsolutePath(p: string): boolean {
-  const parsed = parsePath(p);
-  return (
-    parsed.root !== '' ||
-    p.startsWith('/') ||
-    /^[a-zA-Z]:[\\/]/.test(p)
-  );
-}
 
 /**
  * Resolve the project workspace path and verify containment.

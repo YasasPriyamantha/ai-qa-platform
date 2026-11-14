@@ -36,12 +36,36 @@ import {
 import { PROJECT_FILES } from '../../../src/projects/storage.js';
 
 describe('validateProjectId', () => {
-  it('should accept valid project IDs', () => {
+  it('should accept valid project IDs (lowercase slug convention)', () => {
+    // Valid: lowercase alphanumeric with hyphens
     expect(() => validateProjectId('my-project')).not.toThrow();
-    expect(() => validateProjectId('project_123')).not.toThrow();
-    expect(() => validateProjectId('SauceDemo')).not.toThrow();
+    expect(() => validateProjectId('project123')).not.toThrow();
+    expect(() => validateProjectId('saucedemo')).not.toThrow();
     expect(() => validateProjectId('a')).not.toThrow();
-    expect(() => validateProjectId('project.name')).not.toThrow();
+    expect(() => validateProjectId('a1b2c3')).not.toThrow();
+    expect(() => validateProjectId('my-project-123')).not.toThrow();
+  });
+
+  it('should reject uppercase letters (prevents case-collision on Windows)', () => {
+    expect(() => validateProjectId('SauceDemo')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('MyProject')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('PROJECT')).toThrow(ProjectServiceError);
+
+    try {
+      validateProjectId('SauceDemo');
+    } catch (err) {
+      expect((err as ProjectServiceError).code).toBe('INVALID_PROJECT_ID');
+      expect((err as ProjectServiceError).message).toContain('lowercase');
+    }
+  });
+
+  it('should reject underscores (use hyphens instead)', () => {
+    expect(() => validateProjectId('project_123')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('my_project')).toThrow(ProjectServiceError);
+  });
+
+  it('should reject dots in project ID (except trailing period has specific error)', () => {
+    expect(() => validateProjectId('project.name')).toThrow(ProjectServiceError);
   });
 
   it('should reject empty project IDs', () => {
@@ -102,18 +126,50 @@ describe('validateProjectId', () => {
     expect(() => validateProjectId('project*name')).toThrow(ProjectServiceError);
   });
 
-  it('should reject reserved Windows names', () => {
+  it('should reject reserved Windows names (uppercase)', () => {
     expect(() => validateProjectId('CON')).toThrow(ProjectServiceError);
     expect(() => validateProjectId('PRN')).toThrow(ProjectServiceError);
     expect(() => validateProjectId('AUX')).toThrow(ProjectServiceError);
     expect(() => validateProjectId('NUL')).toThrow(ProjectServiceError);
     expect(() => validateProjectId('COM1')).toThrow(ProjectServiceError);
     expect(() => validateProjectId('LPT1')).toThrow(ProjectServiceError);
-    expect(() => validateProjectId('con')).toThrow(ProjectServiceError); // case insensitive
   });
 
-  it('should reject project IDs that are too long', () => {
-    const longId = 'a'.repeat(256);
+  it('should reject reserved Windows names (lowercase)', () => {
+    // These are rejected by the reserved names check before the pattern check
+    expect(() => validateProjectId('con')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('prn')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('aux')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('nul')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('com1')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('com9')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('lpt1')).toThrow(ProjectServiceError);
+    expect(() => validateProjectId('lpt9')).toThrow(ProjectServiceError);
+
+    try {
+      validateProjectId('con');
+    } catch (err) {
+      expect((err as ProjectServiceError).code).toBe('INVALID_PROJECT_ID');
+      expect((err as ProjectServiceError).message).toContain('reserved Windows name');
+    }
+  });
+
+  it('should accept valid IDs that START with reserved name prefixes', () => {
+    // These should NOT be rejected - only exact matches are reserved
+    expect(() => validateProjectId('console')).not.toThrow();
+    expect(() => validateProjectId('content')).not.toThrow();
+    expect(() => validateProjectId('company')).not.toThrow();
+    expect(() => validateProjectId('connection')).not.toThrow();
+    expect(() => validateProjectId('context')).not.toThrow();
+    expect(() => validateProjectId('printer')).not.toThrow();
+    expect(() => validateProjectId('auxiliary')).not.toThrow();
+    expect(() => validateProjectId('null-check')).not.toThrow();
+    expect(() => validateProjectId('com1pany')).not.toThrow();
+    expect(() => validateProjectId('lpt1-test')).not.toThrow();
+  });
+
+  it('should reject project IDs that are too long (max 64 characters)', () => {
+    const longId = 'a'.repeat(65);
     expect(() => validateProjectId(longId)).toThrow(ProjectServiceError);
 
     try {
@@ -121,6 +177,33 @@ describe('validateProjectId', () => {
     } catch (err) {
       expect((err as ProjectServiceError).code).toBe('INVALID_PROJECT_ID');
       expect((err as ProjectServiceError).message).toContain('too long');
+    }
+  });
+
+  it('should accept project ID at max length (64 characters)', () => {
+    const maxLengthId = 'a'.repeat(64);
+    expect(() => validateProjectId(maxLengthId)).not.toThrow();
+  });
+
+  it('should reject trailing period (Windows filesystem issue)', () => {
+    expect(() => validateProjectId('alpha.')).toThrow(ProjectServiceError);
+
+    try {
+      validateProjectId('alpha.');
+    } catch (err) {
+      expect((err as ProjectServiceError).code).toBe('INVALID_PROJECT_ID');
+      expect((err as ProjectServiceError).message).toContain('period');
+    }
+  });
+
+  it('should reject trailing space (Windows filesystem issue)', () => {
+    expect(() => validateProjectId('alpha ')).toThrow(ProjectServiceError);
+
+    try {
+      validateProjectId('alpha ');
+    } catch (err) {
+      expect((err as ProjectServiceError).code).toBe('INVALID_PROJECT_ID');
+      expect((err as ProjectServiceError).message).toContain('space');
     }
   });
 });

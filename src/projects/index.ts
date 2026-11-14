@@ -85,6 +85,7 @@ export {
   resolveProjectPath,
   getDefaultProjectDataRoot,
   ProjectServiceError,
+  PROJECT_ID_PATTERN,
 } from './service.js';
 
 export type {
@@ -93,3 +94,21 @@ export type {
   LoadedProject,
   ProjectErrorCode,
 } from './service.js';
+
+// Path safety utilities
+export {
+  normalizePath,
+  isAbsolutePath,
+  isPathContained as isPathContainedShared,
+  isRelativePathContained as isRelativePathContainedShared,
+} from './path-safety.js';
+
+// Validation utilities
+export {
+  PROJECT_ID_PATTERN as PROJECT_ID_VALIDATION_PATTERN,
+  PROJECT_ID_MAX_LENGTH,
+  WINDOWS_RESERVED_NAMES,
+  validateProjectIdFormat,
+} from './validation.js';
+
+export type { ProjectIdValidationResult } from './validation.js';

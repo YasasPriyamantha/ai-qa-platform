@@ -469,3 +469,62 @@ Cleanup failures must be surfaced. Cross-platform logic should be isolated behin
 - Document ingestion reads from config.documents and writes to documents.json
 - Version history is preserved in the registry, not in the config
 - The config remains a simple declaration that doesn't change with each ingestion
+
+## DEC-031 — Project ID Lowercase Slug Convention
+
+**Status:** Accepted
+
+**Amends:** DEC-026 (Phase 1 project ID validation)
+
+**Decision:** Enforce a strict lowercase slug convention for project IDs.
+
+**Format specification:**
+
+- Pattern: `^[a-z0-9]+(?:-[a-z0-9]+)*$`
+- Maximum length: 64 characters
+- Windows reserved device names are rejected (case-insensitive check): `con`, `prn`, `aux`, `nul`, `com1`–`com9`, `lpt1`–`lpt9`
+- Trailing periods and trailing spaces are rejected before the pattern check
+
+**Examples:**
+
+- Valid: `saucedemo`, `my-project`, `test123`, `a1b2c3`
+- Invalid: `MyProject` (uppercase), `my_project` (underscore), `alpha.` (trailing period), `alpha ` (trailing space), `con` (reserved name)
+
+**Rationale:**
+
+1. **Case collision prevention:** Windows NTFS is case-insensitive by default. `Alpha` and `alpha` would resolve to the same directory, causing silent collisions. Lowercase-only IDs eliminate this risk.
+
+2. **Filesystem normalization:** Windows silently strips trailing periods and spaces from directory names. `alpha.` becomes `alpha`, causing collisions and confusion. Rejecting these at validation time prevents filesystem-level surprises.
+
+3. **Portable convention:** Lowercase alphanumeric slugs with hyphens are widely used for npm packages, URL paths, and Git repositories. The convention is familiar and works safely across operating systems.
+
+4. **Predictable identity:** Consistent casing improves predictability. Users do not need to remember whether they used `MyProject`, `myProject`, or `my-project`.
+
+**Implementation:**
+
+- One shared validation function: `validateProjectIdFormat()` in `src/projects/validation.ts`
+- Both Phase 1 loader (`validateConfigInMemory`) and Phase 2 service (`validateProjectId`) use this shared function
+- Reserved name check uses case-insensitive regex: `/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i`
+- Valid IDs that merely begin with reserved prefixes are accepted (e.g., `console`, `content`)
+
+**Breaking change from DEC-026:**
+
+Previously accepted IDs that violate the new convention are now rejected:
+
+- Uppercase letters (e.g., `SauceDemo` → use `saucedemo`)
+- Underscores (e.g., `my_project` → use `my-project`)
+- Dots (e.g., `project.name` → use `project-name`)
+
+**Existing projects:**
+
+All existing project IDs comply with the new convention:
+
+- `saucedemo` ✓
+- `fixture-passing`, `fixture-failing`, `fixture-hanging`, etc. ✓
+
+**Consequences:**
+
+- Platform tests updated to expect lowercase slug validation
+- Existing project configurations continue to work unchanged
+- New projects must use lowercase slugs
+- Error messages guide users toward valid formats

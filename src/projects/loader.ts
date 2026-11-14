@@ -3,10 +3,15 @@
  *
  * Implements runtime validation for Phase 1 execution configuration.
  * TypeScript interfaces do not provide runtime validation of external JSON.
+ *
+ * Key behaviors:
+ * - validateConfigInMemory() is the single source of Phase 1 non-filesystem validation
+ * - loadProjectConfig() calls validateConfigInMemory() before filesystem checks
+ * - Path containment uses shared helpers from path-safety.ts
  */
 
 import { readFileSync, statSync, existsSync } from 'node:fs';
-import { resolve, relative, dirname, parse as parsePath } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import {
   ExecutionConfig,
   ResolvedConfig,
@@ -14,6 +19,12 @@ import {
   ConfigValidationError,
   type Environment,
 } from './config.js';
+import {
+  isAbsolutePath,
+  isPathContained,
+  isRelativePathContained as isRelativePathContainedShared,
+} from './path-safety.js';
+import { validateProjectIdFormat } from './validation.js';
 
 /**
  * Validate configuration structure and non-filesystem rules.
@@ -34,23 +45,15 @@ export function validateConfigInMemory(raw: unknown): ExecutionConfig {
  * Uses path.relative-based containment checking.
  * Handles Windows drive-letter case differences.
  *
+ * This is a re-export of the shared implementation from path-safety.ts
+ * for backward compatibility.
+ *
  * @param relativePath - The relative path to check
  * @param workspace - The workspace directory
  * @returns true if the path is contained within workspace
  */
 export function isRelativePathContained(relativePath: string, workspace: string): boolean {
-  const resolved = resolve(workspace, relativePath);
-  const rel = relative(workspace, resolved);
-
-  if (rel.startsWith('..') || isAbsolutePath(rel)) {
-    return false;
-  }
-
-  // Normalize and compare for Windows drive-letter case differences
-  const normalizedWorkspace = normalizeWindowsPath(workspace);
-  const normalizedResolved = normalizeWindowsPath(resolved);
-
-  return normalizedResolved.toLowerCase().startsWith(normalizedWorkspace.toLowerCase());
+  return isRelativePathContainedShared(relativePath, workspace);
 }
 
 /**
@@ -102,8 +105,8 @@ export function loadProjectConfig(configPath: string): ResolvedConfig {
     );
   }
 
-  // Validate structure
-  const config = validateConfigStructure(rawConfig);
+  // Validate structure using the single source of truth for Phase 1 validation
+  const config = validateConfigInMemory(rawConfig);
 
   // Determine project workspace (directory containing the config file)
   const projectWorkspace = dirname(configPath);
@@ -149,6 +152,12 @@ function validateConfigStructure(raw: unknown): ExecutionConfig {
   const baseUrl = validateRequiredString(obj, 'baseUrl');
   const testDirectory = validateRequiredString(obj, 'testDirectory');
   const artifactDirectory = validateRequiredString(obj, 'artifactDirectory');
+
+  // Validate projectId format (shared validation with service.ts)
+  const projectIdResult = validateProjectIdFormat(projectId);
+  if (!projectIdResult.valid) {
+    throw new ConfigValidationError(projectIdResult.error!, 'projectId', projectId);
+  }
 
   // Environment validation
   const environment = validateEnvironment(obj);
@@ -400,25 +409,10 @@ function validateBaseUrl(baseUrl: string, allowedDomains: string[]): void {
   }
 }
 
-/**
- * Check if a path is absolute.
- * Handles both Unix and Windows paths.
- */
-function isAbsolutePath(p: string): boolean {
-  // Windows absolute paths: C:\ or \\server
-  // Unix absolute paths: /
-  const parsed = parsePath(p);
-  return (
-    parsed.root !== '' ||
-    p.startsWith('/') ||
-    /^[a-zA-Z]:[\\/]/.test(p)
-  );
-}
 
 /**
  * Resolve a relative path and ensure it stays within the workspace.
- * Uses path.resolve + path.relative containment check.
- * Handles Windows drive-letter case differences.
+ * Uses the shared path containment check from path-safety.ts.
  */
 function resolveAndContain(
   relativePath: string,
@@ -428,26 +422,10 @@ function resolveAndContain(
   // Resolve to absolute path
   const resolved = resolve(workspace, relativePath);
 
-  // Check containment using path.relative
-  // If the relative path starts with '..' or is absolute, it escapes
-  const rel = relative(workspace, resolved);
-
-  if (rel.startsWith('..') || isAbsolutePath(rel)) {
+  // Check containment using the shared helper
+  if (!isPathContained(resolved, workspace)) {
     throw new ConfigValidationError(
       `Path escapes project workspace`,
-      field,
-      relativePath
-    );
-  }
-
-  // Also normalize and compare for Windows drive-letter case differences
-  // Both paths should be under the same root when normalized
-  const normalizedWorkspace = normalizeWindowsPath(workspace);
-  const normalizedResolved = normalizeWindowsPath(resolved);
-
-  if (!normalizedResolved.toLowerCase().startsWith(normalizedWorkspace.toLowerCase())) {
-    throw new ConfigValidationError(
-      `Path escapes project workspace (drive-letter case mismatch)`,
       field,
       relativePath
     );
@@ -456,23 +434,6 @@ function resolveAndContain(
   return resolved;
 }
 
-/**
- * Normalize a Windows path for comparison.
- * Converts to lowercase drive letter and forward slashes.
- */
-function normalizeWindowsPath(p: string): string {
-  // Normalize path separators
-  let normalized = p.replace(/\\/g, '/');
-  // Ensure drive letter is lowercase for comparison
-  if (/^[A-Z]:/.test(normalized)) {
-    normalized = normalized[0].toLowerCase() + normalized.slice(1);
-  }
-  // Remove trailing slash for consistent comparison
-  if (normalized.endsWith('/') && normalized.length > 1) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
-}
 
 /**
  * Validate that a directory exists.
