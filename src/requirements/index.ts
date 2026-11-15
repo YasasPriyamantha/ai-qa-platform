@@ -28,6 +28,28 @@ export {
   isValidUnresolvedMarker,
   isValidNegativeCase,
   assertValidRequirement,
+  validateRequirementsForProject,
+  validateRequirementId,
+  isValidRequirementId,
+  REQUIREMENT_ID_PATTERN,
+  checkForDuplicateIds,
+  isStructurallyValid,
+  isValidButUnresolved,
+  validateSourceReferenceStructure,
+  validateSourceReferenceAgainstRegistry,
 } from './validation.js';
 
-export type { ValidationResult } from './validation.js';
+export type {
+  ValidationResult,
+  RequirementIdValidationResult,
+  RequirementValidationOptions,
+  NegativeCaseValidationResult,
+  SourceReferenceValidationResult,
+  SourceReferenceValidationContext,
+  UniqueIdCheckResult,
+  ProjectValidationErrorCode,
+  ProjectValidationError,
+  RequirementValidationFailure,
+  ProjectRequirementValidationResult,
+  ProjectRequirementValidationOptions,
+} from './validation.js';

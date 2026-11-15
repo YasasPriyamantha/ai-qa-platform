@@ -58,26 +58,46 @@ export interface UnresolvedMarker {
 
 /**
  * Reference to the source document and location where requirement was defined.
+ *
+ * Per REQUIREMENTS_AUTHORING_CONVENTION.md section 8:
+ * - documentId is the caller-supplied document identifier from project.config.json
+ * - contentHash is the SHA-256 hash of the immutable document snapshot at parse time
+ * - section preserves the original requirement heading text exactly as authored
+ * - lineRange provides 1-based start/end line numbers for traceability
  */
 export interface SourceReference {
-  /** Document ID from DocumentRecord */
+  /**
+   * Document ID from DocumentRecord.
+   * Must match a documentId in the project's document registry.
+   */
   documentId: string;
 
   /**
-   * Content hash of the document version this was extracted from.
-   * Links to immutable snapshot.
+   * SHA-256 content hash of the document version this was extracted from.
+   * Links to immutable snapshot in documents/sources/<hash>.<ext>.
+   * Must match a contentHash in the document's versions array.
+   *
+   * Named `contentHash` for consistency with DocumentVersion.contentHash.
    */
-  documentHash: string;
+  contentHash: string;
 
   /**
-   * Section or heading where the requirement appears.
-   * Used for traceability back to source.
+   * The original requirement heading text exactly as authored.
+   * Example: "REQ-001: Login requires valid credentials"
+   *
+   * Used for traceability back to the exact source location.
+   * Do not invent synthetic section identifiers.
    */
   section?: string;
 
   /**
-   * Line numbers (1-based) where the requirement text appears.
-   * Optional - may not be available for all extraction methods.
+   * Line numbers (1-based) where the requirement text appears in the source document.
+   * start is the line containing the requirement heading.
+   * end is the last line of the requirement content.
+   *
+   * Constraints:
+   * - Both start and end must be positive integers (>= 1)
+   * - start must be <= end
    */
   lineRange?: {
     start: number;
@@ -87,30 +107,63 @@ export interface SourceReference {
 
 /**
  * Negative/error case with expected outcome.
- * Per PROJECT_SPEC.md: Every negative case must include its expected outcome.
+ *
+ * Per PROJECT_SPEC.md section 7.2 and REQUIREMENTS_AUTHORING_CONVENTION.md section 5.4:
+ * - Format: `- <condition>: <expected outcome>`
+ * - Both condition and expectedOutcome are mandatory
+ * - The first `: ` after the list marker separates condition from expectedOutcome
+ * - A missing separator or missing expected outcome is a validation error
  */
 export interface NegativeCase {
-  /** Description of the negative case scenario */
-  scenario: string;
+  /**
+   * The error/edge condition being tested.
+   * Examples: "Empty username", "Invalid password", "Locked-out user"
+   */
+  condition: string;
 
-  /** Expected result when this negative case occurs */
-  expectedResult: string;
+  /**
+   * Expected outcome when this condition occurs.
+   * Must be explicitly stated, not inferred from website behavior.
+   * Examples: "the login is prevented and the error message 'X' is displayed"
+   */
+  expectedOutcome: string;
 }
 
 /**
  * Structured requirement record.
  *
- * Per PROJECT_SPEC.md section 7.2:
+ * Per PROJECT_SPEC.md section 7.2 and REQUIREMENTS_AUTHORING_CONVENTION.md:
  * - Author-assigned stable IDs are the source of identity
- * - IDs must be unique and never reused for unrelated requirements
- * - Expected outcomes must be explicitly stated
- * - Negative cases must include expected outcomes
+ * - IDs must be unique within a project and never reused for unrelated requirements
+ * - Expected outcomes must be explicitly stated, not inferred from website behavior
+ * - Every negative case must include both condition and expected outcome
+ * - Missing/ambiguous expected behavior is marked as unresolved, not invented
+ *
+ * ID format (per section 3.1 of authoring convention):
+ * - Pattern: ^[A-Z][A-Z0-9]*-\d+$
+ * - Prefix begins with uppercase letter, may continue with letters/digits
+ * - Hyphen separates prefix from numeric suffix
+ * - Compare IDs as exact strings; do not normalize
  */
 export interface Requirement {
   /**
+   * Project ID this requirement belongs to.
+   * Must match the projectId in project.config.json.
+   * Used for project isolation and cross-reference validation.
+   */
+  projectId: string;
+
+  /**
    * Author-assigned stable requirement ID.
-   * Format recommendation: REQ-NNN (e.g., REQ-001, REQ-012)
-   * Must be unique within the project and never reused.
+   *
+   * Format: ^[A-Z][A-Z0-9]*-\d+$
+   * Examples: REQ-001, AUTH-001, CHECKOUT-99
+   *
+   * Rules:
+   * - Must be unique within the project
+   * - Preserved exactly as authored (no normalization)
+   * - Retired IDs are never reused for unrelated requirements
+   * - AI may propose IDs, but they require human approval
    */
   requirementId: string;
 
@@ -123,11 +176,16 @@ export interface Requirement {
   /**
    * Expected result/behavior.
    *
-   * Per PROJECT_SPEC.md section 7.2:
-   * - Must be explicitly stated - cannot be inferred from website behavior
-   * - Required for actionable requirements (those without an unresolved marker)
-   * - May be omitted for unresolved requirements
-   * - Never invent an expected result
+   * Per PROJECT_SPEC.md section 7.2 and REQUIREMENTS_AUTHORING_CONVENTION.md section 5.3:
+   * - Must be explicitly authored, never inferred from website behavior
+   * - Required for all active requirements that are NOT marked unresolved
+   * - May be omitted ONLY when the requirement has an unresolved marker
+   * - States the observable, verifiable outcome
+   *
+   * Precedence with unresolved (per section 5.6):
+   * - When both expectedResult AND unresolved are present, the requirement is unresolved
+   * - The expectedResult text is preserved but NOT considered actionable
+   * - The unresolved marker takes precedence
    */
   expectedResult?: string;
 

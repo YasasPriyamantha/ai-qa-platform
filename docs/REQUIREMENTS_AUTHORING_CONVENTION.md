@@ -268,7 +268,7 @@ Parsed requirements include a source reference that points back to the original 
 | Field | Description |
 |-------|-------------|
 | `documentId` | The caller-supplied document identifier (from `project.config.json`) |
-| `documentHash` | SHA-256 content hash of the immutable document snapshot at parse time |
+| `contentHash` | SHA-256 content hash of the immutable document snapshot at parse time |
 | `section` | The original requirement heading text exactly as authored (e.g., `REQ-001: Login requires valid credentials`) |
 | `lineRange` | Start and end line numbers (1-based) where the requirement appears in the source document |
 
@@ -277,7 +277,7 @@ Parsed requirements include a source reference that points back to the original 
 - Keep the original requirement heading text exactly as authored.
 - Do not invent synthetic section identifiers.
 - Preserve relevant subsection/section heading text for context.
-- The relationship between the requirement and its original source document is established through `documentId` and `documentHash`.
+- The relationship between the requirement and its original source document is established through `documentId` and `contentHash`.
 
 When a requirement changes across releases, the line range and section text help reviewers locate the change in the original document.
 
