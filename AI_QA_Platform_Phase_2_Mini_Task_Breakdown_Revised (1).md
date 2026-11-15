@@ -924,6 +924,69 @@ Requirements
 10. Reuse the current validation approach. Add a dependency only if repository evidence demonstrates a concrete need and record the decision.
 11. Add tests for valid records, missing/duplicate IDs, invalid field types, absent expected result, negative case without expected outcome, unresolved requirements, and invalid/cross-project source references.
 
+Notes from previous task reviews — important requirements:
+
+1. Authoring convention
+   - Follow docs/REQUIREMENTS_AUTHORING_CONVENTION.md exactly.
+   - Requirement ID syntax: ^[A-Z][A-Z0-9]*-\d+$
+   - Compare IDs as exact strings. Never normalize or silently rewrite them.
+   - Negative cases use:
+     - <condition>: <expected outcome>
+   - Split on the first ": " after the list marker.
+   - Status is Active or Retired only.
+   - Unresolved is a separate marker containing a reason.
+
+2. Existing implementation
+   - Extend src/requirements/types.ts and
+     src/requirements/validation.ts from Task 2.1.
+   - Do not create a second schema or validator.
+   - Inspect the actual implementation and tests before modifying them.
+   - Preserve existing validation behavior unless it conflicts
+     with the now-finalized authoring convention or specification.
+
+3. Expected result and Unresolved precedence
+   - A requirement containing an unresolved marker is never actionable,
+     even when it also contains an Expected result section.
+   - isActionable() must check the unresolved marker.
+   - Preserve the expected-result text, but do not treat it as actionable.
+   - Add an explicit test for a requirement containing both fields.
+
+4. Requirement identity
+   - Add projectId to Requirement.
+   - Preserve author-supplied IDs exactly.
+   - Validate the finalized ID regular expression.
+   - Reject missing, malformed and duplicate IDs within a project.
+
+5. Source references
+   - Include documentId, the exact version hash, original heading/section
+     text, and 1-based source line range where available.
+   - Use contentHash as the canonical hash property, consistent with
+     DocumentVersion in src/documents/types.ts.
+   - Validate that the referenced documentId belongs to the same project.
+   - Validate that the exact contentHash exists in that document's
+     versions array in documents.json.
+   - Do not accept a reference merely because the documentId exists;
+     the referenced version must also exist.
+
+6. Snapshot resolution
+   - Resolve snapshot paths only through
+     resolveDocumentSnapshotPath() in src/projects/storage.ts.
+   - Do not create a duplicate path resolver.
+   - Preserve project/workspace containment protections.
+
+7. Validation behavior
+   - Distinguish structurally invalid requirements from valid unresolved
+     requirements.
+   - Every negative case must have a non-empty condition and expected outcome.
+   - Unknown fields and sections must follow the convention's diagnostic
+     and preservation policy.
+   - Do not infer missing business rules.
+
+8. Scope
+   - Do not implement the Markdown parser in Task 2.6; that is Task 2.6a.
+   - Do not implement requirement registry import; that is Task 2.7.
+   - Do not introduce AI, SQLite, release comparisons or test generation.
+   
 Constraints / non-goals
 
 - Do not implement AI extraction or semantic interpretation.
