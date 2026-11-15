@@ -1054,6 +1054,37 @@ Requirements
 11. Add tests for one and multiple valid requirements, exact source-line references, malformed section diagnostics, duplicate IDs, missing expected result, unresolved expected result, negative cases with/without outcomes, and content containing multiple Markdown headings.
 12. Keep parser output separate from authoritative requirement storage. This task only parses candidate records; Task 2.6 validates them; Task 2.7 provides the explicit import operation that registers validated records from an author's structured document. Task 2.8's proposal/review path is for AI-proposed or free-form interpretations, not for the author's own structured document.
 
+## Additional requirements from previous task reviews
+
+1. **Follow the finalized authoring convention**
+   - Follow `docs/REQUIREMENTS_AUTHORING_CONVENTION.md` exactly.
+   - Negative cases use `- <condition>: <expected outcome>`, splitting at the first `: ` after the list marker.
+   - Apply the Expected result + Unresolved precedence rule.
+   - Apply the unknown-field policy: report diagnostics and preserve unknown text. Never silently discard meaningful content.
+
+2. **Document and project identity**
+   - Receive `projectId`, `documentId`, and `contentHash` through the caller's project/document ingestion context.
+   - Never derive these values from filenames, file paths, or requirement text.
+   - Do not invent document identities or hashes.
+
+3. **Read immutable snapshots**
+   - Parse the immutable document snapshot, not the original source file.
+   - Resolve the snapshot using `resolveDocumentSnapshotPath()` from `src/projects/storage.ts`.
+   - Do not introduce another snapshot-path resolver.
+
+4. **Requirement output and source references**
+   - Produce exactly the existing Task 2.6 `Requirement` type. Do not create a parallel parser-only schema.
+   - `SourceReference.section` and `SourceReference.lineRange` are optional in the general type, but the parser must always populate both for every successfully parsed structured requirement.
+   - `section` must preserve the exact original requirement heading text.
+   - `lineRange` must be 1-based and inclusive, starting at the requirement heading line and ending at the last line belonging to that requirement.
+   - Add tests for exact line numbers for at least two requirements in one document, including a later requirement after a multiline section.
+
+5. **Validation**
+   - Validate parsed output using `validateRequirementsForProject()`.
+   - Do not duplicate validation rules or introduce parser-only validation rules.
+   - Keep unresolved requirements non-actionable, even when expected-result text is present.
+   - Keep parser output separate from the authoritative requirement registry. Registry import belongs to Task 2.7.
+
 Constraints / non-goals
 
 - No AI/model/API calls, semantic inference, website exploration, or test generation.
