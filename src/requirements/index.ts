@@ -2,6 +2,7 @@
  * Requirements management module
  *
  * Provides types for structured requirements, proposals, and reviews.
+ * Includes deterministic parser for structured Markdown requirement documents.
  * Requirement extraction and validation services are implemented in later tasks.
  */
 
@@ -53,3 +54,25 @@ export type {
   ProjectRequirementValidationResult,
   ProjectRequirementValidationOptions,
 } from './validation.js';
+
+// Parser exports
+export {
+  parseRequirementDocument,
+  parseRequirementContent,
+  isValidRequirementIdFormat,
+  getErrors,
+  getWarnings,
+  hasErrors,
+  getDiagnosticsForRequirement,
+  formatDiagnostic,
+  formatDiagnostics,
+} from './parser.js';
+
+export type {
+  DiagnosticSeverity,
+  ParseDiagnostic,
+  ParseContext,
+  ParsedRequirement,
+  UnknownContent,
+  ParseResult,
+} from './parser.js';
