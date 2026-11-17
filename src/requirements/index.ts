@@ -76,3 +76,48 @@ export type {
   UnknownContent,
   ParseResult,
 } from './parser.js';
+
+// Registry exports - Public API
+// Use importRequirements() for bulk document imports
+// Use applyRequirementChange() for single-record changes (Task 2.8 proposal acceptance)
+export {
+  RegistryError,
+  // Public read operations
+  loadRequirementRegistry,
+  requirementIdExists,
+  isRetiredId,
+  isActiveId,
+  getRequirement,
+  getActiveRequirements,
+  getRetiredRequirements,
+  hasContentChanged,
+  hasSourceReferenceChanged,
+  getRequirementHistory,
+  getAllRequirementIds,
+  getRegistryStats,
+  // Public write operations (validated, atomic)
+  importRequirements,
+  applyRequirementChange,
+  // Note: saveRequirementRegistry, registerRequirement, updateRequirement, retireRequirement
+  // are internal helpers available in registry.ts for testing only.
+  // They are NOT part of the supported public API.
+} from './registry.js';
+
+export type {
+  RequirementVersion,
+  RequirementWithHistory,
+  RequirementRegistryWithHistory,
+  RegistryErrorCode,
+  MissingIdFinding,
+  SourceReferenceUpdate,
+  ImportPlan,
+  ImportResult,
+  ImportOptions,
+  // applyRequirementChange types
+  ChangeOperationType,
+  RegisterChange,
+  UpdateChange,
+  RetireChange,
+  ChangeOperation,
+  ChangeResult,
+} from './registry.js';
