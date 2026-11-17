@@ -1266,6 +1266,49 @@ Requirements
 9. Add tests proving: proposal creation does not create an authoritative requirement; valid acceptance does; rejection does not; invalid acceptance is blocked; duplicate/retired IDs are blocked; source references remain attached.
 10. Keep review operations callable from platform code. No UI is required in Phase 2.
 
+### Notes from Task 2.7 Review
+
+1. **Authoritative registry boundary**
+   - Proposal acceptance must modify the authoritative requirement registry only through `applyRequirementChange()` imported from `src/requirements` (the public barrel).
+   - Never import internal mutation helpers directly from `src/requirements/registry.ts`.
+   - Never write to `requirements/registry.json` directly.
+   - Preserve Task 2.7's project, document, source-reference, identity and lifecycle validation.
+
+2. **Proposal persistence**
+   - Store proposals as individual JSON files under `requirements/proposals/<proposal-id>.json`, as specified in DEC-029.
+   - Use the existing atomic file-writing utility in `src/documents/atomic-fs.ts`.
+   - Keep proposal storage separate from the authoritative requirement registry.
+
+3. **Minimal review actions**
+   - Implement only `accept` and `reject` for this task.
+   - Do not introduce additional review states such as `request_revision` or `defer` without a demonstrated requirement.
+   - A human can edit proposed content before invoking acceptance; an additional `accept_with_changes` action is not necessary unless the existing architecture requires it.
+
+4. **Source traceability**
+   - Each proposal must preserve its source document ID, immutable content hash, and relevant section/heading and line range where available.
+   - An accepted requirement must retain its source reference.
+   - Do not infer missing business requirements from website observations.
+
+5. **Acceptance and rejection**
+   - Acceptance must use `applyRequirementChange()` and pass the normal requirement validator and Task 2.7 identity/lifecycle checks.
+   - Invalid, duplicate or retired/reused IDs must be rejected without partially changing the authoritative registry.
+   - Rejection must preserve the proposal file and its review record, including reviewer identity, timestamp and rejection reason. Never delete rejected proposal evidence.
+
+6. **Required tests**
+   - Creating a proposal does not modify the authoritative registry.
+   - Accepting a valid proposal creates the authoritative requirement.
+   - Rejecting a proposal does not modify the authoritative registry.
+   - Invalid, duplicate and retired IDs cannot be accepted.
+   - Source references remain attached after acceptance.
+   - Rejected proposals and their review metadata remain persisted and retrievable.
+
+7. **Scope restrictions**
+   - No AI/model/API integration or extraction workflow.
+   - No web UI or approval dashboard.
+   - No SQLite or general-purpose workflow engine.
+   - Do not implement Phase 5 AI agents or Phase 6 candidate-test approvals.
+   - Do not commit.
+
 Constraints / non-goals
 
 - Do not call a model/API or create prompts for AI extraction.
