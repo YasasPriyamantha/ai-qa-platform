@@ -1153,6 +1153,57 @@ Requirements
 15. If an ID present in the registry is absent from a newly imported document, do not retire or delete it automatically. Report it as a finding for human attention; release-aware retirement decisions belong to Phase 7.
 16. When an existing ID's content changes on import, keep the previous version's content and source reference retrievable (for example, a per-requirement history list). Keep this minimal; do not build release comparison.
 
+## Notes from Previous Task Reviews — Mandatory Integration Requirements
+
+These requirements carry forward from Tasks 2.4, 2.6, and 2.6a. Preserve the existing architecture and reuse implemented functionality.
+
+### 1. Always load the project's document registry
+
+- The import operation must always load and require the selected project's `documents/documents.json`.
+- This applies even when the incoming requirement list is empty or contains no source references.
+- Do not rely on the conditional document-registry loading shortcut currently used by `validateRequirementsForProject()`.
+- A missing, unreadable, or invalid document registry must result in a clear import failure.
+- Do not proceed with persistence when the document registry cannot be verified.
+
+### 2. Reuse the existing atomic filesystem implementation
+
+- Reuse the existing filesystem utilities in `src/documents/atomic-fs.ts` when persisting `requirements/registry.json`.
+- Do not implement a second atomic-write or safe-write mechanism.
+- Inspect the existing helper API and follow its established error-handling and failure semantics.
+- A failed write must not leave a truncated or partially updated authoritative registry.
+
+### 3. Enforce the Task 2.6a parser-result contract
+
+Follow the documented contract on `parseRequirementContent()`:
+
+- Any error-severity parser diagnostic blocks the entire document import.
+- The import must be all-or-nothing. No requirement records may be partially applied.
+- Warnings alone, such as unknown fields or sections, do not block import.
+- Include non-blocking warnings in the import result/report so the user can review them.
+- An unclosed fenced code block is an error and therefore blocks the entire import.
+
+### 4. Validate before persistence and preserve exact IDs
+
+- Validate parsed records using `validateRequirementsForProject()` before writing anything.
+- Complete parsing, diagnostic checks, project-scoped validation, duplicate detection, lifecycle checks, and import planning before modifying the authoritative registry.
+- Store and compare author-assigned requirement IDs as exact text.
+- Do not normalize IDs, change their case, or silently rewrite their formatting.
+- Preserve the existing Task 2.6 validation rules and source-reference checks.
+
+### 5. All-or-nothing import boundary
+
+Before writing:
+
+1. Load the selected project's document registry.
+2. Parse the structured document.
+3. Reject the operation if any error-severity parser diagnostic exists.
+4. Validate all candidate records against the selected project.
+5. Check requirement identity, duplicate IDs, lifecycle rules, and retired-ID reuse.
+6. Build the complete proposed registry update in memory.
+7. Persist the completed registry using the existing atomic filesystem utility.
+
+If any blocking step fails, the authoritative registry must remain unchanged.
+
 Constraints / non-goals
 
 - Do not compare two releases or classify requirements as new/changed/unchanged/retired by AI; that belongs to Phase 7.
