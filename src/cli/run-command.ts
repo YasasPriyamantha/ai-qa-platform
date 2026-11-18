@@ -3,10 +3,21 @@
  *
  * Executes Playwright tests for a configured project.
  * Reuses the shared config loader, runner, and report reconciliation.
+ *
+ * DEC-032: Validates both Phase 1 and Phase 2 configuration before execution.
+ * - Phase 1: execution fields (baseUrl, testDirectory, etc.)
+ * - Phase 2: role profiles, credential references, document references
+ *
+ * Credential environment-variable NAMES are validated, but their values
+ * are not required during ordinary loading or execution.
+ * Authenticated execution remains deferred under DEC-024.
  */
 
 import { resolve, isAbsolute } from 'node:path';
-import { loadProjectConfig, ConfigValidationError } from '../projects/index.js';
+import {
+  loadPhase2ProjectConfig,
+  ConfigValidationError,
+} from '../projects/index.js';
 import {
   runPlaywrightTests,
   ProcessStartupError,
@@ -50,10 +61,12 @@ export async function executeRunCommand(configPath: string): Promise<number> {
     ? configPath
     : resolve(process.cwd(), configPath);
 
-  // Load and validate project configuration
+  // Load and validate project configuration (Phase 1 + Phase 2)
+  // DEC-032: Validates both execution fields and role/credential structure
+  // before Playwright starts. Does not require credential values to be present.
   let config;
   try {
-    config = loadProjectConfig(absoluteConfigPath);
+    config = loadPhase2ProjectConfig(absoluteConfigPath);
   } catch (err) {
     if (err instanceof ConfigValidationError) {
       displayError('Invalid project configuration', err.message);

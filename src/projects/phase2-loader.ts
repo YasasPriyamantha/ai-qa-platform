@@ -94,6 +94,84 @@ const REJECTED_VALUES = new Set([
 ]);
 
 /**
+ * Property names that indicate sensitive data.
+ * Unknown properties with these names are rejected to prevent raw secrets
+ * from being accidentally stored in configuration files.
+ *
+ * Task 2.9: Reject raw password/token/cookie/secret fields in project configuration.
+ */
+const SENSITIVE_PROPERTY_NAMES = new Set([
+  'password',
+  'secret',
+  'token',
+  'apikey',
+  'api_key',
+  'apiKey',
+  'cookie',
+  'cookies',
+  'sessionid',
+  'session_id',
+  'sessionId',
+  'accesstoken',
+  'access_token',
+  'accessToken',
+  'refreshtoken',
+  'refresh_token',
+  'refreshToken',
+  'bearer',
+  'auth',
+  'authorization',
+  'privatekey',
+  'private_key',
+  'privateKey',
+  'secretkey',
+  'secret_key',
+  'secretKey',
+]);
+
+/**
+ * Check if a property name looks like it could contain sensitive data.
+ *
+ * @param name - Property name to check (case-insensitive)
+ * @returns true if the property name suggests sensitive content
+ */
+function isSensitivePropertyName(name: string): boolean {
+  return SENSITIVE_PROPERTY_NAMES.has(name) ||
+         SENSITIVE_PROPERTY_NAMES.has(name.toLowerCase());
+}
+
+/**
+ * Check for sensitive unknown properties in an object.
+ * Rejects properties that look like they could contain secrets.
+ *
+ * @param obj - Object to check
+ * @param knownFields - Set of known/expected field names
+ * @param fieldPath - Field path for error messages
+ * @throws ConfigValidationError if sensitive unknown property is found
+ */
+function rejectSensitiveUnknownProperties(
+  obj: Record<string, unknown>,
+  knownFields: Set<string>,
+  fieldPath: string
+): void {
+  for (const key of Object.keys(obj)) {
+    if (knownFields.has(key)) {
+      continue; // Known field, skip
+    }
+
+    if (isSensitivePropertyName(key)) {
+      throw new ConfigValidationError(
+        `Unknown property '${key}' appears to contain sensitive data. ` +
+        `Credentials must be stored as environment-variable references in the 'credentials' object, ` +
+        `not as direct properties. Remove this property or move it to the appropriate location.`,
+        fieldPath ? `${fieldPath}.${key}` : key,
+        '[REDACTED]' // Never include the actual value
+      );
+    }
+  }
+}
+
+/**
  * Check if a value looks like a secret.
  * Used to reject actual secret values in credential reference fields.
  *
@@ -384,6 +462,25 @@ export function checkRoleCredentialPresence(
 }
 
 /**
+ * Known top-level configuration fields (Phase 1 + Phase 2).
+ * Used to identify unknown properties that might contain secrets.
+ */
+const KNOWN_CONFIG_FIELDS = new Set([
+  // Phase 1 fields
+  'projectId',
+  'name',
+  'baseUrl',
+  'environment',
+  'allowedDomains',
+  'testDirectory',
+  'artifactDirectory',
+  // Phase 2 fields
+  'roles',
+  'documents',
+  'description',
+]);
+
+/**
  * Validate Phase 2-specific fields from a raw configuration object.
  * This performs in-memory validation only, with no filesystem access.
  *
@@ -394,6 +491,9 @@ export function checkRoleCredentialPresence(
  * @throws ConfigValidationError for validation failures
  */
 export function validatePhase2Fields(rawConfig: Record<string, unknown>): ValidatedPhase2Fields {
+  // Check for sensitive unknown properties at top level (Task 2.9)
+  rejectSensitiveUnknownProperties(rawConfig, KNOWN_CONFIG_FIELDS, '');
+
   const roles = validateRoles(rawConfig);
   const documents = validateDocuments(rawConfig);
   const description = validateDescription(rawConfig);
@@ -646,6 +746,13 @@ function validateRoles(raw: Record<string, unknown>): RoleProfile[] | undefined 
 
     // Validate optional storageStatePath
     const storageStatePath = validateOptionalString(roleObj, 'storageStatePath', prefix);
+
+    // Check for sensitive unknown properties (Task 2.9)
+    // Known role fields that are allowed
+    const knownRoleFields = new Set([
+      'roleId', 'name', 'description', 'credentials', 'storageStatePath'
+    ]);
+    rejectSensitiveUnknownProperties(roleObj, knownRoleFields, prefix);
 
     validatedRoles.push({
       roleId,

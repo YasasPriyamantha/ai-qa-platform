@@ -1513,6 +1513,8 @@ List ignore-rule behavior, environment-template changes, separation of platform/
 
 # Task 2.11 — Local Versioned Demo Application (V1 and V2)
 
+Status: Deferred on 2026-11-18; complete before Phase 7. If this application is not ready for Phase 5 task 13, use a different demo application for that cross-application validation. See docs/IMPLEMENTATION_PLAN.md.
+
 **Estimated effort:** 2–3 hours  
 **Code changes:** Yes
 

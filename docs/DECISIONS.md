@@ -528,3 +528,56 @@ All existing project IDs comply with the new convention:
 - Existing project configurations continue to work unchanged
 - New projects must use lowercase slugs
 - Error messages guide users toward valid formats
+
+## DEC-032 — QA CLI Validates Phase 1 and Phase 2 Configuration Before Execution
+
+**Status:** Accepted (revised)
+
+**Decision:** The `npm run qa` CLI execution path validates both Phase 1 and Phase 2 configuration structure before Playwright starts. Invalid configuration stops execution with a clear error before tests run.
+
+**Context:** Task 2.12a determined that Phase 2 configuration validation should be performed during CLI execution because:
+
+1. Users normally edit `project.config.json` directly and invoke `npm run qa`. This is the main path through which configuration is checked.
+2. `PROJECT_SPEC.md` §7.1 prohibits raw secrets in ordinary configuration files.
+3. Phase 2 requires role and credential configuration to be represented safely using environment-variable names.
+4. DEC-024 defers actual authenticated execution, not structural validation of configuration.
+
+**Validation layers:**
+
+| Layer | What is validated | When checked |
+|-------|-------------------|--------------|
+| Configuration structure | Phase 1 fields (baseUrl, testDirectory, etc.) and Phase 2 fields (roles, documents, credential env-var names) | During `loadPhase2ProjectConfig()` before Playwright starts |
+| Credential names | Environment-variable names follow uppercase convention, no raw secrets | During configuration loading |
+| Credential availability | Whether referenced environment variables are actually set | Only when authenticated workflow explicitly needs credentials (deferred) |
+| Authenticated execution | Login scripts, setup projects, storageState generation | Deferred under DEC-024 |
+
+**Implementation:**
+
+The CLI `run` command (`src/cli/run-command.ts`) uses `loadPhase2ProjectConfig()` which:
+1. Validates Phase 1 fields via the Phase 1 loader
+2. Validates Phase 2 fields: role profiles, credential environment-variable names, document references
+3. Rejects raw secret values in credential fields
+4. Validates storageStatePath containment within project workspace
+5. Rejects project-role references to platform-level `AI_PROVIDER_*` variables
+
+**What is NOT checked during ordinary CLI execution:**
+
+- Whether credential environment variables are actually set (checked only when authenticated execution needs them)
+- Whether referenced documents exist in the document registry
+- Actual login or authentication workflows
+
+**Phase 1 backward compatibility:**
+
+Phase 1-only configurations remain valid. The Phase 2 loader accepts configurations without roles, documents, or description fields—these Phase 2 fields are optional.
+
+**Playwright configuration:**
+
+The `playwright.config.ts` remains on the Phase 1 loader (`loadPlaywrightConfig()` → `loadProjectConfig()`). The CLI performs Phase 2 validation before launching Playwright, so invalid configs never reach Playwright. This separation keeps the Playwright configuration simple and avoids duplicating validation.
+
+**Consequences:**
+
+- Invalid Phase 2 configuration is rejected before Playwright starts.
+- Error messages never include raw secret values (redacted to `[REDACTED]`).
+- Credential presence is not checked during ordinary execution.
+- Phase 1-only configurations continue to work.
+- Authenticated execution remains deferred under DEC-024.
