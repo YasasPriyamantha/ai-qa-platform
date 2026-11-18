@@ -1373,6 +1373,38 @@ Requirements
 12. Keep platform-level AI provider credentials entirely separate: do not put the AI provider key in project role definitions or project.config.json.
 13. Record a decision only if a real unresolved design choice must be settled. Do not add an unnecessary dependency.
 
+### Notes from Earlier Reviews — Task 2.9
+
+1. **Reuse the existing role model**
+   - Role types already exist from Task 2.1 (`src/projects/phase2-types.ts` and `src/projects/phase2-loader.ts`).
+   - Extend and validate the existing types. Do not create a second role model.
+
+2. **Validate environment-variable references**
+   - Validate credential references as environment-variable names using a pattern such as `^[A-Z_][A-Z0-9_]*$`.
+   - Valid names such as `API_TOKEN`, `SAUCEDEMO_STANDARD_USER` and `SAUCEDEMO_STANDARD_PASSWORD` must be accepted.
+   - Do not reject a valid variable name solely because it contains words such as PASSWORD, TOKEN or SECRET.
+   - Actual raw credential values must still be rejected without echoing them in errors or logs.
+
+3. **Authentication-state paths**
+   - If `storageStatePath` remains in the existing role model, validate that it resolves inside the owning project workspace using `src/projects/path-safety.ts`.
+   - Do not implement Playwright login scripts, setup projects, storageState generation or authenticated test execution. These are deferred under DEC-024.
+
+4. **Credential availability**
+   - Loading and validating project configuration must not require referenced environment variables to be present.
+   - Implement a separate explicit credential-presence/resolution check.
+   - It must report missing variable names only, never secret values.
+
+5. **QA CLI compatibility**
+   - `npm run qa` currently uses the Phase 1 loader, which validates Phase 1 configuration fields and ignores additional Phase 2 fields.
+   - The Phase 2 loader separately validates Phase 2-specific fields.
+   - Report whether the QA CLI validates role configuration.
+   - Do not change the Phase 1 loader or CLI unless a concrete requirement justifies it.
+
+6. **Credential separation**
+   - Project configuration stores test-account environment-variable names only, never credential values.
+   - Platform-level AI provider credentials must remain separate from project-level application/test credentials.
+   - No AI provider integration belongs in Task 2.9.
+   
 Constraints / non-goals
 
 - Do not implement Playwright setup projects, login scripts, storageState generation, or authenticated test execution.
