@@ -1559,6 +1559,19 @@ Requirements
 14. Any server started for verification must be stopped afterward, including on failure. Confirm no demo-app process is left running on its port.
 15. Decide explicitly whether demo-app files are included in type-checking and excluded from platform build (dist/) and Vitest discovery, and report the choice. Do not let demo-app files change platform build output.
 
+**Task 2.11 — Additional notes from previous reviews**
+
+- Use Node's built-in `http` module. Do not add a web framework or a new dependency.
+- Bind the demo server explicitly to `127.0.0.1`. Make the port configurable with a sensible default. Avoid exposing the application to the public network.
+- Put the demo app under `examples/`. Keep application files out of the platform production build output (`dist/`) and out of Vitest test discovery. Do not silently exclude the application from all TypeScript checking: either include it in the existing type-check process or provide a focused example-specific type-check. Report the relevant TypeScript and Vitest configuration decisions.
+- Use the exact structure documented in `docs/REQUIREMENTS_AUTHORING_CONVENTION.md`, including lifecycle status (`Active`/`Retired`) and negative cases in the `- <condition>: <expected outcome>` format.
+- Run both V1 and V2 workflow documents through the existing deterministic parser and `validateRequirementsForProject()` using a properly initialized temporary project. Both should produce valid requirement records without blocking diagnostics.
+- Inspect the actual validator API and project-service options before writing the test. The validator loads the temporary project's own document registry, so initialize the project and register the relevant source documents using existing project/document services. Do not create a parallel validation implementation or substitute a manually constructed registry.
+- Continuing requirements retain their IDs. A changed behaviour retains the original requirement ID. A genuinely new behaviour receives a new ID. Document these mappings in the README.
+- Any server started for tests or smoke checks must be stopped even when a test fails. Use `try/finally` or appropriate test cleanup hooks. Confirm the process started by the test is no longer listening on its port. Do not terminate unrelated processes. Prefer an ephemeral port for automated tests when practical to avoid port conflicts.
+- Do not create a demo project workspace under the real `project-data/` directory. Task 2.12 will perform the end-to-end integration check using a temporary directory.
+- Keep the demo app independent of platform-core services and avoid SauceDemo-specific assumptions.
+
 Constraints / non-goals
 
 - Do not modify SauceDemo or the separate JavaScript tutorial project.
