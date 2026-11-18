@@ -1472,6 +1472,23 @@ Requirements
 11. Verify ignore rules preserve source files and .env.example while excluding real .env and authentication-state files.
 12. Confirm installed Node version and existing startup flow before using built-in .env loading. Do not add dotenv. Add tests for any new environment parsing/redaction behavior if code is changed.
 
+**Notes from previous Task 2.9 reviews — carry into Task 2.10**
+
+- Create or update one repository-root `.env.example`. Include `AI_PROVIDER_API_KEY=replace-with-your-provider-api-key` as a platform-level placeholder for Phase 3 only. Include example project credential variable names such as `SAUCEDEMO_USERNAME` and `SAUCEDEMO_PASSWORD`, with obvious placeholder values only. Keep the two categories clearly separated.
+- Do not create or populate a real `.env` file. Ensure `.env` is Git-ignored and `.env.example` remains tracked. Do not put environment templates inside `project-data/`.
+- Keep project role credentials separate from platform AI-provider credentials. Do not load `AI_PROVIDER_API_KEY`, make provider API calls, install a provider SDK, or add provider-specific wiring in Phase 2.
+- Use `.auth/<role-id>.json` inside each project's workspace as the documented convention for role-specific authentication state. Make sure the corresponding paths are Git-ignored without broadly ignoring legitimate source or configuration files.
+- Task 2.9 currently checks that `storageStatePath` stays inside the project workspace; it does not necessarily restrict it to `.auth/`. Do not claim that every arbitrary in-workspace path is ignored. Make the intended convention explicit and ensure the ignore rule protects the chosen location.
+- Verify with `git check-ignore` using dummy paths only:
+  - `.env` is ignored.
+  - `.env.example` is not ignored.
+  - `project-data/<project>/.auth/<role-id>.json` is ignored.
+  - Legitimate source and configuration files are not accidentally ignored.
+- Do not add `dotenv` without a concrete justification. Inspect the existing environment-loading behavior and installed Node version first; use built-in Node support if loading is genuinely needed and supported.
+- Do not implement Playwright setup projects, login scripts, storageState generation, or authenticated test execution. DEC-024 defers those workflows.
+- Authentication-state files may contain cookies and tokens. They must not be committed, logged, included in reports, or sent to AI prompts.
+- Document that CAPTCHA, MFA, SSO, and unsupported authentication flows must be surfaced as blockers rather than falsely treated as successful authentication.
+
 Constraints / non-goals
 
 - Do not create or populate a real .env file.
