@@ -1810,3 +1810,306 @@ describe('ROLE_ID_PATTERN', () => {
     expect(ROLE_ID_PATTERN.test('user.admin')).toBe(false);
   });
 });
+
+// ============================================================================
+// Task 2.12: Enhanced sensitive property detection tests
+// ============================================================================
+
+describe('sensitive property detection - compound names (Task 2.12)', () => {
+  let tempDir: string;
+  let configPath: string;
+
+  const validPhase1Config = {
+    projectId: 'test-project',
+    name: 'Test Project',
+    baseUrl: 'https://example.com',
+    environment: 'development' as const,
+    allowedDomains: ['example.com'],
+    testDirectory: 'tests',
+    artifactDirectory: 'artifacts',
+  };
+
+  function writeConfig(config: Record<string, unknown>): void {
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+
+  beforeEach(() => {
+    tempDir = join(tmpdir(), `sens-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(tempDir, { recursive: true });
+    mkdirSync(join(tempDir, 'tests'), { recursive: true });
+    mkdirSync(join(tempDir, 'artifacts'), { recursive: true });
+    configPath = join(tempDir, 'project.config.json');
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  it('should reject userPassword at top level', () => {
+    writeConfig({
+      ...validPhase1Config,
+      userPassword: 'some_value',
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('userPassword');
+      expect((err as ConfigValidationError).message).toContain('sensitive');
+    }
+  });
+
+  it('should reject db_password at top level', () => {
+    writeConfig({
+      ...validPhase1Config,
+      db_password: 'some_value',
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('db_password');
+    }
+  });
+
+  it('should reject authToken at top level', () => {
+    writeConfig({
+      ...validPhase1Config,
+      authToken: 'some_value',
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('authToken');
+    }
+  });
+
+  it('should reject sessionCookie at top level', () => {
+    writeConfig({
+      ...validPhase1Config,
+      sessionCookie: 'some_value',
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('sessionCookie');
+    }
+  });
+
+  it('should reject client_secret at top level', () => {
+    writeConfig({
+      ...validPhase1Config,
+      client_secret: 'some_value',
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('client_secret');
+    }
+  });
+
+  it('should accept credentials.password with valid env var name', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: { password: 'ADMIN_PASSWORD' },
+        },
+      ],
+    });
+
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.roles![0].credentials.password).toBe('ADMIN_PASSWORD');
+  });
+});
+
+describe('sensitive property detection - nested objects (Task 2.12)', () => {
+  let tempDir: string;
+  let configPath: string;
+
+  const validPhase1Config = {
+    projectId: 'test-project',
+    name: 'Test Project',
+    baseUrl: 'https://example.com',
+    environment: 'development' as const,
+    allowedDomains: ['example.com'],
+    testDirectory: 'tests',
+    artifactDirectory: 'artifacts',
+  };
+
+  function writeConfig(config: Record<string, unknown>): void {
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+
+  beforeEach(() => {
+    tempDir = join(tmpdir(), `nest-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(tempDir, { recursive: true });
+    mkdirSync(join(tempDir, 'tests'), { recursive: true });
+    mkdirSync(join(tempDir, 'artifacts'), { recursive: true });
+    configPath = join(tempDir, 'project.config.json');
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  it('should reject unknown object with nested password field', () => {
+    // Use a non-sensitive parent name so we test nested detection
+    writeConfig({
+      ...validPhase1Config,
+      dbConfig: { password: 'my_secret_value' },
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('nested');
+      expect((err as ConfigValidationError).message).toContain('password');
+    }
+  });
+
+  it('should reject unknown object with nested secret field', () => {
+    writeConfig({
+      ...validPhase1Config,
+      serviceConfig: { secret: 'db_secret_value' },
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('nested');
+      expect((err as ConfigValidationError).message).toContain('secret');
+    }
+  });
+
+  it('should reject unknown object with nested token field', () => {
+    writeConfig({
+      ...validPhase1Config,
+      serviceConfig: { token: 'api_token_value' },
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('nested');
+      expect((err as ConfigValidationError).message).toContain('token');
+    }
+  });
+
+  it('should reject unknown object with nested cookie field', () => {
+    writeConfig({
+      ...validPhase1Config,
+      sessionConfig: { cookie: 'session_cookie_value' },
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('nested');
+      expect((err as ConfigValidationError).message).toContain('cookie');
+    }
+  });
+
+  it('should allow unknown object without sensitive nested fields', () => {
+    writeConfig({
+      ...validPhase1Config,
+      metadata: { version: '1.0', author: 'Test' },
+    });
+
+    // Should not throw - unknown object with non-sensitive fields is allowed
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.projectId).toBe('test-project');
+  });
+});
+
+describe('sensitive property detection - false positive prevention (Task 2.12)', () => {
+  let tempDir: string;
+  let configPath: string;
+
+  const validPhase1Config = {
+    projectId: 'test-project',
+    name: 'Test Project',
+    baseUrl: 'https://example.com',
+    environment: 'development' as const,
+    allowedDomains: ['example.com'],
+    testDirectory: 'tests',
+    artifactDirectory: 'artifacts',
+  };
+
+  function writeConfig(config: Record<string, unknown>): void {
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+
+  beforeEach(() => {
+    tempDir = join(tmpdir(), `fp-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(tempDir, { recursive: true });
+    mkdirSync(join(tempDir, 'tests'), { recursive: true });
+    mkdirSync(join(tempDir, 'artifacts'), { recursive: true });
+    configPath = join(tempDir, 'project.config.json');
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  it('should accept keyboardLayout (no sensitive substring match)', () => {
+    // keyboardLayout does not contain password, secret, token, cookie, or credential
+    writeConfig({
+      ...validPhase1Config,
+      keyboardLayout: 'us-international',
+    });
+
+    // Should not throw - harmless property
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.projectId).toBe('test-project');
+  });
+
+  it('should accept displaySettings (no sensitive substring match)', () => {
+    writeConfig({
+      ...validPhase1Config,
+      displaySettings: { theme: 'dark', fontSize: 14 },
+    });
+
+    // Should not throw
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.projectId).toBe('test-project');
+  });
+
+  it('should accept networkTimeout (no sensitive substring match)', () => {
+    // 'timeout' is not 'token' - verify no accidental partial match
+    writeConfig({
+      ...validPhase1Config,
+      networkTimeout: 30000,
+    });
+
+    // Should not throw
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.projectId).toBe('test-project');
+  });
+});

@@ -489,23 +489,133 @@ Tasks:
 
 ## 6. Phase 2 — Project and workflow-document management
 
+**Status:** Complete (verified 2026-11-18)
+
 **Goal:** Represent different application projects independently and make requirements traceable.
 
-Tasks:
+**Original tasks and evidence:**
 
-1. Extend the Phase 1 execution config using the same existing field names; add fields rather than rename/rewrite the schema.
-2. Create project workspace creation and loading functions.
-3. Store project data in separate directories and test cross-project isolation.
-4. Load Markdown and plain-text documents and preserve original document versions/hashes and source references.
-5. Define the structured Markdown requirement authoring convention, including author-assigned stable IDs, expected results, and expected outcomes for every negative case.
-6. Define and validate the requirement schema. Reject missing/duplicate IDs; never reuse retired IDs.
-7. Define how AI-proposed IDs and structured interpretations from free-form documents enter a human review/approval process.
-8. Add role profiles and authentication configuration. Store credential environment-variable names, not secret values, in project config.
-9. Support local `.env` only when Git-ignored and provide `.env.example` with names/placeholders only.
-10. Define role-specific setup and authentication-state storage conventions. Treat Playwright `storageState` files as secrets and exclude them from Git and logs.
-11. Add tests for missing documents, malformed configs, path handling, duplicate IDs, and cross-project isolation.
+1. ✅ Extend the Phase 1 execution config using the same existing field names; add fields rather than rename/rewrite the schema.
+   - `src/projects/phase2-config.ts` extends `ExecutionConfig` with optional `roles`, `documents`, `description`
+   - Phase 1 fields unchanged; Phase 1-only configs remain valid
 
-**Exit criteria:** Create two projects with different URLs and documents without mixing settings or requirements. A structured document yields validated stable requirement records. Role/credential configuration is represented safely. AI extraction may remain a reviewed proposal until the relevant AI phase.
+2. ✅ Create project workspace creation and loading functions.
+   - `src/projects/service.ts`: `createProject()`, `loadProject()`
+
+3. ✅ Store project data in separate directories and test cross-project isolation.
+   - `tests/unit/projects/isolation.test.ts` (843 lines)
+   - Verifies separate configs, resolved paths, file modification isolation
+
+4. ✅ Load Markdown and plain-text documents and preserve original document versions/hashes and source references.
+   - `src/documents/service.ts`: `ingestDocument()` creates immutable SHA-256 content-addressed snapshots
+   - `documents/sources/<hash>.<ext>` storage with `documents.json` registry
+
+5. ✅ Define the structured Markdown requirement authoring convention, including author-assigned stable IDs, expected results, and expected outcomes for every negative case.
+   - `docs/REQUIREMENTS_AUTHORING_CONVENTION.md` (467 lines)
+   - ID pattern: `^[A-Z][A-Z0-9]*-\d+$`
+   - Negative cases require `: <expected outcome>` format
+
+6. ✅ Define and validate the requirement schema. Reject missing/duplicate IDs; never reuse retired IDs.
+   - `src/requirements/parser.ts` (1271 lines) with line-numbered diagnostics
+   - `src/requirements/validation.ts` with `checkForDuplicateIds()`
+   - `src/requirements/registry.ts` (1814 lines) with identity/lifecycle rules
+
+7. ✅ Define how AI-proposed IDs and structured interpretations from free-form documents enter a human review/approval process.
+   - `src/requirements/proposals.ts` (1613 lines)
+   - `createProposal()` does not modify registry; `acceptProposedRequirement()` is the ONLY path to authoritative registry
+
+8. ✅ Add role profiles and authentication configuration. Store credential environment-variable names, not secret values, in project config.
+   - `src/projects/phase2-config.ts`: `RoleProfile` with `credentials` mapping names to env-var names
+   - `src/projects/phase2-loader.ts`: Validates env-var name format, rejects raw secrets
+
+9. ✅ Support local `.env` only when Git-ignored and provide `.env.example` with names/placeholders only.
+   - `.gitignore`: `.env`, `.env.*`, `!.env.example`
+   - `.env.example` (57 lines) with naming conventions
+
+10. ✅ Define role-specific setup and authentication-state storage conventions. Treat Playwright `storageState` files as secrets and exclude them from Git and logs.
+    - `docs/AUTHENTICATION_AND_CREDENTIALS.md` (293 lines)
+    - `.gitignore`: `**/auth-state.json`, `**/storage-state.json`, `**/.auth/`
+    - `storageStatePath` validated for `.auth/<role-id>.json` convention
+
+11. ✅ Add tests for missing documents, malformed configs, path handling, duplicate IDs, and cross-project isolation.
+    - 996 tests total (27 test files)
+    - Tests cover path containment, traversal attacks, sibling-prefix attacks, duplicate IDs, lifecycle rules
+
+**Extra scope completed (not in original list):**
+
+- **Task 2.6a**: Deterministic structured-Markdown parser (`src/requirements/parser.ts`)
+- **Registry import**: All-or-nothing import from immutable snapshots with 11-step validation (`importRequirements()`)
+- **Task 2.12a (DEC-032)**: CLI validates Phase 2 config before Playwright starts
+- **Task 2.12 sensitive property detection**: Enhanced to detect compound names (userPassword, db_password) and nested objects
+- **DEC-033**: Role ID format convention documented
+
+**Task 2.11 — Local demo app V1/V2 — Deferred:**
+
+- **Purpose:** Provide reproducible V1 and V2 behavior for Phase 7 release-comparison demonstrations
+- **Status:** Not implemented in Phase 2; must be completed before Phase 7
+- **Note:** Phase 5 task 13 requires a second demo application; if the local app is not ready, another application may be used
+
+**Exit criteria verification:**
+
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+| Create two projects without mixing settings | ✅ | `isolation.test.ts` verified |
+| Structured document yields validated stable requirement records | ✅ | Two-version test (`tests/integration/requirements/two-version-import.test.ts`) |
+| Role/credential configuration represented safely | ✅ | Phase 2 loader rejects secrets, sensitive property detection enhanced |
+| AI extraction remains reviewed proposal | ✅ | `proposals.ts` enforces human acceptance |
+
+**Build/test evidence:**
+
+```
+Test Files  27 passed (27)
+     Tests  996 passed (996)
+  Duration  159.23s
+```
+
+- `npm run build`: Success
+- `npm run typecheck`: Success
+- `npm run qa -- run --config project-data/saucedemo/project.config.json`: SUCCESS (1 test passed)
+
+**Remaining limitations:**
+
+- Actual authenticated execution (login scripts, storageState generation) deferred per DEC-024
+- Document registry cross-reference validation during CLI execution not implemented
+- Release-to-release comparison deferred to Phase 7
+
+**Hosted-API documentation alignment needed before Phase 3:**
+
+The following files contain outdated local-model-first wording that must be aligned with DEC-028:
+
+| File | Section | Statement |
+|------|---------|-----------|
+| `PROJECT_SPEC.md` | Header | "AI strategy: Local model first; optional provider adapter later" |
+| `PROJECT_SPEC.md` | §1 | "local-first and single-user" (valid) |
+| `PROJECT_SPEC.md` | §8 | "one local model for multiple agent roles" |
+| `PROJECT_SPEC.md` | §9 | "Start with a local model provider such as Ollama" |
+| `PROJECT_SPEC.md` | §10 | "AI integration: provider adapter; local model first" |
+| `PROJECT_SPEC.md` | §10 | "local model must be chosen or validated" |
+| `PROJECT_SPEC.md` | §11 criterion 10 | "without mandatory paid AI API calls" (still valid per DEC-028) |
+| `ARCHITECTURE.md` | Header | "Local-first modular monolith" (valid for platform) |
+| `ARCHITECTURE.md` | §2 diagram | "Local Model Runtime" |
+| `ARCHITECTURE.md` | §3.4 | "Implement the first local provider (candidate: Ollama)" |
+| `ARCHITECTURE.md` | §10 | "Local models vary in tool-calling quality" |
+| `ARCHITECTURE.md` | §11 | "Ollama tool support" reference |
+| `IMPLEMENTATION_PLAN.md` | §4 table | "Local AI + Playwright MCP feasibility" |
+| `IMPLEMENTATION_PLAN.md` | §4.2 | "Local AI model integration" |
+| `IMPLEMENTATION_PLAN.md` | §5.4 | "candidate local model" |
+| `IMPLEMENTATION_PLAN.md` | §7 | "local model through one replaceable interface" |
+| `IMPLEMENTATION_PLAN.md` | §8.7 | "selected local model" |
+
+**Note:** PROJECT_SPEC.md §11 criterion 10 ("without mandatory paid AI API calls") is still valid per DEC-028's preservation of the "paid AI usage requires explicit approval" principle.
+
+**Decisions recorded:**
+
+- DEC-028: Hosted AI provider API adopted (supersedes DEC-006, DEC-007)
+- DEC-029: File/JSON storage through Phase 5
+- DEC-030: Document reference vs registry responsibilities
+- DEC-031: Project ID lowercase slug convention
+- DEC-032: CLI validates Phase 2 config before execution
+- DEC-033: Role ID format convention
 
 ## 7. Phase 3 — Local AI model integration
 
@@ -638,8 +748,13 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Run the local AI/MCP feasibility spike (Pre-Phase 3) to validate the riskiest product assumption before investing in AI-dependent phases.
-2. Based on feasibility spike results, create the detailed Phase 2 task breakdown.
+1. **Align hosted-API documentation:** Update PROJECT_SPEC.md, ARCHITECTURE.md §3.4, and IMPLEMENTATION_PLAN.md Phase 3 to reflect DEC-028 (hosted AI provider API). Remove or update local-model-first language.
+
+2. **Pre-Phase 3 feasibility experiment:** Run the hosted-API + Playwright-MCP experiment (modified per DEC-028). Validate that a hosted provider can use MCP tools and generate a basic Playwright test.
+
+3. **Task 2.11 (before Phase 7):** Implement the local demo app with V1/V2 reproducible behavior for release-comparison demonstrations. This can be done any time before Phase 7 begins.
+
+4. **Phase 3 planning:** After feasibility success, create the detailed Phase 3 task breakdown using the hosted provider adapter approach.
 
 ## References
 

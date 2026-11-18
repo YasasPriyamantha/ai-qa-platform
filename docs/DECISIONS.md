@@ -581,3 +581,56 @@ The `playwright.config.ts` remains on the Phase 1 loader (`loadPlaywrightConfig(
 - Credential presence is not checked during ordinary execution.
 - Phase 1-only configurations continue to work.
 - Authenticated execution remains deferred under DEC-024.
+
+## DEC-033 — Role ID Format Convention
+
+**Status:** Accepted
+
+**Decision:** Role IDs use the pattern `^[a-z_][a-z0-9_-]*$` with a maximum length of 64 characters.
+
+**Format specification:**
+
+- Pattern: `^[a-z_][a-z0-9_-]*$`
+- Maximum length: 64 characters
+- Must start with a lowercase letter or underscore
+- Remaining characters may be lowercase letters, digits, underscores, or hyphens
+- Windows reserved device names are rejected (case-insensitive check): `con`, `prn`, `aux`, `nul`, `com1`–`com9`, `lpt1`–`lpt9`
+
+**Valid examples:** `admin`, `standard_user`, `power-user`, `_internal`, `user123`
+
+**Invalid examples:** `Admin` (uppercase), `123user` (starts with digit), `con` (reserved name), `user.admin` (contains dot)
+
+**Uniqueness:** Role IDs must be unique within a project. Uniqueness is checked case-insensitively to prevent collisions on case-insensitive filesystems.
+
+**Distinction from DEC-031 (project IDs):**
+
+This convention differs from DEC-031's project ID pattern:
+
+| Aspect | Project ID (DEC-031) | Role ID (DEC-033) |
+|--------|---------------------|-------------------|
+| Pattern | `^[a-z0-9]+(?:-[a-z0-9]+)*$` | `^[a-z_][a-z0-9_-]*$` |
+| Underscores | Not allowed | Allowed |
+| Start character | Lowercase letter or digit | Lowercase letter or underscore |
+| Use case | Directory names, URL paths | Authentication-state filenames |
+
+**Rationale:**
+
+1. **Underscore support:** Existing role IDs like `standard_user` use underscores. Allowing underscores maintains backward compatibility with common naming conventions.
+
+2. **Filesystem safety:** Role IDs are used as filenames for authentication-state files (`.auth/<role-id>.json`). The pattern ensures safe filenames on Windows and POSIX systems.
+
+3. **Case sensitivity:** Lowercase-only IDs with case-insensitive uniqueness checks prevent collisions on Windows NTFS.
+
+4. **Leading underscore:** Allows internal/system role IDs to be visually distinguished (e.g., `_system`, `_internal`).
+
+**Implementation:**
+
+- Validation function: `validateRoleIdFormat()` in `src/projects/phase2-loader.ts`
+- Pattern constant: `ROLE_ID_PATTERN` in the same file
+- Duplicate detection uses case-insensitive comparison
+
+**Consequences:**
+
+- Role IDs like `standard_user` are valid
+- Role IDs are distinct from project IDs in allowed characters
+- Authentication-state files are safe on all supported platforms

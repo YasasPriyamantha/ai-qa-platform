@@ -94,7 +94,7 @@ const REJECTED_VALUES = new Set([
 ]);
 
 /**
- * Property names that indicate sensitive data.
+ * Property names that indicate sensitive data (exact matches).
  * Unknown properties with these names are rejected to prevent raw secrets
  * from being accidentally stored in configuration files.
  *
@@ -130,19 +130,55 @@ const SENSITIVE_PROPERTY_NAMES = new Set([
 ]);
 
 /**
+ * Sensitive word fragments that should trigger rejection when found
+ * anywhere in a property name (case-insensitive substring match).
+ *
+ * Task 2.12: Extended to catch compound names like userPassword, db_password,
+ * authToken, sessionCookie, client_secret.
+ */
+const SENSITIVE_WORD_FRAGMENTS = [
+  'password',
+  'secret',
+  'token',
+  'cookie',
+  'credential',
+];
+
+/**
  * Check if a property name looks like it could contain sensitive data.
+ *
+ * Checks both:
+ * 1. Exact matches against SENSITIVE_PROPERTY_NAMES (case-insensitive)
+ * 2. Substring matches against SENSITIVE_WORD_FRAGMENTS (case-insensitive)
  *
  * @param name - Property name to check (case-insensitive)
  * @returns true if the property name suggests sensitive content
  */
 function isSensitivePropertyName(name: string): boolean {
-  return SENSITIVE_PROPERTY_NAMES.has(name) ||
-         SENSITIVE_PROPERTY_NAMES.has(name.toLowerCase());
+  // Check exact matches first
+  if (SENSITIVE_PROPERTY_NAMES.has(name) ||
+      SENSITIVE_PROPERTY_NAMES.has(name.toLowerCase())) {
+    return true;
+  }
+
+  // Check for sensitive word fragments (case-insensitive substring match)
+  const lowerName = name.toLowerCase();
+  for (const fragment of SENSITIVE_WORD_FRAGMENTS) {
+    if (lowerName.includes(fragment)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
  * Check for sensitive unknown properties in an object.
  * Rejects properties that look like they could contain secrets.
+ *
+ * Task 2.12: Enhanced to recursively check nested objects for sensitive properties.
+ * This catches patterns like {"auth": {"password": "..."}} where "auth" is unknown
+ * and contains a sensitive nested property.
  *
  * @param obj - Object to check
  * @param knownFields - Set of known/expected field names
@@ -159,14 +195,34 @@ function rejectSensitiveUnknownProperties(
       continue; // Known field, skip
     }
 
+    const currentPath = fieldPath ? `${fieldPath}.${key}` : key;
+
     if (isSensitivePropertyName(key)) {
       throw new ConfigValidationError(
         `Unknown property '${key}' appears to contain sensitive data. ` +
         `Credentials must be stored as environment-variable references in the 'credentials' object, ` +
         `not as direct properties. Remove this property or move it to the appropriate location.`,
-        fieldPath ? `${fieldPath}.${key}` : key,
+        currentPath,
         '[REDACTED]' // Never include the actual value
       );
+    }
+
+    // Recursively check nested objects for sensitive properties
+    const value = obj[key];
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      // Check all properties in the nested object
+      const nestedObj = value as Record<string, unknown>;
+      for (const nestedKey of Object.keys(nestedObj)) {
+        if (isSensitivePropertyName(nestedKey)) {
+          throw new ConfigValidationError(
+            `Unknown property '${key}' contains nested sensitive field '${nestedKey}'. ` +
+            `Credentials must be stored as environment-variable references in the 'credentials' object, ` +
+            `not nested within unknown properties.`,
+            `${currentPath}.${nestedKey}`,
+            '[REDACTED]' // Never include the actual value
+          );
+        }
+      }
     }
   }
 }
