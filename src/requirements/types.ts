@@ -288,6 +288,11 @@ export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'revision_req
  * before becoming authoritative requirements.
  *
  * Proposals are kept separate from the authoritative registry.
+ *
+ * Actionable vs Unresolved proposals:
+ * - Actionable: has expectedResult, no unresolved marker
+ * - Unresolved: has unresolved marker with reason (expectedResult may be omitted)
+ * - Invalid: neither expectedResult nor unresolved marker (rejected at creation)
  */
 export interface ProposedRequirement {
   /**
@@ -302,8 +307,15 @@ export interface ProposedRequirement {
   /** Proposed description */
   description: string;
 
-  /** Proposed expected result */
-  expectedResult: string;
+  /**
+   * Proposed expected result.
+   *
+   * Rules matching the authoritative Requirement type:
+   * - Required for actionable proposals (without unresolved marker)
+   * - May be omitted ONLY when the proposal has an unresolved marker
+   * - Never invent an expected result to make validation pass
+   */
+  expectedResult?: string;
 
   /** Proposed negative cases */
   negativeCases: NegativeCase[];
@@ -316,6 +328,21 @@ export interface ProposedRequirement {
 
   /** Proposed role association */
   role?: string;
+
+  /**
+   * Unresolved marker.
+   *
+   * Present when the proposed requirement has missing, ambiguous, or
+   * contradictory expected behavior that requires clarification.
+   *
+   * A proposed requirement with this marker:
+   * - May omit its expectedResult
+   * - Must have a meaningful reason
+   * - Remains non-actionable after acceptance
+   *
+   * On acceptance, this marker is preserved in the authoritative registry.
+   */
+  unresolved?: UnresolvedMarker;
 
   /**
    * Original text from source document.
@@ -380,13 +407,19 @@ export interface Proposal {
 
 /**
  * Review action taken on a proposal or requirement.
+ *
+ * Minimal action set per Task 2.8 requirements:
+ * - edit: Content was modified before final review
+ * - accept: Accept the proposal/requirement
+ * - reject: Reject entirely
+ *
+ * Note: Proposal creation metadata is represented using createdBy/createdAt
+ * fields rather than a 'create' review action.
  */
 export type ReviewAction =
-  | 'accept' // Accept the proposal/requirement as-is
-  | 'accept_with_changes' // Accept with modifications
-  | 'reject' // Reject entirely
-  | 'request_revision' // Request changes before accepting
-  | 'defer'; // Postpone decision
+  | 'edit' // Content was edited during review
+  | 'accept' // Accept the proposal/requirement
+  | 'reject'; // Reject entirely
 
 /**
  * Review record documenting a review decision.

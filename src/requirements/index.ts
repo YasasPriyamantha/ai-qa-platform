@@ -121,3 +121,42 @@ export type {
   ChangeOperation,
   ChangeResult,
 } from './registry.js';
+
+// Proposal exports (Task 2.8 - Human Review Boundary)
+// Public proposal writes go through create, edit, accept, reject operations.
+// saveProposal is an internal helper and NOT part of the public API.
+export {
+  ProposalError,
+  generateProposalId,
+  generateReviewId,
+  validateProposalId,
+  resolveProposalPathSafely,
+  PROPOSAL_ID_PATTERN,
+  PROPOSAL_ID_MAX_LENGTH,
+  createProposal,
+  loadProposal,
+  // Note: saveProposal is NOT exported - use create/edit/accept/reject operations
+  listProposals,
+  acceptProposedRequirement,
+  rejectProposedRequirement,
+  editProposedRequirement,
+  getProposalSummary,
+} from './proposals.js';
+
+export type {
+  ProposedRequirementStatus,
+  ProposedRequirementSnapshot,
+  EditReviewRecord,
+  ProposedRequirementWithStatus,
+  ProposalRecord,
+  ProposalErrorCode,
+  ProposalIdValidationResult,
+  CreateProposalOptions,
+  CreateProposalResult,
+  AcceptOptions,
+  AcceptResult,
+  RejectOptions,
+  RejectResult,
+  EditOptions,
+  ProposalSummary,
+} from './proposals.js';
