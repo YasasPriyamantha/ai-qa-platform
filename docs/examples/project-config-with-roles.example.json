@@ -1,0 +1,48 @@
+{
+  "projectId": "saucedemo",
+  "name": "SauceDemo Demo with Roles",
+  "description": "Example configuration demonstrating role profiles with credential references",
+  "baseUrl": "https://www.saucedemo.com/",
+  "environment": "demo",
+  "allowedDomains": ["www.saucedemo.com"],
+  "testDirectory": "tests/approved",
+  "artifactDirectory": "artifacts",
+
+  "roles": [
+    {
+      "roleId": "standard_user",
+      "name": "Standard User",
+      "description": "A standard user account for basic workflow testing",
+      "credentials": {
+        "username": "SAUCEDEMO_STANDARD_USER",
+        "password": "SAUCEDEMO_STANDARD_PASSWORD"
+      }
+    },
+    {
+      "roleId": "locked-out-user",
+      "name": "Locked Out User",
+      "description": "A locked out user for testing access denied scenarios",
+      "credentials": {
+        "username": "SAUCEDEMO_LOCKED_USER",
+        "password": "SAUCEDEMO_LOCKED_PASSWORD"
+      }
+    },
+    {
+      "roleId": "problem_user",
+      "name": "Problem User",
+      "description": "A user account that triggers application bugs",
+      "credentials": {
+        "username": "SAUCEDEMO_PROBLEM_USER",
+        "password": "SAUCEDEMO_PROBLEM_PASSWORD"
+      }
+    }
+  ],
+
+  "documents": [
+    {
+      "documentId": "login-workflow",
+      "sourcePath": "docs/login-workflow.md",
+      "format": "markdown"
+    }
+  ]
+}

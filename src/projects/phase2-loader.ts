@@ -11,16 +11,47 @@
  * SECURITY:
  * - Rejects any value that looks like a secret (passwords, tokens, keys)
  * - Only environment-variable NAMES are allowed in credential fields
+ * - Loading/validating project configuration does NOT require referenced
+ *   credential environment variables to be present
+ * - A separate explicit credential-presence check is provided for when
+ *   credentials are actually needed (e.g., authenticated test execution)
+ *
+ * Task 2.9: Role profiles and safe authentication/credential references
  */
 
 import { readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { loadProjectConfig } from './loader.js';
 import { ConfigValidationError } from './config.js';
+import { isRelativePathContained } from './path-safety.js';
 import type {
   ResolvedPhase2Config,
   RoleProfile,
   DocumentReference,
 } from './phase2-config.js';
+
+/**
+ * Role ID validation pattern.
+ *
+ * Role IDs must be:
+ * - Lowercase alphanumeric with hyphens and underscores
+ * - Start with a lowercase letter or underscore
+ * - Filesystem-safe for use as authentication-state filenames
+ *
+ * Examples:
+ * - Valid: admin, standard_user, power-user, _internal
+ * - Invalid: Admin (uppercase), 123user (starts with digit), user@admin (special char)
+ *
+ * Note: This pattern is distinct from DEC-031's project ID pattern.
+ * Project IDs use hyphen separation only (no underscores).
+ * Role IDs allow underscores to support existing IDs like `standard_user`.
+ */
+export const ROLE_ID_PATTERN = /^[a-z_][a-z0-9_-]*$/;
+
+/**
+ * Maximum length for role IDs.
+ */
+export const ROLE_ID_MAX_LENGTH = 64;
 
 /**
  * Patterns that indicate a value might be a secret.
@@ -35,12 +66,13 @@ const SECRET_PATTERNS = [
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
   // API keys (common prefixes)
   /^(sk-|pk-|api[_-]|key[_-]|token[_-]|secret[_-]|bearer\s)/i,
-  // Contains password-like patterns
+  // Contains password-like patterns (actual values, not env var names)
   /password\s*[:=]\s*.+/i,
 ];
 
 /**
  * Common password-like values to reject.
+ * These are bare field names, not env var names.
  */
 const REJECTED_VALUES = new Set([
   'password',
@@ -94,6 +126,12 @@ export function looksLikeSecret(value: string): boolean {
  * Must be uppercase letters, digits, and underscores only.
  * Must start with a letter or underscore.
  *
+ * Valid examples: API_TOKEN, SAUCEDEMO_STANDARD_USER, SAUCEDEMO_STANDARD_PASSWORD
+ *
+ * Note: Names containing PASSWORD, TOKEN, or SECRET are VALID environment
+ * variable names. The concern is storing actual secret VALUES, not names
+ * that describe what the variable contains.
+ *
  * @param name - Environment variable name to validate
  * @returns true if valid
  */
@@ -104,6 +142,121 @@ export function isValidEnvVarName(name: string): boolean {
 }
 
 /**
+ * Validation result for environment variable names.
+ */
+export interface EnvVarNameValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate an environment variable name with detailed error message.
+ *
+ * Requirements:
+ * - Must start with an uppercase letter or underscore
+ * - Remaining characters may only be uppercase letters, digits, or underscores
+ * - Lowercase and mixed-case names are rejected
+ *
+ * Valid examples: API_TOKEN, SAUCEDEMO_PASSWORD, SAUCEDEMO_USERNAME
+ *
+ * Note: Names containing PASSWORD, TOKEN, SECRET are VALID env var names.
+ * The separate looksLikeSecret() check detects actual secret values.
+ *
+ * @param name - Environment variable name to validate
+ * @returns Validation result with error message if invalid
+ */
+export function validateEnvVarName(name: string): EnvVarNameValidationResult {
+  if (!name || name.trim() === '') {
+    return { valid: false, error: 'Environment variable name cannot be empty' };
+  }
+
+  if (/^\d/.test(name)) {
+    return { valid: false, error: 'Environment variable name cannot start with a digit' };
+  }
+
+  if (/\s/.test(name)) {
+    return { valid: false, error: 'Environment variable name cannot contain whitespace' };
+  }
+
+  // Require uppercase letters, digits, and underscores only
+  // Must start with uppercase letter or underscore
+  if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) {
+    return {
+      valid: false,
+      error: 'Environment variable name must be uppercase letters, digits, and underscores only (e.g., MY_VAR, API_TOKEN)',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate role ID format.
+ *
+ * Role IDs must be:
+ * - Lowercase alphanumeric with hyphens and underscores
+ * - Start with a lowercase letter or underscore
+ * - Filesystem-safe for use as authentication-state filenames
+ * - Not a Windows reserved device name
+ *
+ * Valid examples: admin, standard_user, power-user, _internal
+ * Invalid examples: Admin (uppercase), 123user, con (reserved)
+ *
+ * @param roleId - Role ID to validate
+ * @returns Validation result with error message if invalid
+ */
+export interface RoleIdValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Windows reserved device names (case-insensitive check).
+ * Reused from validation.ts pattern.
+ */
+const WINDOWS_RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+export function validateRoleIdFormat(roleId: string): RoleIdValidationResult {
+  if (!roleId || roleId.trim() === '') {
+    return { valid: false, error: 'Role ID cannot be empty' };
+  }
+
+  if (roleId.length > ROLE_ID_MAX_LENGTH) {
+    return { valid: false, error: `Role ID is too long (max ${ROLE_ID_MAX_LENGTH} characters)` };
+  }
+
+  // Check for path separators
+  if (roleId.includes('/') || roleId.includes('\\')) {
+    return { valid: false, error: 'Role ID cannot contain path separators' };
+  }
+
+  // Check for dots (not allowed in role IDs)
+  if (roleId.includes('.')) {
+    return { valid: false, error: 'Role ID cannot contain dots' };
+  }
+
+  // Check for whitespace
+  if (/\s/.test(roleId)) {
+    return { valid: false, error: 'Role ID cannot contain whitespace' };
+  }
+
+  // Check for Windows reserved names (case-insensitive)
+  if (WINDOWS_RESERVED_NAMES.test(roleId)) {
+    return { valid: false, error: 'Role ID cannot be a Windows reserved name' };
+  }
+
+  // Enforce lowercase pattern
+  if (!ROLE_ID_PATTERN.test(roleId)) {
+    return {
+      valid: false,
+      error: 'Role ID must be lowercase letters, digits, underscores, and hyphens only, starting with a letter or underscore (e.g., admin, standard_user, power-user)',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Validated Phase 2 fields (in-memory, no filesystem access).
  * Used by createProject to validate before persisting.
  */
@@ -111,6 +264,123 @@ export interface ValidatedPhase2Fields {
   roles?: RoleProfile[];
   documents?: DocumentReference[];
   description?: string;
+}
+
+/**
+ * Result of credential presence check.
+ * Reports which environment variables are missing, never their values.
+ */
+export interface CredentialPresenceResult {
+  /** Whether all required credentials are present */
+  allPresent: boolean;
+
+  /** List of missing environment variable names (never values) */
+  missingVariables: string[];
+
+  /** Summary by role showing which variables are missing for each role */
+  byRole: Record<string, {
+    roleId: string;
+    roleName: string;
+    missing: string[];
+    present: string[];
+  }>;
+}
+
+/**
+ * Check if all credential environment variables for a role are present.
+ *
+ * IMPORTANT: This function is a SEPARATE explicit check that a future
+ * authenticated-run workflow can call when credentials are actually needed.
+ * It is NOT called as part of ordinary project loading.
+ *
+ * This function:
+ * - Reports missing variable NAMES only, never values
+ * - Does not throw on missing credentials
+ * - Is designed for pre-flight checks before authenticated test execution
+ *
+ * @param roles - Role profiles to check (from loaded project config)
+ * @param env - Environment object to check (defaults to process.env)
+ * @returns Credential presence result with missing variable names
+ */
+export function checkCredentialPresence(
+  roles: RoleProfile[] | undefined,
+  env: Record<string, string | undefined> = process.env
+): CredentialPresenceResult {
+  const result: CredentialPresenceResult = {
+    allPresent: true,
+    missingVariables: [],
+    byRole: {},
+  };
+
+  if (!roles || roles.length === 0) {
+    return result;
+  }
+
+  for (const role of roles) {
+    const roleResult = {
+      roleId: role.roleId,
+      roleName: role.name,
+      missing: [] as string[],
+      present: [] as string[],
+    };
+
+    for (const [_credKey, envVarName] of Object.entries(role.credentials)) {
+      // Check if the environment variable exists and has a non-empty value
+      // A credential is considered missing when:
+      // - It is undefined
+      // - It is an empty string
+      // - It contains whitespace only
+      const value = env[envVarName];
+      const isMissing = value === undefined || value === '' || value.trim() === '';
+
+      if (isMissing) {
+        roleResult.missing.push(envVarName);
+        // Track all unique missing variables
+        if (!result.missingVariables.includes(envVarName)) {
+          result.missingVariables.push(envVarName);
+        }
+      } else {
+        roleResult.present.push(envVarName);
+      }
+    }
+
+    result.byRole[role.roleId] = roleResult;
+
+    if (roleResult.missing.length > 0) {
+      result.allPresent = false;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check credential presence for a single role.
+ *
+ * @param role - Single role profile to check
+ * @param env - Environment object to check (defaults to process.env)
+ * @returns Object with missing variable names for this role
+ */
+export function checkRoleCredentialPresence(
+  role: RoleProfile,
+  env: Record<string, string | undefined> = process.env
+): { roleId: string; missing: string[]; allPresent: boolean } {
+  const missing: string[] = [];
+
+  for (const [_credKey, envVarName] of Object.entries(role.credentials)) {
+    // A credential is missing when undefined, empty, or whitespace-only
+    const value = env[envVarName];
+    const isMissing = value === undefined || value === '' || value.trim() === '';
+    if (isMissing) {
+      missing.push(envVarName);
+    }
+  }
+
+  return {
+    roleId: role.roleId,
+    missing,
+    allPresent: missing.length === 0,
+  };
 }
 
 /**
@@ -157,11 +427,56 @@ export function loadPhase2ProjectConfig(configPath: string): ResolvedPhase2Confi
   // Validate and extract Phase 2 fields
   const phase2Fields = validatePhase2Fields(rawConfig);
 
+  // Validate storageStatePath for each role if present
+  // Must resolve inside the project workspace
+  const projectWorkspace = dirname(configPath);
+  if (phase2Fields.roles) {
+    for (let i = 0; i < phase2Fields.roles.length; i++) {
+      const role = phase2Fields.roles[i];
+      if (role.storageStatePath) {
+        validateStorageStatePath(
+          role.storageStatePath,
+          projectWorkspace,
+          `roles[${i}].storageStatePath`
+        );
+      }
+    }
+  }
+
   // Return combined configuration
   return {
     ...phase1Config,
     ...phase2Fields,
   };
+}
+
+/**
+ * Validate that storageStatePath resolves inside the project workspace.
+ *
+ * Per DEC-024: Authentication state files may contain cookies/tokens
+ * and must be treated as secrets, excluded from Git, stored within
+ * a restricted project/run area.
+ *
+ * @param storagePath - Relative path to storageState file
+ * @param workspace - Project workspace directory
+ * @param fieldPath - Field path for error messages
+ * @throws ConfigValidationError if path escapes workspace
+ */
+function validateStorageStatePath(
+  storagePath: string,
+  workspace: string,
+  fieldPath: string
+): void {
+  // Check that the path is relative (not absolute)
+  // and resolves inside the workspace
+  if (!isRelativePathContained(storagePath, workspace)) {
+    throw new ConfigValidationError(
+      `storageStatePath must be a relative path within the project workspace. ` +
+      `Path "${storagePath}" escapes the project directory.`,
+      fieldPath,
+      storagePath
+    );
+  }
 }
 
 /**
@@ -205,14 +520,27 @@ function validateRoles(raw: Record<string, unknown>): RoleProfile[] | undefined 
 
     // Validate roleId
     const roleId = validateRequiredString(roleObj, 'roleId', prefix);
-    if (roleIds.has(roleId)) {
+
+    // Validate role ID format
+    const roleIdResult = validateRoleIdFormat(roleId);
+    if (!roleIdResult.valid) {
+      throw new ConfigValidationError(
+        roleIdResult.error!,
+        `${prefix}.roleId`,
+        roleId
+      );
+    }
+
+    // Check for duplicate role IDs (case-insensitive for uniqueness)
+    const roleIdLower = roleId.toLowerCase();
+    if (roleIds.has(roleIdLower)) {
       throw new ConfigValidationError(
         `Duplicate role ID: ${roleId}`,
         `${prefix}.roleId`,
         roleId
       );
     }
-    roleIds.add(roleId);
+    roleIds.add(roleIdLower);
 
     // Validate name
     const name = validateRequiredString(roleObj, 'name', prefix);
@@ -296,8 +624,18 @@ function validateCredentials(
       );
     }
 
-    // Warn but allow non-standard env var names (some systems use lowercase)
-    // Strict validation would use: isValidEnvVarName(value)
+    // Validate environment variable name format
+    // Allow both uppercase and lowercase (some systems use lowercase)
+    // but require valid env var characters
+    const envVarResult = validateEnvVarName(value);
+    if (!envVarResult.valid) {
+      throw new ConfigValidationError(
+        envVarResult.error!,
+        fieldPath,
+        value
+      );
+    }
+
     result[key] = value;
   }
 

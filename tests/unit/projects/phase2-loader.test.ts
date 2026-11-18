@@ -1,11 +1,18 @@
 /**
  * Tests for Phase 2 project configuration loader
  *
+ * Task 2.9: Role profiles and safe authentication/credential references
+ *
  * Verifies:
  * - Legacy Phase 1 config compatibility
  * - Valid Phase 2 config with new fields
  * - Invalid new fields rejection
  * - Secret-value rejection in credentials
+ * - Role ID format validation
+ * - Environment variable name format validation
+ * - storageStatePath path containment validation
+ * - Credential presence check (separate from loading)
+ * - Project loading when referenced variables are absent
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -16,8 +23,15 @@ import {
   loadPhase2ProjectConfig,
   looksLikeSecret,
   isValidEnvVarName,
+  validateEnvVarName,
+  validateRoleIdFormat,
+  checkCredentialPresence,
+  checkRoleCredentialPresence,
+  ROLE_ID_PATTERN,
+  ROLE_ID_MAX_LENGTH,
 } from '../../../src/projects/phase2-loader.js';
 import { ConfigValidationError } from '../../../src/projects/config.js';
+import type { RoleProfile } from '../../../src/projects/phase2-config.js';
 
 describe('loadPhase2ProjectConfig', () => {
   let tempDir: string;
@@ -594,7 +608,7 @@ describe('loadPhase2ProjectConfig', () => {
       expect(result.roles![0].credentials.password).toBe('SAUCEDEMO_ADMIN_PASSWORD');
     });
 
-    it('should accept lowercase environment variable names (non-standard but allowed)', () => {
+    it('should reject lowercase environment variable names', () => {
       writeConfig({
         ...validPhase1Config,
         roles: [
@@ -608,8 +622,78 @@ describe('loadPhase2ProjectConfig', () => {
         ],
       });
 
-      const result = loadPhase2ProjectConfig(configPath);
-      expect(result.roles![0].credentials.username).toBe('my_username_var');
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('uppercase');
+      }
+    });
+
+    it('should reject mixed-case environment variable names', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: {
+              username: 'My_Username',
+            },
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    });
+
+    it('should reject standard_user as a credential value (looks like actual value)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: {
+              username: 'standard_user',
+            },
+          },
+        ],
+      });
+
+      // standard_user is lowercase, so it should be rejected as not a valid env var name
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        // Error should not contain the rejected value
+        expect((err as ConfigValidationError).message).not.toContain('standard_user');
+        expect((err as ConfigValidationError).message).toContain('uppercase');
+      }
+    });
+
+    it('should reject secret_sauce as a credential value (looks like actual value)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: {
+              password: 'secret_sauce',
+            },
+          },
+        ],
+      });
+
+      // secret_sauce is lowercase, so it should be rejected as not a valid env var name
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        // Error should not contain the rejected value
+        expect((err as ConfigValidationError).message).not.toContain('secret_sauce');
+      }
     });
   });
 });
@@ -681,5 +765,648 @@ describe('isValidEnvVarName', () => {
 
   it('should reject empty string', () => {
     expect(isValidEnvVarName('')).toBe(false);
+  });
+});
+
+describe('validateEnvVarName', () => {
+  it('should accept standard uppercase env var names', () => {
+    expect(validateEnvVarName('MY_VAR').valid).toBe(true);
+    expect(validateEnvVarName('API_TOKEN').valid).toBe(true);
+    expect(validateEnvVarName('SAUCEDEMO_STANDARD_USER').valid).toBe(true);
+    expect(validateEnvVarName('SAUCEDEMO_STANDARD_PASSWORD').valid).toBe(true);
+  });
+
+  it('should accept API_TOKEN, SAUCEDEMO_PASSWORD, SAUCEDEMO_USERNAME', () => {
+    // These specific names must be accepted per requirements
+    expect(validateEnvVarName('API_TOKEN').valid).toBe(true);
+    expect(validateEnvVarName('SAUCEDEMO_PASSWORD').valid).toBe(true);
+    expect(validateEnvVarName('SAUCEDEMO_USERNAME').valid).toBe(true);
+  });
+
+  it('should accept env var names containing PASSWORD, TOKEN, SECRET', () => {
+    // These are valid env var names, not actual secrets
+    expect(validateEnvVarName('DB_PASSWORD').valid).toBe(true);
+    expect(validateEnvVarName('AUTH_TOKEN').valid).toBe(true);
+    expect(validateEnvVarName('API_SECRET').valid).toBe(true);
+  });
+
+  it('should reject lowercase env var names', () => {
+    // Lowercase names are rejected
+    const result1 = validateEnvVarName('my_var');
+    expect(result1.valid).toBe(false);
+    expect(result1.error).toContain('uppercase');
+
+    const result2 = validateEnvVarName('database_url');
+    expect(result2.valid).toBe(false);
+    expect(result2.error).toContain('uppercase');
+  });
+
+  it('should reject mixed-case env var names', () => {
+    const result = validateEnvVarName('My_Variable');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('uppercase');
+  });
+
+  it('should reject standard_user (lowercase looks like actual value)', () => {
+    const result = validateEnvVarName('standard_user');
+    expect(result.valid).toBe(false);
+    // Error message should not contain the rejected value
+    expect(result.error).not.toContain('standard_user');
+  });
+
+  it('should reject secret_sauce (lowercase looks like actual value)', () => {
+    const result = validateEnvVarName('secret_sauce');
+    expect(result.valid).toBe(false);
+    // Error message should not contain the rejected value
+    expect(result.error).not.toContain('secret_sauce');
+  });
+
+  it('should reject empty names', () => {
+    const result = validateEnvVarName('');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('empty');
+  });
+
+  it('should reject names starting with digits', () => {
+    const result = validateEnvVarName('123VAR');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('digit');
+  });
+
+  it('should reject names with whitespace', () => {
+    const result = validateEnvVarName('MY VAR');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('whitespace');
+  });
+
+  it('should reject names with special characters', () => {
+    expect(validateEnvVarName('MY-VAR').valid).toBe(false);
+    expect(validateEnvVarName('MY.VAR').valid).toBe(false);
+    expect(validateEnvVarName('MY@VAR').valid).toBe(false);
+  });
+});
+
+describe('validateRoleIdFormat', () => {
+  it('should accept valid lowercase role IDs', () => {
+    expect(validateRoleIdFormat('admin').valid).toBe(true);
+    expect(validateRoleIdFormat('standard_user').valid).toBe(true);
+    expect(validateRoleIdFormat('power-user').valid).toBe(true);
+    expect(validateRoleIdFormat('_internal').valid).toBe(true);
+    expect(validateRoleIdFormat('a').valid).toBe(true);
+    expect(validateRoleIdFormat('user123').valid).toBe(true);
+  });
+
+  it('should accept standard_user (existing role ID must remain valid)', () => {
+    // Per requirements: standard_user must remain valid
+    expect(validateRoleIdFormat('standard_user').valid).toBe(true);
+  });
+
+  it('should accept lowercase hyphenated role IDs', () => {
+    expect(validateRoleIdFormat('power-user').valid).toBe(true);
+    expect(validateRoleIdFormat('admin-role').valid).toBe(true);
+    expect(validateRoleIdFormat('test-user-1').valid).toBe(true);
+  });
+
+  it('should reject uppercase role IDs', () => {
+    const result = validateRoleIdFormat('Admin');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('lowercase');
+  });
+
+  it('should reject mixed-case role IDs', () => {
+    expect(validateRoleIdFormat('standardUser').valid).toBe(false);
+    expect(validateRoleIdFormat('PowerUser').valid).toBe(false);
+    expect(validateRoleIdFormat('User1').valid).toBe(false);
+  });
+
+  it('should reject empty role IDs', () => {
+    const result = validateRoleIdFormat('');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('empty');
+  });
+
+  it('should reject role IDs starting with digits', () => {
+    const result = validateRoleIdFormat('123user');
+    expect(result.valid).toBe(false);
+  });
+
+  it('should reject role IDs with invalid separators and whitespace', () => {
+    expect(validateRoleIdFormat('user@admin').valid).toBe(false);
+    expect(validateRoleIdFormat('user.admin').valid).toBe(false);
+    expect(validateRoleIdFormat('user admin').valid).toBe(false);
+    expect(validateRoleIdFormat('user/admin').valid).toBe(false);
+    expect(validateRoleIdFormat('user\\admin').valid).toBe(false);
+  });
+
+  it('should reject Windows reserved device names', () => {
+    expect(validateRoleIdFormat('con').valid).toBe(false);
+    expect(validateRoleIdFormat('prn').valid).toBe(false);
+    expect(validateRoleIdFormat('aux').valid).toBe(false);
+    expect(validateRoleIdFormat('nul').valid).toBe(false);
+    expect(validateRoleIdFormat('com1').valid).toBe(false);
+    expect(validateRoleIdFormat('lpt1').valid).toBe(false);
+    // Case-insensitive check
+    expect(validateRoleIdFormat('CON').valid).toBe(false);
+    expect(validateRoleIdFormat('Con').valid).toBe(false);
+  });
+
+  it('should reject role IDs that are too long', () => {
+    const longId = 'a'.repeat(ROLE_ID_MAX_LENGTH + 1);
+    const result = validateRoleIdFormat(longId);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('too long');
+  });
+
+  it('should accept role IDs at max length', () => {
+    const maxId = 'a'.repeat(ROLE_ID_MAX_LENGTH);
+    expect(validateRoleIdFormat(maxId).valid).toBe(true);
+  });
+
+  it('should preserve case-insensitive duplicate detection (tested via loader)', () => {
+    // This test verifies the design, actual duplicate detection is in loader tests
+    // Role IDs are lowercased before uniqueness check
+    expect(validateRoleIdFormat('admin').valid).toBe(true);
+    // Admin would be rejected for being uppercase, not for being a duplicate
+    expect(validateRoleIdFormat('Admin').valid).toBe(false);
+  });
+});
+
+describe('checkCredentialPresence', () => {
+  it('should report all present when all env vars exist', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'actual_username',
+      ADMIN_PASS: 'actual_password',
+    };
+
+    const result = checkCredentialPresence(roles, env);
+    expect(result.allPresent).toBe(true);
+    expect(result.missingVariables).toEqual([]);
+    expect(result.byRole['admin'].missing).toEqual([]);
+    expect(result.byRole['admin'].present).toContain('ADMIN_USER');
+    expect(result.byRole['admin'].present).toContain('ADMIN_PASS');
+  });
+
+  it('should report missing variables when env vars are absent', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'actual_username',
+      // ADMIN_PASS is missing
+    };
+
+    const result = checkCredentialPresence(roles, env);
+    expect(result.allPresent).toBe(false);
+    expect(result.missingVariables).toContain('ADMIN_PASS');
+    expect(result.byRole['admin'].missing).toContain('ADMIN_PASS');
+    expect(result.byRole['admin'].present).toContain('ADMIN_USER');
+  });
+
+  it('should handle multiple roles with different missing variables', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+      {
+        roleId: 'customer',
+        name: 'Customer',
+        credentials: {
+          username: 'CUSTOMER_USER',
+          password: 'CUSTOMER_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'admin',
+      // ADMIN_PASS missing
+      CUSTOMER_USER: 'customer',
+      CUSTOMER_PASS: 'secret',
+    };
+
+    const result = checkCredentialPresence(roles, env);
+    expect(result.allPresent).toBe(false);
+    expect(result.missingVariables).toEqual(['ADMIN_PASS']);
+    expect(result.byRole['admin'].missing).toEqual(['ADMIN_PASS']);
+    expect(result.byRole['customer'].missing).toEqual([]);
+    expect(result.byRole['customer'].present.length).toBeGreaterThan(0);
+  });
+
+  it('should handle empty roles array', () => {
+    const result = checkCredentialPresence([], {});
+    expect(result.allPresent).toBe(true);
+    expect(result.missingVariables).toEqual([]);
+  });
+
+  it('should handle undefined roles', () => {
+    const result = checkCredentialPresence(undefined, {});
+    expect(result.allPresent).toBe(true);
+    expect(result.missingVariables).toEqual([]);
+  });
+
+  it('should not include duplicate missing variables', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: { password: 'SHARED_PASS' },
+      },
+      {
+        roleId: 'user',
+        name: 'User',
+        credentials: { password: 'SHARED_PASS' },
+      },
+    ];
+
+    const result = checkCredentialPresence(roles, {});
+    expect(result.missingVariables).toEqual(['SHARED_PASS']);
+  });
+
+  it('should treat empty string env vars as missing', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'actual_username',
+      ADMIN_PASS: '', // Empty string should be treated as missing
+    };
+
+    const result = checkCredentialPresence(roles, env);
+    expect(result.allPresent).toBe(false);
+    expect(result.missingVariables).toContain('ADMIN_PASS');
+    expect(result.byRole['admin'].missing).toContain('ADMIN_PASS');
+  });
+
+  it('should treat whitespace-only env vars as missing', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'actual_username',
+      ADMIN_PASS: '   ', // Whitespace-only should be treated as missing
+    };
+
+    const result = checkCredentialPresence(roles, env);
+    expect(result.allPresent).toBe(false);
+    expect(result.missingVariables).toContain('ADMIN_PASS');
+    expect(result.byRole['admin'].missing).toContain('ADMIN_PASS');
+  });
+
+  it('should not include empty/whitespace values in the result', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: '', // Empty string
+    };
+
+    const result = checkCredentialPresence(roles, env);
+
+    // Result should report as missing without exposing any value
+    expect(result.allPresent).toBe(false);
+    // No values should be in the result, not even empty strings
+    // The result only contains variable names
+    expect(result.missingVariables).toEqual(['ADMIN_USER']);
+  });
+
+  it('should never include secret values in the result', () => {
+    const roles: RoleProfile[] = [
+      {
+        roleId: 'admin',
+        name: 'Admin',
+        credentials: {
+          username: 'ADMIN_USER',
+          password: 'ADMIN_PASS',
+        },
+      },
+    ];
+
+    const env = {
+      ADMIN_USER: 'secret_username_value',
+      ADMIN_PASS: 'super_secret_password_123',
+    };
+
+    const result = checkCredentialPresence(roles, env);
+
+    // Result should only contain variable names, not values
+    const resultString = JSON.stringify(result);
+    expect(resultString).not.toContain('secret_username_value');
+    expect(resultString).not.toContain('super_secret_password_123');
+  });
+});
+
+describe('checkRoleCredentialPresence', () => {
+  it('should check a single role credentials', () => {
+    const role: RoleProfile = {
+      roleId: 'admin',
+      name: 'Admin',
+      credentials: {
+        username: 'ADMIN_USER',
+        password: 'ADMIN_PASS',
+      },
+    };
+
+    const env = { ADMIN_USER: 'value' };
+    const result = checkRoleCredentialPresence(role, env);
+
+    expect(result.roleId).toBe('admin');
+    expect(result.allPresent).toBe(false);
+    expect(result.missing).toEqual(['ADMIN_PASS']);
+  });
+});
+
+describe('loadPhase2ProjectConfig - project loading without credentials', () => {
+  let tempDir: string;
+  let configPath: string;
+  let testDir: string;
+  let artifactDir: string;
+
+  beforeEach(() => {
+    tempDir = join(tmpdir(), `qa-phase2-cred-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(tempDir, { recursive: true });
+    configPath = join(tempDir, 'project.config.json');
+    testDir = join(tempDir, 'tests', 'approved');
+    artifactDir = join(tempDir, 'artifacts');
+    mkdirSync(testDir, { recursive: true });
+    mkdirSync(artifactDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  function writeConfig(config: object) {
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+
+  const validPhase1Config = {
+    projectId: 'test-project',
+    name: 'Test Project',
+    baseUrl: 'https://example.com/',
+    environment: 'demo',
+    allowedDomains: ['example.com'],
+    testDirectory: 'tests/approved',
+    artifactDirectory: 'artifacts',
+  };
+
+  it('should load project config when referenced env vars are absent', () => {
+    // This tests requirement 9: Loading/validating project configuration
+    // must not require referenced credential environment variables to be present.
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: {
+            username: 'NON_EXISTENT_ENV_VAR_1',
+            password: 'NON_EXISTENT_ENV_VAR_2',
+          },
+        },
+      ],
+    });
+
+    // Should not throw even though the env vars don't exist
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.roles).toHaveLength(1);
+    expect(result.roles![0].credentials.username).toBe('NON_EXISTENT_ENV_VAR_1');
+    expect(result.roles![0].credentials.password).toBe('NON_EXISTENT_ENV_VAR_2');
+  });
+
+  it('should validate role ID format', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: '123invalid', // Invalid: starts with digit
+          name: 'Admin',
+          credentials: { username: 'ADMIN_USER' },
+        },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+  });
+
+  it('should reject uppercase role IDs', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        { roleId: 'Admin', name: 'Admin', credentials: { username: 'ADMIN_USER' } },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('lowercase');
+    }
+  });
+
+  it('should reject duplicate role IDs (case-insensitive)', () => {
+    // Both lowercase - actual duplicate
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        { roleId: 'admin', name: 'Admin 1', credentials: { u: 'USER_1' } },
+        { roleId: 'admin', name: 'Admin 2', credentials: { u: 'USER_2' } },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('Duplicate role ID');
+    }
+  });
+
+  it('should validate environment variable name format', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: {
+            username: 'INVALID-ENV-NAME', // Invalid: contains hyphen
+          },
+        },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+  });
+
+  it('should reject env var names with whitespace', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: {
+            username: 'MY VAR', // Invalid: contains space
+          },
+        },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('whitespace');
+    }
+  });
+
+  it('should accept valid multiple roles', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Administrator',
+          description: 'Full access admin',
+          credentials: {
+            username: 'ADMIN_USER',
+            password: 'ADMIN_PASS',
+          },
+        },
+        {
+          roleId: 'standard_user',
+          name: 'Standard User',
+          credentials: {
+            username: 'STANDARD_USER',
+            password: 'STANDARD_PASS',
+          },
+        },
+        {
+          roleId: 'guest',
+          name: 'Guest User',
+          credentials: {
+            session_token: 'GUEST_TOKEN',
+          },
+        },
+      ],
+    });
+
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.roles).toHaveLength(3);
+    expect(result.roles![0].roleId).toBe('admin');
+    expect(result.roles![1].roleId).toBe('standard_user');
+    expect(result.roles![2].roleId).toBe('guest');
+  });
+
+  it('should validate storageStatePath is within project workspace', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: { username: 'ADMIN_USER' },
+          storageStatePath: '../outside-workspace/state.json', // Escapes workspace
+        },
+      ],
+    });
+
+    expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+    try {
+      loadPhase2ProjectConfig(configPath);
+    } catch (err) {
+      expect((err as ConfigValidationError).message).toContain('escapes');
+    }
+  });
+
+  it('should accept valid storageStatePath within workspace', () => {
+    writeConfig({
+      ...validPhase1Config,
+      roles: [
+        {
+          roleId: 'admin',
+          name: 'Admin',
+          credentials: { username: 'ADMIN_USER' },
+          storageStatePath: '.auth/admin-state.json',
+        },
+      ],
+    });
+
+    const result = loadPhase2ProjectConfig(configPath);
+    expect(result.roles![0].storageStatePath).toBe('.auth/admin-state.json');
+  });
+});
+
+describe('ROLE_ID_PATTERN', () => {
+  it('should match valid lowercase role IDs', () => {
+    expect(ROLE_ID_PATTERN.test('admin')).toBe(true);
+    expect(ROLE_ID_PATTERN.test('standard_user')).toBe(true);
+    expect(ROLE_ID_PATTERN.test('power-user')).toBe(true);
+    expect(ROLE_ID_PATTERN.test('_internal')).toBe(true);
+    expect(ROLE_ID_PATTERN.test('user123')).toBe(true);
+  });
+
+  it('should not match uppercase role IDs', () => {
+    expect(ROLE_ID_PATTERN.test('Admin')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('ADMIN')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('standardUser')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('User1')).toBe(false);
+  });
+
+  it('should not match invalid role IDs', () => {
+    expect(ROLE_ID_PATTERN.test('123user')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('user@domain')).toBe(false);
+    expect(ROLE_ID_PATTERN.test('user.admin')).toBe(false);
   });
 });

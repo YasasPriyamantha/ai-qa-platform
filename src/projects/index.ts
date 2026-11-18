@@ -59,9 +59,20 @@ export {
   validatePhase2Fields,
   looksLikeSecret,
   isValidEnvVarName,
+  validateEnvVarName,
+  validateRoleIdFormat,
+  checkCredentialPresence,
+  checkRoleCredentialPresence,
+  ROLE_ID_PATTERN,
+  ROLE_ID_MAX_LENGTH,
 } from './phase2-loader.js';
 
-export type { ValidatedPhase2Fields } from './phase2-loader.js';
+export type {
+  ValidatedPhase2Fields,
+  CredentialPresenceResult,
+  EnvVarNameValidationResult,
+  RoleIdValidationResult,
+} from './phase2-loader.js';
 
 // Project storage layout
 export {
