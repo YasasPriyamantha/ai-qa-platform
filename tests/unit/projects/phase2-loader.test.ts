@@ -27,6 +27,7 @@ import {
   validateRoleIdFormat,
   checkCredentialPresence,
   checkRoleCredentialPresence,
+  isAiProviderCredential,
   ROLE_ID_PATTERN,
   ROLE_ID_MAX_LENGTH,
 } from '../../../src/projects/phase2-loader.js';
@@ -737,6 +738,38 @@ describe('looksLikeSecret', () => {
   });
 });
 
+describe('isAiProviderCredential', () => {
+  it('should detect AI_PROVIDER_API_KEY', () => {
+    expect(isAiProviderCredential('AI_PROVIDER_API_KEY')).toBe(true);
+  });
+
+  it('should detect AI_PROVIDER_TOKEN', () => {
+    expect(isAiProviderCredential('AI_PROVIDER_TOKEN')).toBe(true);
+  });
+
+  it('should detect lowercase ai_provider_ prefix', () => {
+    // Case-insensitive check
+    expect(isAiProviderCredential('ai_provider_key')).toBe(true);
+  });
+
+  it('should not flag API_TOKEN', () => {
+    expect(isAiProviderCredential('API_TOKEN')).toBe(false);
+  });
+
+  it('should not flag API_SECRET', () => {
+    expect(isAiProviderCredential('API_SECRET')).toBe(false);
+  });
+
+  it('should not flag SAUCEDEMO_PASSWORD', () => {
+    expect(isAiProviderCredential('SAUCEDEMO_PASSWORD')).toBe(false);
+  });
+
+  it('should not flag MY_AI_PROVIDER_VAR (not at start)', () => {
+    // The prefix check is at the start only
+    expect(isAiProviderCredential('MY_AI_PROVIDER_VAR')).toBe(false);
+  });
+});
+
 describe('isValidEnvVarName', () => {
   it('should accept standard uppercase env var names', () => {
     expect(isValidEnvVarName('MY_VAR')).toBe(true);
@@ -1365,7 +1398,8 @@ describe('loadPhase2ProjectConfig - project loading without credentials', () => 
     try {
       loadPhase2ProjectConfig(configPath);
     } catch (err) {
-      expect((err as ConfigValidationError).message).toContain('escapes');
+      // Now rejected for path traversal (..) before the escape check
+      expect((err as ConfigValidationError).message).toContain('..');
     }
   });
 
@@ -1384,6 +1418,372 @@ describe('loadPhase2ProjectConfig - project loading without credentials', () => 
 
     const result = loadPhase2ProjectConfig(configPath);
     expect(result.roles![0].storageStatePath).toBe('.auth/admin-state.json');
+  });
+
+  describe('storageStatePath .auth/ convention enforcement', () => {
+    it('should accept .auth/standard_user.json', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'standard_user',
+            name: 'Standard User',
+            credentials: { username: 'USER' },
+            storageStatePath: '.auth/standard_user.json',
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].storageStatePath).toBe('.auth/standard_user.json');
+    });
+
+    it('should reject tests/approved/state.json (not in .auth/)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: 'tests/approved/state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('.auth/');
+      }
+    });
+
+    it('should reject .auth/sub/state.json (must be direct child of .auth/)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: '.auth/sub/state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('direct child');
+        expect((err as ConfigValidationError).message).toContain('no subdirectories');
+      }
+    });
+
+    it('should reject .auth/../x.json (path traversal)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: '.auth/../x.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('..');
+      }
+    });
+
+    it('should reject absolute POSIX path', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: '/etc/secrets/state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('absolute');
+      }
+    });
+
+    it('should reject Windows drive-absolute path', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: 'C:/Users/secrets/state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('Windows absolute');
+      }
+    });
+
+    it('should reject UNC path', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: '//server/share/state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('UNC');
+      }
+    });
+
+    it('should reject backslash path that bypasses .auth check', () => {
+      // Backslashes should be normalized and checked
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: 'tests\\approved\\state.json',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('.auth/');
+      }
+    });
+
+    it('should reject non-.json extension', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { username: 'ADMIN_USER' },
+            storageStatePath: '.auth/admin.txt',
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('.json');
+      }
+    });
+  });
+
+  describe('AI_PROVIDER_ prefix rejection in credentials', () => {
+    it('should reject AI_PROVIDER_API_KEY as credential reference', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { apiKey: 'AI_PROVIDER_API_KEY' },
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('AI_PROVIDER_');
+        // Value should be redacted
+        expect((err as ConfigValidationError).value).toBe('[REDACTED]');
+      }
+    });
+
+    it('should reject AI_PROVIDER_TOKEN as credential reference', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { token: 'AI_PROVIDER_TOKEN' },
+          },
+        ],
+      });
+
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      try {
+        loadPhase2ProjectConfig(configPath);
+      } catch (err) {
+        expect((err as ConfigValidationError).message).toContain('AI_PROVIDER_');
+      }
+    });
+
+    it('should accept API_TOKEN (valid env var, not AI_PROVIDER_ prefix)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { token: 'API_TOKEN' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.token).toBe('API_TOKEN');
+    });
+
+    it('should accept API_SECRET (valid env var, not AI_PROVIDER_ prefix)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { secret: 'API_SECRET' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.secret).toBe('API_SECRET');
+    });
+
+    it('should accept SAUCEDEMO_PASSWORD (valid project credential)', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { password: 'SAUCEDEMO_PASSWORD' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.password).toBe('SAUCEDEMO_PASSWORD');
+    });
+  });
+
+  describe('valid uppercase env var names must not be rejected by secret detection', () => {
+    // Regression tests: valid env var names that might look like secrets
+    // but must be accepted because they match ^[A-Z_][A-Z0-9_]*$
+
+    it('should accept SECRET_KEY', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { key: 'SECRET_KEY' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.key).toBe('SECRET_KEY');
+    });
+
+    it('should accept TOKEN_ADMIN', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { token: 'TOKEN_ADMIN' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.token).toBe('TOKEN_ADMIN');
+    });
+
+    it('should accept BEARER_TOKEN', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { token: 'BEARER_TOKEN' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.token).toBe('BEARER_TOKEN');
+    });
+
+    it('should accept API_KEY', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { key: 'API_KEY' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.key).toBe('API_KEY');
+    });
+
+    it('should accept SK_LIVE_KEY', () => {
+      writeConfig({
+        ...validPhase1Config,
+        roles: [
+          {
+            roleId: 'admin',
+            name: 'Admin',
+            credentials: { key: 'SK_LIVE_KEY' },
+          },
+        ],
+      });
+
+      const result = loadPhase2ProjectConfig(configPath);
+      expect(result.roles![0].credentials.key).toBe('SK_LIVE_KEY');
+    });
   });
 });
 

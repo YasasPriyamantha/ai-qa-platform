@@ -14,27 +14,30 @@
       "name": "Standard User",
       "description": "A standard user account for basic workflow testing",
       "credentials": {
-        "username": "SAUCEDEMO_STANDARD_USER",
-        "password": "SAUCEDEMO_STANDARD_PASSWORD"
-      }
+        "username": "SAUCEDEMO_STANDARD_USER_USERNAME",
+        "password": "SAUCEDEMO_STANDARD_USER_PASSWORD"
+      },
+      "storageStatePath": ".auth/standard_user.json"
     },
     {
       "roleId": "locked-out-user",
       "name": "Locked Out User",
       "description": "A locked out user for testing access denied scenarios",
       "credentials": {
-        "username": "SAUCEDEMO_LOCKED_USER",
-        "password": "SAUCEDEMO_LOCKED_PASSWORD"
-      }
+        "username": "SAUCEDEMO_LOCKED_OUT_USERNAME",
+        "password": "SAUCEDEMO_LOCKED_OUT_PASSWORD"
+      },
+      "storageStatePath": ".auth/locked-out-user.json"
     },
     {
       "roleId": "problem_user",
       "name": "Problem User",
       "description": "A user account that triggers application bugs",
       "credentials": {
-        "username": "SAUCEDEMO_PROBLEM_USER",
-        "password": "SAUCEDEMO_PROBLEM_PASSWORD"
-      }
+        "username": "SAUCEDEMO_PROBLEM_USER_USERNAME",
+        "password": "SAUCEDEMO_PROBLEM_USER_PASSWORD"
+      },
+      "storageStatePath": ".auth/problem_user.json"
     }
   ],
 

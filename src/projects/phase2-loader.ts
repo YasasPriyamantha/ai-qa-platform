@@ -451,27 +451,120 @@ export function loadPhase2ProjectConfig(configPath: string): ResolvedPhase2Confi
 }
 
 /**
- * Validate that storageStatePath resolves inside the project workspace.
+ * Prefix reserved for platform-level AI provider credentials.
+ * Project role credentials must not use this prefix.
+ */
+const AI_PROVIDER_PREFIX = 'AI_PROVIDER_';
+
+/**
+ * Check if a credential environment variable name uses the reserved AI provider prefix.
  *
- * Per DEC-024: Authentication state files may contain cookies/tokens
- * and must be treated as secrets, excluded from Git, stored within
- * a restricted project/run area.
+ * @param envVarName - Environment variable name to check
+ * @returns true if the name starts with AI_PROVIDER_
+ */
+export function isAiProviderCredential(envVarName: string): boolean {
+  return envVarName.toUpperCase().startsWith(AI_PROVIDER_PREFIX);
+}
+
+/**
+ * Validate that storageStatePath follows the documented convention.
+ *
+ * Per DEC-024 and Task 2.10: Authentication state files must:
+ * - Be stored in the .auth/ directory inside the project workspace
+ * - Use .json extension
+ * - Not be absolute paths (POSIX, Windows drive, or UNC paths)
+ * - Not contain path traversal segments
+ *
+ * Convention: .auth/<filename>.json
  *
  * @param storagePath - Relative path to storageState file
  * @param workspace - Project workspace directory
  * @param fieldPath - Field path for error messages
- * @throws ConfigValidationError if path escapes workspace
+ * @throws ConfigValidationError if path is invalid
  */
 function validateStorageStatePath(
   storagePath: string,
   workspace: string,
   fieldPath: string
 ): void {
-  // Check that the path is relative (not absolute)
-  // and resolves inside the workspace
+  // Check for UNC path FIRST (before normalization changes \\server to //server)
+  // UNC paths: \\server\share or //server/share
+  if (storagePath.startsWith('\\\\') || storagePath.startsWith('//')) {
+    throw new ConfigValidationError(
+      `storageStatePath must be a relative path, not a UNC path.`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Normalize backslashes to forward slashes for consistent validation
+  // This prevents backslash from bypassing path checks
+  const normalizedPath = storagePath.replace(/\\/g, '/');
+
+  // Check for absolute POSIX path (after UNC check since // was already handled)
+  if (normalizedPath.startsWith('/')) {
+    throw new ConfigValidationError(
+      `storageStatePath must be a relative path, not an absolute path.`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Check for Windows drive-absolute path (e.g., C:/ or D:\)
+  if (/^[a-zA-Z]:/.test(normalizedPath)) {
+    throw new ConfigValidationError(
+      `storageStatePath must be a relative path, not a Windows absolute path.`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Check for path traversal segments
+  const segments = normalizedPath.split('/');
+  if (segments.includes('..')) {
+    throw new ConfigValidationError(
+      `storageStatePath must not contain path traversal segments (..).`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Enforce .auth/ directory convention
+  if (!normalizedPath.startsWith('.auth/')) {
+    throw new ConfigValidationError(
+      `storageStatePath must be inside the .auth/ directory (e.g., .auth/admin.json). ` +
+      `Got: "${storagePath}"`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Enforce direct-child of .auth/ (no subdirectories)
+  // Convention: .auth/<filename>.json
+  const afterAuth = normalizedPath.slice('.auth/'.length);
+  if (afterAuth.includes('/')) {
+    throw new ConfigValidationError(
+      `storageStatePath must be a direct child of .auth/ (no subdirectories). ` +
+      `Expected: .auth/<filename>.json, got: "${storagePath}"`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Enforce .json extension
+  if (!normalizedPath.toLowerCase().endsWith('.json')) {
+    throw new ConfigValidationError(
+      `storageStatePath must end with .json extension.`,
+      fieldPath,
+      storagePath
+    );
+  }
+
+  // Final containment check using shared utility
+  // This catches any remaining edge cases after normalization
   if (!isRelativePathContained(storagePath, workspace)) {
     throw new ConfigValidationError(
-      `storageStatePath must be a relative path within the project workspace. ` +
+      `storageStatePath must resolve inside the project workspace. ` +
       `Path "${storagePath}" escapes the project directory.`,
       fieldPath,
       storagePath
@@ -614,29 +707,45 @@ function validateCredentials(
       );
     }
 
-    // Check for actual secret values
-    if (looksLikeSecret(value)) {
-      throw new ConfigValidationError(
-        'Value appears to be an actual secret. Store only environment variable NAMES, not secret values. ' +
-        'Example: Use "MY_APP_PASSWORD" (env var name), not the actual password.',
-        fieldPath,
-        '[REDACTED]'
-      );
-    }
+    // VALIDATION PRECEDENCE (Task 2.10):
+    // 1. Check if value is a valid uppercase env var name
+    // 2. If valid, check for reserved AI_PROVIDER_ prefix
+    // 3. If NOT valid, use secret detection for a more helpful error
+    //
+    // This ensures valid env var names like API_TOKEN, SECRET_KEY are accepted,
+    // while actual secret values like JWTs and UUIDs are rejected.
 
-    // Validate environment variable name format
-    // Allow both uppercase and lowercase (some systems use lowercase)
-    // but require valid env var characters
     const envVarResult = validateEnvVarName(value);
-    if (!envVarResult.valid) {
+
+    if (envVarResult.valid) {
+      // Valid env var name - check for reserved prefix
+      if (isAiProviderCredential(value)) {
+        throw new ConfigValidationError(
+          `Project role credentials must not reference platform AI provider variables. ` +
+          `Environment variable names starting with "AI_PROVIDER_" are reserved for platform use.`,
+          fieldPath,
+          '[REDACTED]'
+        );
+      }
+      // Accept this valid env var name
+      result[key] = value;
+    } else {
+      // Not a valid env var name - check if it looks like a secret for better error
+      if (looksLikeSecret(value)) {
+        throw new ConfigValidationError(
+          'Value appears to be an actual secret. Store only environment variable NAMES, not secret values. ' +
+          'Example: Use "MY_APP_PASSWORD" (env var name), not the actual password.',
+          fieldPath,
+          '[REDACTED]'
+        );
+      }
+      // Not a secret, just an invalid env var name
       throw new ConfigValidationError(
         envVarResult.error!,
         fieldPath,
         value
       );
     }
-
-    result[key] = value;
   }
 
   return result;
