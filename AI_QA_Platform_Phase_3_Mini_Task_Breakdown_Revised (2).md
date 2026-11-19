@@ -300,6 +300,20 @@ Requirements
 9. Track actual requests, tool-call count, input/output tokens when reported, latency, provider/model IDs, errors, and cost if the provider reports it. Unknown usage/cost must remain unknown, not estimated as observed fact.
 10. Clean up only files/directories this spike created and only after confirming ownership. Do not delete pre-existing directories or user files. Keep the concise report outside the repository unless the user asks otherwise.
 
+### Additional Anthropic spike constraints
+
+1. Use the Anthropic Messages API with the exact model ID `claude-haiku-5-5`. Do not silently switch models or providers.
+2. Configure the Anthropic SDK with `maxRetries: 0` and a bounded request timeout of 120 seconds. Verify these options against the installed SDK version. Count actual outbound inference attempts, not just high-level SDK calls.
+3. Explicitly disable thinking using `thinking: { type: "disabled" }` at an effort level supported by Haiku 5.5. Do not enable extended/adaptive thinking for this experiment. Preserve any opaque non-text continuation blocks unchanged if the API returns them.
+4. Before each inference request, use Anthropic's free `/v1/messages/count_tokens` endpoint to count the complete current prompt, including messages and tool definitions. Reject requests exceeding the approved input limit. Track token-count API calls separately from paid inference requests and respect their rate limit.
+5. Enforce the maximum 20 inference requests, maximum 50,000 input tokens per request, maximum 4,000 output tokens per request, maximum 600,000 cumulative input tokens and maximum 40,000 cumulative output tokens. Stop before making a request that would exceed any limit.
+6. Reconcile preflight input counts against the actual response usage fields. Include input tokens, output tokens, cache-related tokens if present, and any reported usage metadata. Estimates must be clearly distinguished from observed usage.
+7. Keep the most recent Playwright snapshot in full. Compact older snapshots into concise factual summaries while retaining relevant observations, tool-call/tool-result IDs, message order and required continuation data. Do not replace earlier tool results with empty placeholders or break tool-call/result pairing.
+8. Do not enable prompt caching, Batch API, server-side Anthropic tools or other optional billable features for this experiment.
+9. Read the Anthropic API key from the dedicated spike environment using `util.parseEnv`, passing it directly to the SDK client. Do not load it into platform-wide `process.env`.
+10. Run the Phase 1 CLI test in a separate process whose environment does not contain `ANTHROPIC_API_KEY` or other provider secrets. Verify this without printing any secret values.
+11. Report the actual number of inference requests and token-count calls separately, along with the provider-reported input/output usage, cost estimate and any remaining uncertainty.
+
 Constraints
 
 - No platform source/config/docs/package changes.
