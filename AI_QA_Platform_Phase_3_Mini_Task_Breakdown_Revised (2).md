@@ -243,20 +243,26 @@ Provide repository/branch/tag/status; Phase 2 completion and deferred items; cur
 
 Run a tightly bounded proof of concept using one selected provider/model, a disposable client, and Playwright MCP. This task runs only after the user selects a provider/model and explicitly fills the approval block below. The coding assistant may prepare and execute the harness but must not act as the model under test: Claude Code (or any other coding-agent LLM/tool session) must not perform the website exploration, make the browser decisions, call MCP tools on behalf of the tested model, or generate the candidate test itself. If this experiment is blocked because the user has not approved a provider/model and usage budget, report it as deferred; do not pressure the user to approve paid usage.
 
+This is a one-provider feasibility experiment, not a provider certification suite. It validates only the explicitly approved provider/model and the disposable Playwright MCP integration. It does not establish that other providers work. Each additional provider must be verified through its own adapter implementation, mock contract tests, and separately authorised live testing where applicable.
+
 All spike-only dependencies (MCP SDK, Playwright MCP client/server dependencies, and the selected provider SDK) must be installed in a dedicated directory outside the repository, for example `D:\ai-qa-spike`. Never add them to the platform's package.json or lockfile. Do not put generated tests in `project-data/saucedemo/tests/approved` or alter the real SauceDemo project config. Use a disposable temporary project workspace/config and a candidate test directory owned by the spike. The temporary config must point to the approved SauceDemo target but must not modify the real project configuration. Run the candidate independently through the Phase 1 CLI only after confirming that its testDirectory and artifact paths resolve entirely inside the disposable workspace. If that cannot be achieved safely, stop and report the blocker; do not fall back to the approved test directory.
 
 ## User approval block — must be completed before any live call
 
 ```text
-Approved provider: ____________________
-Approved model ID: ____________________
-Maximum total requests for this spike (recommended maximum 20 for up to 15 MCP tool calls): ____________________
-Maximum input tokens per request: ____________________
-Maximum output tokens per request: ____________________
-Maximum cumulative input tokens for this spike: ____________________
-Maximum cumulative output tokens for this spike: ____________________
-Maximum spend (currency and amount): ____________________
-Provider pricing/quota and data-use/retention terms reviewed (link/date): ____________________
+Approved provider: OpenAI
+Approved model ID: gpt-6-luna
+Maximum total requests for this spike: 20
+Maximum input tokens per request: 50000
+Maximum output tokens per request: 4000
+Maximum cumulative input tokens for this spike: 600000
+Maximum cumulative output tokens for this spike: 40000
+Maximum spend: $1.00 USD
+Provider pricing/quota and data-use/retention terms reviewed:
+https://developers.openai.com/api/docs/models/gpt-6-luna
+https://developers.openai.com/api/docs/pricing
+https://developers.openai.com/api/docs/guides/your-data
+Reviewed: 2026-11-20
 ```
 
 An empty field means no live request is authorised. A “free tier” claim is not sufficient on its own: verify current provider pricing/quota and data-use terms for the chosen API and account. Use public SauceDemo content only; do not upload private project documents.
@@ -269,29 +275,165 @@ Goal
 Run a bounded hosted-provider + Playwright MCP feasibility spike using the provider/model and budget explicitly approved in the filled approval block. Do not implement platform code.
 
 Project root: D:\ai-qa-platform
-Preferred spike directory: D:\ai-qa-spike (outside the repository). Before using it, inspect whether it already exists. If it contains pre-existing files not created by this task, leave it untouched and choose a new unused sibling directory (for example, D:\ai-qa-spike-20261119-<unique-suffix>).
+Spike directory: D:\ai-qa-spike
+This directory has already been created by the user.
+It contains an existing user-provided .env file with the OpenAI API key required for this experiment.
+The .env file is expected and must not be treated as a directory conflict.
+Use this existing directory if .env is its only pre-existing content.
+Read the OPENAI_API_KEY value programmatically for SDK authentication without printing or displaying it.
+Never overwrite, modify, move, copy or delete the existing .env file.
+If other unexpected pre-existing files or folders are found, preserve them and stop for user review. Do not silently switch to another directory.
 
 Approval block (the user must fill every field before execution)
 
-Approved provider: [FILL IN]
-Approved model ID: [FILL IN]
-Maximum total requests (recommended maximum 20 for up to 15 MCP tool calls): [FILL IN]
-Maximum input tokens per request: [FILL IN]
-Maximum output tokens per request: [FILL IN]
-Maximum cumulative input tokens: [FILL IN]
-Maximum cumulative output tokens: [FILL IN]
-Maximum spend and currency: [FILL IN]
-Provider pricing/quota and data-use/retention terms reviewed (URL/date): [FILL IN]
+Approved provider: OpenAI
+Approved model ID: gpt-6-luna
+Maximum total requests (recommended maximum 20 for up to 15 MCP tool calls): 20
+Maximum input tokens per request: 50000
+Maximum output tokens per request: 4000
+Maximum cumulative input tokens: 600000
+Maximum cumulative output tokens: 40000
+Maximum spend: $1.00 USD
+Provider pricing/quota and data-use/retention terms reviewed (URL/date): 
+https://developers.openai.com/api/docs/models/gpt-6-luna
+https://developers.openai.com/api/docs/pricing
+https://developers.openai.com/api/docs/guides/your-data
+Reviewed: 2026-11-20
 
 Context
 
 The tested model must be the selected hosted API model accessed through its actual API key. Claude Code or another coding-assistant LLM is only the harness operator; it must not perform model-under-test exploration or tool calls.
 
+Provider-specific instructions for this experiment:
+
+- The approved provider is OpenAI.
+- The exact approved model ID is gpt-6-luna.
+- Use the official OpenAI SDK and the Responses API.
+- Verify the current SDK request format and function-calling support against official documentation.
+- Set store:false on inference requests.
+- Read OPENAI_API_KEY from D:\ai-qa-spike\.env using a safe environment-file parser.
+- Keep the key in a separate in-memory object and pass it explicitly to the SDK.
+- Do not load it into the platform's process.env or expose it to Playwright child processes.
+- Verify the SDK retry defaults and disable automatic retries so actual outbound inference attempts remain within the approved request ceiling.
+- Do not use Anthropic, Gemini, a third-party gateway or a different model.
+
+### Additional OpenAI spike rules
+
+**1. Billing verification**
+
+- The user reports purchasing $5.00 USD in OpenAI prepaid API credits. Do not assume this balance is still available; the user must check the current balance manually before execution.
+- The user must manually confirm the current project monthly spend limit, whether its hard-limit enforcement is enabled, and whether automatic recharge is disabled.
+- Record the exact settings confirmed by the user. Do not invent or assume billing settings.
+- Do not attempt to retrieve billing balance, spend limits or recharge settings through the API.
+- The experiment's independent local spending ceiling remains $1.00 USD, regardless of the $5.00 prepaid balance.
+
+**2. Model availability**
+
+Before inference, one non-inference metadata request is permitted:
+
+`client.models.retrieve("gpt-6-luna")`
+
+This checks whether the selected API project can retrieve the model metadata. It does not perform model inference and does not count towards the 20 inference-request limit.
+
+Record this metadata request separately. Do not make other non-inference API requests.
+
+If model retrieval fails, stop before inference.
+
+**3. SDK retries and timeout**
+
+- Configure the OpenAI SDK with `maxRetries: 0`.
+- Configure a request timeout of 120 seconds.
+- Verify these settings against the installed SDK version.
+- Count every actual outbound inference attempt.
+- Do not allow automatic retries to exceed the approved request ceiling.
+
+**4. Reasoning configuration**
+
+Set the Responses API reasoning effort to `low` on every inference request:
+
+`reasoning: { effort: "low" }`
+
+Verify this parameter against the installed SDK and official documentation.
+
+Use `store: false`.
+
+Preserve and replay every returned reasoning item, including `encrypted_content` when present, unchanged and in its original order when constructing subsequent requests.
+
+Do not add `include: ["reasoning.encrypted_content"]` unless the installed SDK or current official documentation establishes that it is necessary. With `store: false`, encrypted reasoning content is returned by default.
+
+Count reasoning tokens as part of output-token usage.
+
+**5. Pricing and spend enforcement**
+
+Use standard GPT-6 Luna pricing:
+
+- Input: $0.10 per million tokens.
+- Cached input: $0.01 per million tokens.
+- Output: $0.50 per million tokens.
+
+Requests with more than 272,000 input tokens have higher pricing. The approved 50,000-token per-request limit is below this threshold.
+
+Before each inference request:
+
+- Estimate the complete input cost, including conversation context and tool definitions.
+- Reserve the planned `max_output_tokens` allowance against remaining cumulative output and spend budgets.
+- Reject requests that would exceed any approved request, token or estimated spend limit.
+- Reconcile estimates with actual provider-reported usage after each response.
+
+The maximum standard text-token cost at the approved cumulative limits is approximately $0.08. This is an estimate, not a provider-enforced spend cap.
+
+Do not enable prompt caching explicitly, Batch, Flex, Fast processing, priority processing, regional-processing premiums or other optional paid features.
+
+**6. Local Playwright tools only**
+
+Use only function tools connected by the disposable harness to the local Playwright MCP client.
+
+Do not use OpenAI-hosted web search, file search, code interpreter, hosted shell, computer use, remote MCP or other hosted tools.
+
+Do not send browser interactions through an OpenAI-hosted tool instead of the local Playwright MCP client.
+
+**7. Conversation context management**
+
+Keep the most recent Playwright page snapshot in full.
+
+Older snapshots may be compacted into concise factual summaries, but preserve:
+
+- Tool-call IDs and their matching result IDs.
+- Tool-call/result pairing and message order.
+- Relevant factual observations.
+- All required provider reasoning and continuation items.
+
+Never replace a tool result with an empty placeholder that breaks the conversation.
+
+**8. Image-input accounting**
+
+If Playwright MCP returns screenshots or other image inputs, include their estimated image-token contribution in per-request and cumulative input accounting.
+
+Use the current official GPT-6 Luna image-token calculation where applicable. If image-token usage cannot be conservatively bounded, do not send that image; use an available DOM or text snapshot instead.
+
+**9. Phase 1 CLI environment isolation**
+
+Run the Phase 1 CLI candidate step in a separate child process.
+
+Its environment must exclude:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+- All environment variables beginning with `AI_PROVIDER_`
+
+Preserve unrelated inherited environment variables required by the Phase 1 runner.
+
+Verify this without printing environment-variable values.
+
 Requirements
 
 1. Before execution, verify that every approval field is non-empty, the provider/model match the user's approval, a matching provider-specific key is available through a secret-safe environment path, and the approved provider quota/budget controls have been considered. If any check fails, do not call the API.
 2. Create D:\ai-qa-spike if needed. Install all spike-only dependencies in that folder only. Do not install dependencies in D:\ai-qa-platform, modify the platform package.json/lockfile, or globally install packages.
-3. Use the provider and model selected in the approval block only. Do not silently switch models, providers, gateways, or accounts. Keep the key out of shell arguments, files, prompts, logs, generated reports, and browser content.
+3. Use only the provider and model selected in the approval block. Do not silently switch models, providers, gateways or accounts.
+The existing `D:\ai-qa-spike\.env` is the only permitted file containing the actual OpenAI API key.
+Never copy the key into another file, shell argument, prompt, log, generated report, browser content or platform configuration.
+Read the key programmatically from the existing `.env` file and pass it directly to the OpenAI SDK. Never print or display its value.
 4. Connect the hosted model-under-test to Playwright MCP through the disposable client. The coding assistant must not browse the site, decide the interactions, or invoke MCP tools itself. The model-under-test must issue the tool requests through the spike harness.
 5. Use one bounded, non-destructive SauceDemo workflow and no private documents. Bound wall-clock time, MCP tool calls (initial target no more than 15 unless the user separately approves a different ceiling), provider requests (recommended cap 20 for up to 15 tool calls), input tokens per request, output tokens per request, cumulative input tokens, and cumulative output tokens. Enforce a hard local input-size/character guard and use a conservative character-based input-token reservation before each request; reconcile with provider-reported input usage afterward and clearly distinguish estimates from observed usage. Tool-call count and provider-request count are separate limits; do not assume a one-to-one relationship. Stop immediately when any cap is reached.
 6. Generate one candidate Playwright test into the spike-owned candidate directory. Do not write to the real SauceDemo project's tests/approved directory, candidate directory, or project.config.json.
@@ -299,20 +441,6 @@ Requirements
 8. Run the candidate independently through the Phase 1 CLI. The runner's result is the only evidence of pass/fail; do not accept the model's claim.
 9. Track actual requests, tool-call count, input/output tokens when reported, latency, provider/model IDs, errors, and cost if the provider reports it. Unknown usage/cost must remain unknown, not estimated as observed fact.
 10. Clean up only files/directories this spike created and only after confirming ownership. Do not delete pre-existing directories or user files. Keep the concise report outside the repository unless the user asks otherwise.
-
-### Additional Anthropic spike constraints
-
-1. Use the Anthropic Messages API with the exact model ID `claude-haiku-5-5`. Do not silently switch models or providers.
-2. Configure the Anthropic SDK with `maxRetries: 0` and a bounded request timeout of 120 seconds. Verify these options against the installed SDK version. Count actual outbound inference attempts, not just high-level SDK calls.
-3. Explicitly disable thinking using `thinking: { type: "disabled" }` at an effort level supported by Haiku 5.5. Do not enable extended/adaptive thinking for this experiment. Preserve any opaque non-text continuation blocks unchanged if the API returns them.
-4. Before each inference request, use Anthropic's free `/v1/messages/count_tokens` endpoint to count the complete current prompt, including messages and tool definitions. Reject requests exceeding the approved input limit. Track token-count API calls separately from paid inference requests and respect their rate limit.
-5. Enforce the maximum 20 inference requests, maximum 50,000 input tokens per request, maximum 4,000 output tokens per request, maximum 600,000 cumulative input tokens and maximum 40,000 cumulative output tokens. Stop before making a request that would exceed any limit.
-6. Reconcile preflight input counts against the actual response usage fields. Include input tokens, output tokens, cache-related tokens if present, and any reported usage metadata. Estimates must be clearly distinguished from observed usage.
-7. Keep the most recent Playwright snapshot in full. Compact older snapshots into concise factual summaries while retaining relevant observations, tool-call/tool-result IDs, message order and required continuation data. Do not replace earlier tool results with empty placeholders or break tool-call/result pairing.
-8. Do not enable prompt caching, Batch API, server-side Anthropic tools or other optional billable features for this experiment.
-9. Read the Anthropic API key from the dedicated spike environment using `util.parseEnv`, passing it directly to the SDK client. Do not load it into platform-wide `process.env`.
-10. Run the Phase 1 CLI test in a separate process whose environment does not contain `ANTHROPIC_API_KEY` or other provider secrets. Verify this without printing any secret values.
-11. Report the actual number of inference requests and token-count calls separately, along with the provider-reported input/output usage, cost estimate and any remaining uncertainty.
 
 Constraints
 
