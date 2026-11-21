@@ -714,3 +714,88 @@ The Phase 2 loader (`loadPhase2ProjectConfig()`) shall reject configurations whe
 - Project configurations cannot reference `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` as test credentials.
 - Project test credentials must use a different naming pattern (e.g., `MYAPP_ADMIN_PASSWORD`).
 - Platform provider keys remain isolated from project credential workflows.
+
+## DEC-036 — Direct Official SDKs with Thin Adapters (PROVISIONAL)
+
+**Status:** PROVISIONAL — awaiting Task 3.0b success or explicit deferral decision
+
+**Decision:** Use direct official provider SDKs (`openai`, `@anthropic-ai/sdk`, `@google/genai`) behind provider-specific adapters, rather than a unified multi-provider SDK like Vercel AI SDK.
+
+**Verified SDK versions (checked 2026-11-21 via npm):**
+
+- `openai`: 7.62.0 (Responses API, requires Node ≥20 for latest features)
+- `@anthropic-ai/sdk`: 1.12.0 (Messages API, TypeScript ≥5.0)
+- `@google/genai`: 3.6.1 GA (replaces deprecated `@google/generative-ai`)
+
+Actual installed versions will be verified and pinned when provider adapters are implemented (Tasks 3.4–3.6a).
+
+**Why Vercel AI SDK was not selected:**
+
+The Vercel AI SDK provides a unified abstraction across providers, which offers convenience but conflicts with platform requirements:
+
+1. **Protocol separation (DEC-034):** The platform requires distinct API protocols (OpenAI Responses, Anthropic Messages, Gemini native). A unified SDK may mask these differences.
+
+2. **Opaque continuation state:** Provider-specific thinking blocks, reasoning items, and thought signatures must be preserved exactly. Unified SDKs may normalize or discard this state.
+
+3. **Full error visibility:** Direct SDKs expose provider-specific error codes, rate limit headers (Retry-After), and response metadata needed for accurate normalization.
+
+4. **Feature access:** Provider-unique features (OpenAI web_search/file_search, Anthropic prompt caching, Gemini MCP support) are directly accessible without waiting for unified SDK updates.
+
+**Responsibility clarification:**
+
+Official SDKs provide:
+- HTTP transport and connection management
+- Authentication header injection
+- Vendor-specific API types and serialization
+
+Provider adapters (platform-owned) are responsible for:
+- Translating between platform message contracts and provider-specific formats
+- Multi-turn tool-call and tool-result message correlation
+- Preserving opaque continuation state across turns
+- Extracting and normalizing finish reasons, usage, errors
+- Schema conversion (Task 3.2a)
+- Disabling SDK automatic retries (see below)
+
+**Retry policy ownership:**
+
+IMPORTANT: The shared request lifecycle (Task 3.3a) is the sole owner of retry policy.
+
+- SDK automatic retries must be disabled in provider adapters:
+  - OpenAI: `maxRetries: 0`
+  - Anthropic: `maxRetries: 0`
+  - Google: Configure for single attempt (verify SDK documentation at implementation time)
+- Provider adapters must NOT independently implement retry logic
+- Adapters expose retry safety metadata (not prescriptive policy) in normalized errors
+- Task 3.3a decides retries based on: provider response evidence, request acceptance ambiguity, Retry-After headers, usage budgets, and attempt limits
+
+**Impact on Tasks 3.4–3.6a:**
+
+Each adapter translates between platform contracts and provider API, with SDK retries disabled:
+
+- **Task 3.4 (OpenAI adapter):** Translates to Responses API. Extracts encrypted reasoning items for continuation. Maps function_call/function_call_output correlation. Disables `maxRetries`.
+
+- **Task 3.5 (Anthropic adapter):** Translates to Messages API. Handles tool_use/tool_result blocks. Extracts thinking/redacted-thinking for continuation. Disables `maxRetries`.
+
+- **Task 3.5a (OpenAI-compatible adapter):** Translates to Chat Completions protocol. Maps tool_calls/tool message correlation. Configured per endpoint. Disables retries.
+
+- **Task 3.6/3.6a (Gemini adapter):** Translates to Gemini API (Generate Content or Interactions API, to be evaluated in Task 3.6). Handles function declarations and thought signatures. Disables automatic retries.
+
+**Gemini API selection:**
+
+The choice between Gemini Generate Content API and Interactions API is deferred to Task 3.6, where current official documentation and capabilities will be evaluated.
+
+**PROVISIONAL status:**
+
+This decision remains PROVISIONAL because Task 3.0b has not yet demonstrated:
+- The hosted model itself requesting page snapshots via MCP
+- Generating a test candidate from observed page content
+
+If Task 3.0b fails or reveals SDK limitations, this decision may be revisited. The contracts defined in Task 3.2 are designed to accommodate either SDK strategy.
+
+**Consequences:**
+
+- Each provider adapter directly depends on its official SDK
+- No single unified SDK dependency
+- Platform contracts (Task 3.2) remain SDK-agnostic
+- Adapters own message/tool translation, NOT retry policy
+- SDK version selection may be adjusted when Tasks 3.4–3.6a are implemented

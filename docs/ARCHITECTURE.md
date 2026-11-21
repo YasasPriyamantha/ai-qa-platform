@@ -129,19 +129,28 @@ A separate configurable adapter supports providers implementing the OpenAI-compa
 - Handle multi-turn tool-call and tool-result message sequences.
 - Preserve opaque provider continuation state where needed for multi-turn conversations.
 - Normalize model outputs, completion reasons, token usage, and surface malformed responses.
-- Apply timeouts, cancellation, rate-limit handling, and context limits.
+- Disable SDK automatic retries; expose retry safety metadata in normalized errors.
 - Implement data minimization: send only necessary context; never include secrets in prompts.
 - Log request metadata for debugging without logging credentials or full payloads.
+
+**Responsibility boundaries (DEC-036):**
+
+- **Platform credential boundary (Task 3.3):** Resolves the selected provider secret from environment variables and passes it explicitly to the adapter. Credentials never leak outside this boundary.
+- **Shared request lifecycle (Task 3.3a):** Owns timeout enforcement, cancellation handling, retry execution, and usage budgets. Decides whether and when to retry based on error metadata, Retry-After headers, and budget constraints.
+- **Provider adapters:** Translate provider-specific requests, responses, errors, and continuation state. Perform capability checks and safe diagnostic extraction. Underlying SDK automatic retries are disabled.
+- **Orchestrator (future):** Authorizes and executes external tool calls. Tool calls are translated but not executed by provider adapters.
 
 **Request lifecycle:**
 
 1. Agent prepares a request using the internal interface.
-2. Adapter selects the configured provider and resolves its API key from the environment.
-3. Adapter converts the request to provider-specific format, including schema lowering.
-4. Adapter sends the request with appropriate timeout and retry policy.
-5. Adapter normalizes the response to the shared format.
-6. Adapter validates structured output against the canonical schema.
-7. Adapter returns the normalized response or a typed error.
+2. Shared lifecycle applies timeout and tracks usage budget.
+3. Credential boundary resolves the provider secret and passes it to the adapter.
+4. Adapter converts the request to provider-specific format, including schema lowering.
+5. Adapter sends the request with SDK retries disabled.
+6. Adapter normalizes the response to the shared format, extracting continuation state.
+7. Adapter validates structured output against the canonical schema.
+8. Adapter returns the normalized response or a typed error with retry safety metadata.
+9. Shared lifecycle decides whether to retry based on error metadata and budget.
 
 Do not couple business logic directly to one provider's response format. Model output is untrusted input and must be parsed and validated. Providers using another API protocol require a provider-specific adapter.
 
