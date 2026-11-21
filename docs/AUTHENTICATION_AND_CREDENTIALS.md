@@ -18,15 +18,36 @@ Both categories require careful handling to prevent accidental exposure through 
 
 ## 2. Platform-Level AI Provider Credentials
 
-### 2.1 Storage location
+### 2.1 Multi-provider key architecture
 
-The AI provider API key is stored in a local `.env` file at the repository root. This file:
+The platform supports multiple AI provider APIs concurrently. Each provider has its own API key stored in a distinct environment variable:
+
+| Provider | Environment Variable | Description |
+|----------|---------------------|-------------|
+| OpenAI | `OPENAI_API_KEY` | OpenAI API (native Responses API adapter) |
+| Anthropic | `ANTHROPIC_API_KEY` | Anthropic Messages API (Claude models) |
+| Google | `GEMINI_API_KEY` | Google AI Gemini API |
+| Custom | `AI_PROVIDER_<PROVIDER_ID>_API_KEY` | Custom providers (must use reserved namespace) |
+
+**Key principles:**
+
+- Multiple provider-specific keys may coexist; each configured provider ID maps to its own secret variable.
+- No universal `AI_PROVIDER_API_KEY` is assumed; this generic placeholder has been retired.
+- No mandatory API gateway or proxy is required.
+- Switching provider does not require changes to business/agent logic.
+- Custom provider secret variable names outside the reserved `AI_PROVIDER_` namespace are not allowed.
+- Provider calls are disabled by default using `AI_ENABLED=false`.
+- Paid API usage requires explicit user approval.
+
+### 2.2 Storage location
+
+Provider API keys are stored in a local `.env` file at the repository root. This file:
 
 - Is Git-ignored and must never be committed
 - Is never created automatically; users copy `.env.example` and fill in values
-- Contains the actual secret value (not an environment variable name)
+- Contains actual secret values (not environment variable names)
 
-### 2.2 Separation from project configuration
+### 2.3 Separation from project configuration
 
 Platform AI provider credentials must never be stored in:
 
@@ -36,15 +57,27 @@ Platform AI provider credentials must never be stored in:
 
 The `.env` file is the only authorized location for platform-level secrets in local development.
 
-### 2.3 Phase 2 constraints
+### 2.4 Reserved credential names
 
-In Phase 2, the `AI_PROVIDER_API_KEY` variable:
+The following environment variable names are reserved for platform-level AI provider credentials and must not be used as project-role credential references:
 
-- Is defined as a placeholder in `.env.example`
-- Is not loaded, validated, or used by any platform code
-- Has no provider-specific SDK or integration
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+- Variables matching the pattern `AI_PROVIDER_*`
 
-Provider selection and API integration are deferred to Phase 3.
+Custom provider key names outside the reserved `AI_PROVIDER_` namespace are not allowed. This prevents accidental exposure of platform secrets through project-level credential handling. Provider API keys are platform secrets, not project-role credentials.
+
+### 2.5 Phase 2 status
+
+In Phase 2:
+
+- Provider-specific key placeholders are defined in `.env.example`
+- The generic `AI_PROVIDER_API_KEY` placeholder has been retired (never loaded or used)
+- No provider SDK is integrated; no API calls are made
+- Provider selection and API integration are implemented in Phase 3
+
+**Historical note:** Phase 2 originally included a generic `AI_PROVIDER_API_KEY` placeholder. This has been replaced with provider-specific key names per DEC-034 (multi-provider support). The generic placeholder was never loaded or used by platform code.
 
 ## 3. Project-Level Test Credentials
 

@@ -634,3 +634,83 @@ This convention differs from DEC-031's project ID pattern:
 - Role IDs like `standard_user` are valid
 - Role IDs are distinct from project IDs in allowed characters
 - Authentication-state files are safe on all supported platforms
+
+## DEC-034 — Multi-Provider AI API Support
+
+**Status:** Accepted
+
+**Decision:** The platform supports multiple AI provider APIs through direct provider adapters and a separate configurable OpenAI-compatible adapter. Multiple provider-specific API keys may coexist; no universal API key, universal API protocol, or mandatory gateway is assumed.
+
+**Built-in direct API adapters:**
+
+- **OpenAI:** Direct integration with OpenAI Responses API (native OpenAI adapter)
+- **Anthropic Claude:** Direct integration with Anthropic Messages API
+- **Google Gemini:** Direct integration with Google AI Gemini API
+
+Model IDs (such as specific OpenAI, Anthropic, or Gemini model names) are configuration values selected per provider entry, not hardcoded in business logic or architecture.
+
+**Configurable OpenAI-compatible adapter:**
+
+A separate configurable adapter supports providers implementing the OpenAI-compatible Chat Completions API dialect. This adapter is distinct from the native OpenAI Responses adapter. Feature support (tool use, structured output, streaming) is verified per provider/model, not assumed from API compatibility.
+
+**Credential architecture:**
+
+- Multiple company-specific keys can coexist in the platform environment.
+- Each configured provider ID maps to its own secret environment variable:
+  - `OPENAI_API_KEY` for OpenAI
+  - `ANTHROPIC_API_KEY` for Anthropic
+  - `GEMINI_API_KEY` for Google Gemini
+  - `AI_PROVIDER_<PROVIDER_ID>_API_KEY` for custom providers (must use reserved namespace)
+- Custom provider key names outside the reserved `AI_PROVIDER_` namespace are not allowed.
+- The reserved `AI_PROVIDER_` prefix enables project-role validation and Playwright child-process environment filtering to protect custom provider secrets.
+- Credentials are platform secrets stored in `.env`, never in project-role configuration.
+- Provider calls are disabled by default through `AI_ENABLED=false`.
+- Enforcement of the default-disabled flag is implemented in Task 3.3, not yet in the current code.
+- Paid API calls remain disabled until explicitly approved by the user.
+
+**Provider extension:**
+
+- Providers using another API protocol require a provider-specific adapter.
+- Switching provider does not require changes to business/agent logic.
+- No silent fallback between providers; explicit provider selection is required.
+
+**Supersedes:** This decision extends DEC-028 by specifying the multi-provider architecture. DEC-028's core principles (hosted provider APIs, paid usage approval, platform-local for non-inference, provider-neutral interface) remain valid.
+
+**Consequences:**
+
+- Phase 3 implements the multi-provider adapter interface.
+- `PROJECT_SPEC.md`, `ARCHITECTURE.md`, and `IMPLEMENTATION_PLAN.md` have been aligned with this decision.
+- The generic `AI_PROVIDER_API_KEY` placeholder has been retired; provider-specific keys are used.
+- Each provider adapter handles its own authentication, schema conversion, and error normalization.
+
+## DEC-035 — Block Built-In Provider Key Names in Project-Role Credentials
+
+**Status:** Accepted (not yet enforced in code)
+
+**Amends:** DEC-032 (CLI validates Phase 2 config before execution)
+
+**Decision:** In addition to the reserved `AI_PROVIDER_*` namespace established in DEC-032, the following built-in provider-specific key names shall be blocked as project-role credential environment variable references:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+
+**Reason:** These environment variables contain platform-level AI provider secrets. Allowing them as project-role credential references would:
+
+1. Risk exposing provider API keys through project-level credential handling.
+2. Create confusion between platform AI credentials and application test credentials.
+3. Potentially log or transmit provider keys through test credential workflows.
+
+**Specification:**
+
+The Phase 2 loader (`loadPhase2ProjectConfig()`) shall reject configurations where any role's `credentials` values match these blocked names. The validation error message shall indicate the blocked name and explain that these are reserved for platform AI provider credentials. This check shall run alongside the existing `AI_PROVIDER_*` pattern check from DEC-032.
+
+**Implementation status:** Not yet enforced in code. The Phase 2 loader validation change is scheduled for Task 3.3.
+
+**Historical note:** This decision explicitly amends DEC-032 without rewriting its historical entry. DEC-032 established the `AI_PROVIDER_*` namespace reservation; DEC-035 adds the specific built-in provider key names as additional blocked references.
+
+**Consequences:**
+
+- Project configurations cannot reference `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` as test credentials.
+- Project test credentials must use a different naming pattern (e.g., `MYAPP_ADMIN_PASSWORD`).
+- Platform provider keys remain isolated from project credential workflows.

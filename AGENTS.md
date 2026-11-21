@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 1 complete; Phase 2 next
+**Current status:** Phase 2 complete; ready for hosted-provider feasibility spike and Phase 3
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -29,10 +29,13 @@ This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that
      - Verify with executable commands and tests
      - Review the complete diff before finishing
      - Report what was and was not verified honestly
-3. **Windows compatibility:** Use PowerShell-compatible commands on this Windows repository
-4. **Preserve user work:** Inspect working tree and preserve pre-existing uncommitted changes
-5. **No destructive actions:** Never commit, push, deploy, delete user work, or perform irreversible operations
-6. **Task boundaries:** Implement only the current requested task; do not implement later-phase features early
+3. **Optional: software-engineering-best-practices skill:** Available in `.claude/skills/software-engineering-best-practices/SKILL.md` for architecture decisions, testing strategies, and security considerations. Reference files are available at:
+   - `references/security.md` — Security guidance for trust boundaries and sensitive data
+   - `references/release-operations.md` — CI/CD and deployment guidance
+4. **Windows compatibility:** Use PowerShell-compatible commands on this Windows repository
+5. **Preserve user work:** Inspect working tree and preserve pre-existing uncommitted changes
+6. **No destructive actions:** Never commit, push, deploy, delete user work, or perform irreversible operations
+7. **Task boundaries:** Implement only the current requested task; do not implement later-phase features early
 
 ## Build and test commands
 
@@ -80,12 +83,20 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 
 ## Phase boundaries
 
-- **Phase 2 (current):** Project and workflow-document management
+- **Phase 2 (complete):** Project and workflow-document management
   - Project workspaces, document ingestion, requirement schema, role profiles
   - No AI, no MCP, no SQLite, no web UI yet
   - Deterministic document and requirement handling
+  - 999 tests passing (27 test files)
 
-Later phases add AI integration, MCP exploration, test generation, release comparison, and local UI.
+- **Phase 3 (next):** Hosted AI provider integration
+  - Multi-provider adapter interface (OpenAI, Anthropic Claude, Google Gemini)
+  - OpenAI-compatible adapter for additional providers
+  - Provider-specific credentials with no universal key
+  - Structured-output validation and tool-call support
+  - Paid API calls disabled until explicitly approved
+
+Later phases add MCP exploration, test generation, release comparison, and local UI.
 
 ## Decision record
 

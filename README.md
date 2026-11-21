@@ -4,9 +4,11 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 1 — Generic Playwright Execution Engine** (In Progress)
+**Phase 2 — Project and Workflow-Document Management** (Complete)
 
-Building the foundational test execution infrastructure without AI dependencies. The deterministic execution engine must work before AI integration begins.
+Project workspaces, document ingestion, requirement schema, role profiles, and credential security are implemented. 999 tests passing across 27 test files.
+
+**Next:** Hosted-provider feasibility spike and Phase 3 (Hosted AI Provider Integration).
 
 ## Project Documentation
 
@@ -24,7 +26,7 @@ Complete project specifications and architecture are maintained in the `docs/` d
 - **Browser automation:** Playwright Test
 - **Platform tests:** Vitest
 - **Initial interface:** CLI (local web UI in later phase)
-- **AI strategy:** Local model first, optional provider adapter later
+- **AI strategy:** Hosted provider APIs (OpenAI, Anthropic Claude, Google Gemini) with multi-provider support; platform remains local-first for CLI, files, and tests
 
 ## Development
 
@@ -41,8 +43,8 @@ npm run typecheck
 # Run platform tests
 npm test
 
-# Execute CLI (placeholder in Phase 1)
-npm run qa
+# Execute project tests via CLI
+npm run qa -- run --config project-data/saucedemo/project.config.json
 ```
 
 ## Project Structure

@@ -593,6 +593,84 @@ Constraints / non-goals
 - Do not implement JSON Schema dialect conversion in this task; that belongs to provider adapters.
 - Do not commit.
 
+### Additional context and constraints — Task 3.0b feasibility status
+
+**1. Current feasibility status: NOT COMPLETE**
+
+The disposable spike demonstrated:
+
+- OpenAI Responses API multi-turn function calling with `store: false`.
+- Correct `function_call` / `function_call_output` correlation using `call_id`.
+- Reasoning items, including encrypted continuation content, were preserved and replayed in the spike harness.
+- Successful API connectivity with `gpt-6-luna` using OpenAI SDK 4.104.0.
+- Playwright MCP 0.0.86 successfully performed navigation and returned a page accessibility snapshot in a separate direct infrastructure self-test.
+- The existing candidate passed through the Phase 1 CLI, using one test and one successful assertion.
+- External workspace dependency resolution worked through a spike-local junction to the platform's installed `@playwright/test` 1.64.1.
+
+However, the hosted model itself did not call `browser_snapshot` during the actual model-under-test experiment. The generated candidate was written without recorded page observation.
+
+Therefore, the experiment has not demonstrated successful model-driven browser exploration.
+
+The earlier accidental 13-request run also overwrote its candidate; that original artifact is lost.
+
+**2. SDK selection must remain provisional**
+
+The spike's `openai` 4.104.0 package is not a platform dependency and is not a pre-selected SDK choice.
+
+Inspect the platform's actual `package.json` and lockfile. Evaluate current official SDK releases, including current major versions, Node compatibility, maintenance, license, retries, cancellation, error visibility, usage metadata, multi-turn tool round trips, and opaque continuation-state support.
+
+Do not blindly upgrade or reuse a package simply because it worked in the disposable spike.
+
+Mark the SDK/transport decision as **PROVISIONAL** until Task 3.0b succeeds or an explicit deferral decision is recorded.
+
+**3. Respect DEC-034 API protocol separation**
+
+The required protocol architecture is:
+
+- Native OpenAI adapter: OpenAI Responses API.
+- Separate compatibility adapter: OpenAI-compatible Chat Completions API.
+- Anthropic: native Anthropic Messages API.
+- Gemini: native Gemini API.
+
+Do not merge the native OpenAI Responses and Chat Completions protocols into one assumed universal protocol.
+
+The Gemini API choice (for example, Generate Content versus Interactions) will be evaluated in Task 3.6. Task 3.2 must define a provider-neutral contract that can accommodate the selected API without exposing Gemini-specific types.
+
+**4. Tool-result content and error representation**
+
+The common multi-turn contract must represent tool results with:
+
+- A typed collection of content items, supporting at least text and allowing image or other supported content types.
+- An explicit tool-result error indicator or equivalent normalized status.
+- Correlation with the originating tool-call ID and tool name.
+
+This requirement comes from the observed MCP result structure, which included content items and an `isError` field.
+
+Do not import MCP SDK types into the provider-neutral contract. Define generic platform-owned content and result types that can represent equivalent tool results from future tool systems.
+
+Preserve content ordering and do not silently discard supported content types.
+
+**5. Decision numbering**
+
+Inspect the actual latest entry in `docs/DECISIONS.md` before adding the SDK/transport decision. DEC-034 and DEC-035 now exist, so DEC-036 is expected to be the next available number, but verify before using it.
+
+**6. Scope boundaries**
+
+Task 3.2 defines provider-neutral request, response, message, capability, error, SDK/transport and opaque continuation-state contracts.
+
+Do not implement:
+
+- Zod or structured-schema conversion (Task 3.2a).
+- Provider credentials, `.env` loading or provider configuration (Task 3.3).
+- Shared timeout, retry and usage-budget lifecycle (Task 3.3a).
+- Provider adapters (Tasks 3.4–3.6a).
+- MCP integration or tool execution.
+- Live provider API calls.
+
+Preserve the original Task 3.2 scope and verification requirements.
+
+Tasks 3.2 and 3.2a may proceed provisionally while Task 3.0b remains incomplete. Do not begin Tasks 3.4–3.6a until the hosted model itself has demonstrated page observation through MCP and its candidate has passed the Phase 1 CLI, or an explicit decision has recorded the accepted deferral and risk.
+
 Verification
 
 Run focused contract/message tests, related Vitest tests, type-check, and build. Test tool-call/result loops and mismatched continuation providers. Inspect dependency/lockfile changes and full diff.

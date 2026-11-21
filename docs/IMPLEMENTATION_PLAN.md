@@ -1,6 +1,6 @@
 # Implementation Plan — AI-Powered QA Automation Platform
 
-**Document status:** Phase 1 complete; ready for feasibility spike and Phase 2 breakdown
+**Document status:** Phase 3 in progress
 **Planning style:** Small, verifiable increments
 **Estimated focused effort:** Approximately 113–196 hours, including the separate local AI/MCP feasibility spike; re-estimate after each phase
 **Actual Phase 1 effort:** To be filled in by the user
@@ -29,17 +29,17 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 | Phase | Name | Estimated effort | Main outcome |
 |---|---|---:|---|
 | 0 | Define the project | 3–6 hours | Approved scope, architecture, and implementation plan |
-| Pre-Phase 3 spike | Local AI + Playwright MCP feasibility | 2–4 hours | Evidence that a candidate local model can use MCP and generate a basic Playwright test |
+| Pre-Phase 3 spike | Hosted provider + Playwright MCP feasibility | 2–4 hours | Evidence that a hosted provider API can use MCP tools and generate a basic Playwright test |
 | 1 | Generic Playwright execution engine | 14–22 hours | Run configured tests and collect trustworthy reports without application-specific logic in the platform core |
 | 2 | Project and workflow-document management | 8–14 hours | Separate projects, read Markdown/text requirements, maintain stable IDs and project settings |
-| 3 | Local AI model integration | 12–20 hours | Call a local model through a provider interface and validate structured results |
+| 3 | Hosted AI provider integration | 12–20 hours | Call hosted provider APIs through a multi-provider interface and validate structured results |
 | 4 | Playwright MCP browser exploration | 12–22 hours | Platform backend can explore an approved website through MCP |
 | 5 | Requirements, planning, and generation agents | 18–30 hours | Generate traceable candidate scenarios and candidate test code |
 | 6 | Validation, execution, and reports | 14–24 hours | Validate generated tests, assess repeatability, execute safely, and create evidence-based reports |
 | 7 | Release comparison and regression memory | 14–24 hours | Compare releases and preserve approved tests across versions |
 | 8 | Local UI, CI/CD, and expansion hooks | 16–30 hours | Usable local web UI and a path to automated release triggers |
 
-**Estimate note:** The combined estimate is provisional. The 2–4-hour feasibility spike is counted separately from the nine implementation phases. Installing software, resolving model/hardware constraints, MCP integration, and diagnosing generated-code failures can expand the schedule. Re-estimate after the feasibility spike and after each phase. The local UI is postponed until the CLI workflow is reliable.
+**Estimate note:** The combined estimate is provisional. The 2–4-hour feasibility spike is counted separately from the nine implementation phases. Provider API integration, MCP integration, and diagnosing generated-code failures can expand the schedule. Re-estimate after the feasibility spike and after each phase. The local UI is postponed until the CLI workflow is reliable.
 
 ## 3. Phase 0 — Define the project
 
@@ -68,7 +68,7 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 - [x] Use TypeScript for the new platform, Node.js as the runtime, and Playwright Test as the execution engine.
 - [x] Keep the completed JavaScript tutorial project as a separate reference/example rather than converting it into the platform.
 - [x] Use Playwright MCP for AI browser exploration and a separate Playwright Test runner for repeatable execution.
-- [x] Plan for a local AI model first, behind a replaceable provider adapter; a hosted provider is optional later.
+- [x] Plan for a local AI model first, behind a replaceable provider adapter; a hosted provider is optional later. (superseded by DEC-028)
 - [x] Plan to use Git/files for versioned assets and SQLite for structured metadata when needed.
 - [x] Select Vitest for platform unit/integration tests, separate from Playwright tests against target applications.
 
@@ -115,22 +115,23 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 - [x] The architecture separates MCP exploration from Playwright Test execution.
 - [x] Git state, README, ignore rules, and baseline commit are verified in the local repository.
 
-## 4. Pre-Phase 3 — Local AI and Playwright MCP feasibility spike
+## 4. Pre-Phase 3 — Hosted provider and Playwright MCP feasibility spike
 
-**Estimated effort:** 2–4 focused hours. This experiment is separate from the platform code and does not block Phase 1's deterministic execution-engine work. Complete it after the initial repository audit and before committing substantial effort to Phases 3–5.
+**Estimated effort:** 2–4 focused hours. This experiment is separate from the platform code and does not block Phase 2's deterministic document/requirement work. Complete it before committing substantial effort to Phases 3–5.
 
-**Goal:** Test the riskiest product assumption early: whether a candidate local model can use Playwright MCP tools and produce a usable Playwright test on the available hardware.
+**Goal:** Test the riskiest product assumption early: whether a hosted provider API can use Playwright MCP tools and produce a usable Playwright test.
+
+**Note:** This spike replaces the original local-model feasibility experiment per DEC-028, which adopted hosted provider APIs because the development hardware is not suitable for capable local models.
 
 ### Spike tasks
 
-1. Record the computer's RAM, GPU/VRAM, operating system, and available disk space.
-2. Select one candidate local model based on those constraints and record its exact name/version/quantization.
-3. Run the model through a local runtime such as Ollama.
-4. Build or use a disposable MCP client to connect the model to Playwright MCP. Prefer a small TypeScript proof of concept representative of the planned integration; an existing MCP client may be used for initial comparison, but record any client-side prompting/retry assistance that could influence results.
-5. Ask the model to explore the SauceDemo login page and a small, explicitly described workflow.
-6. Give it a requirement with an explicit expected outcome and ask it to produce one Playwright Test file.
-7. Run the generated test independently through Playwright Test; do not accept the model's claim that it passed.
-8. Record tool-call count, response time, corrections, browser observations, errors, generated-code quality, and actual test outcome.
+1. Select a hosted provider and model for the experiment (e.g., OpenAI GPT-4, Anthropic Claude, Google Gemini). Record the exact provider, model ID, and API version.
+2. Configure the provider API key in the local environment (`.env`). Never commit the key.
+3. Build or use a disposable MCP client to connect the provider to Playwright MCP. Prefer a small TypeScript proof of concept representative of the planned integration.
+4. Ask the model to explore the SauceDemo login page and a small, explicitly described workflow.
+5. Give it a requirement with an explicit expected outcome and ask it to produce one Playwright Test file.
+6. Run the generated test independently through Playwright Test; do not accept the model's claim that it passed.
+7. Record tool-call count, response time, token usage, corrections, browser observations, errors, generated-code quality, and actual test outcome.
 
 ### Initial pass/fail criteria
 
@@ -139,11 +140,40 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 - Claims about website elements and outcomes are supported by browser observations; invented controls or results count as a failure.
 - The model produces one executable Playwright test with meaningful assertions derived from the supplied requirement.
 - The test is independently executed and its actual outcome is recorded.
-- The experiment records hardware, model/version/quantization, response time, tool-call count, corrections, errors, and limitations.
+- The experiment records provider/model, response time, token usage, tool-call count, corrections, errors, and limitations.
 
-Classify the outcome as **green** (criteria met), **amber** (exploration works but generation needs limited correction), or **red** (tool use or generation is not reliable enough). This is a feasibility assessment, not a claim that all applications can be automated. If results are weak, reconsider model choice, the optional hosted-provider fallback, or the amount of autonomy before implementing the dependent AI phases.
+Classify the outcome as **green** (criteria met), **amber** (exploration works but generation needs limited correction), or **red** (tool use or generation is not reliable enough). This is a feasibility assessment, not a claim that all applications can be automated. If results are weak, reconsider provider/model choice or the amount of autonomy before implementing the dependent AI phases.
 
 **Done when:** A short feasibility note records the evidence, result, and recommended next decision. Do not copy throwaway experiment code into `src/`.
+
+### Pre-Phase 3 task status
+
+**Task 3.0a — Complete**
+
+Phase 2 handoff audit and provider comparison, including its correction addendum.
+
+**Task 3.0b — In progress**
+
+Demonstrated:
+
+- OpenAI Responses API multi-turn function calling with `store:false` and reasoning-item replay using `gpt-6-luna`.
+- Playwright MCP 0.0.86 navigation and page snapshot through a separate direct infrastructure self-test.
+- Isolated Phase 1 CLI execution of the existing spike candidate, which passed one test.
+- External test dependency resolution using a spike-local junction to the platform's installed `@playwright/test`.
+
+Not yet demonstrated:
+
+- The hosted model itself requesting page snapshots and generating a test from observed page content.
+
+Observed limitation:
+
+- An external project workspace does not automatically discover the platform's `node_modules`; the tested workspace required a scoped junction to the existing Playwright package.
+
+Tasks 3.4–3.6a remain on hold until Task 3.0b succeeds or an explicit deferral decision is recorded.
+
+**Task 3.1 — Complete**
+
+Source-document and architecture alignment, including DEC-034 and DEC-035 corrections.
 
 ## 5. Phase 1 — Generic Playwright execution engine
 
@@ -478,7 +508,7 @@ Tasks:
 **Decisions added during Phase 1:**
 
 - DEC-026: Custom config validator — Uses a hand-written runtime validator instead of Zod to avoid adding a dependency for Phase 1's simple schema
-- DEC-027: interrupted/timedOut mapping — Maps Playwright's `interrupted` and `timedOut` test statuses to run-level `timed_out` status when runner timeout fired
+- DEC-027: interrupted/timedOut mapping — Individual `timedOut` is normalized to test `failed`; individual `interrupted` is tracked separately and is not an ordinary failure/skipped; interrupted without platform timeout yields `infrastructure_error` with `playwright_process_error`; platform runner timeout yields `timed_out` with `runner_timeout`
 
 **Limitations:**
 
@@ -568,7 +598,7 @@ Tasks:
 
 ```
 Test Files  27 passed (27)
-     Tests  996 passed (996)
+     Tests  999 passed (999)
   Duration  159.23s
 ```
 
@@ -582,31 +612,25 @@ Test Files  27 passed (27)
 - Document registry cross-reference validation during CLI execution not implemented
 - Release-to-release comparison deferred to Phase 7
 
-**Hosted-API documentation alignment needed before Phase 3:**
+**Hosted-API documentation alignment status:**
 
-The following files contain outdated local-model-first wording that must be aligned with DEC-028:
+The following files have been aligned with DEC-028 and DEC-034 (multi-provider support):
 
-| File | Section | Statement |
-|------|---------|-----------|
-| `PROJECT_SPEC.md` | Header | "AI strategy: Local model first; optional provider adapter later" |
-| `PROJECT_SPEC.md` | §1 | "local-first and single-user" (valid) |
-| `PROJECT_SPEC.md` | §8 | "one local model for multiple agent roles" |
-| `PROJECT_SPEC.md` | §9 | "Start with a local model provider such as Ollama" |
-| `PROJECT_SPEC.md` | §10 | "AI integration: provider adapter; local model first" |
-| `PROJECT_SPEC.md` | §10 | "local model must be chosen or validated" |
-| `PROJECT_SPEC.md` | §11 criterion 10 | "without mandatory paid AI API calls" (still valid per DEC-028) |
-| `ARCHITECTURE.md` | Header | "Local-first modular monolith" (valid for platform) |
-| `ARCHITECTURE.md` | §2 diagram | "Local Model Runtime" |
-| `ARCHITECTURE.md` | §3.4 | "Implement the first local provider (candidate: Ollama)" |
-| `ARCHITECTURE.md` | §10 | "Local models vary in tool-calling quality" |
-| `ARCHITECTURE.md` | §11 | "Ollama tool support" reference |
-| `IMPLEMENTATION_PLAN.md` | §4 table | "Local AI + Playwright MCP feasibility" |
-| `IMPLEMENTATION_PLAN.md` | §4.2 | "Local AI model integration" |
-| `IMPLEMENTATION_PLAN.md` | §5.4 | "candidate local model" |
-| `IMPLEMENTATION_PLAN.md` | §7 | "local model through one replaceable interface" |
-| `IMPLEMENTATION_PLAN.md` | §8.7 | "selected local model" |
+| File | Status |
+|------|--------|
+| `PROJECT_SPEC.md` | ✅ Aligned — Header, §3, §4, §8, §9, §10, §11, §12 updated |
+| `ARCHITECTURE.md` | ✅ Aligned — §2 diagram, §3.4, §10, §11 updated |
+| `IMPLEMENTATION_PLAN.md` | ✅ Aligned — Phase table, §4, §7, §8, references updated |
+| `AUTHENTICATION_AND_CREDENTIALS.md` | ✅ Aligned — §2 updated for multi-provider keys |
+| `AGENTS.md` | ✅ Aligned — Status updated to Phase 2 complete |
+| `README.md` | ✅ Aligned — AI strategy updated |
+| `.env.example` | ✅ Aligned — Provider-specific key placeholders added |
 
-**Note:** PROJECT_SPEC.md §11 criterion 10 ("without mandatory paid AI API calls") is still valid per DEC-028's preservation of the "paid AI usage requires explicit approval" principle.
+**Principles preserved from DEC-028:**
+- Non-AI platform core operates without paid services
+- Paid AI API calls disabled until explicitly approved
+- Multiple provider-specific keys may coexist
+- Credentials are platform secrets, never project-role config
 
 **Decisions recorded:**
 
@@ -617,24 +641,26 @@ The following files contain outdated local-model-first wording that must be alig
 - DEC-032: CLI validates Phase 2 config before execution
 - DEC-033: Role ID format convention
 
-## 7. Phase 3 — Local AI model integration
+## 7. Phase 3 — Hosted AI provider integration
 
-**Goal:** Let the platform call a local model through one replaceable interface.
+**Goal:** Let the platform call hosted provider APIs through a multi-provider interface.
 
 Tasks:
 
-1. Use the feasibility-spike evidence to check RAM/GPU and choose a feasible local model/runtime.
-2. Install and run the local model runtime (candidate: Ollama).
-3. Re-test structured-output and tool-call behavior using the selected model/version.
-4. Define a provider interface independent of the chosen vendor.
-5. Implement the local adapter.
-6. Define request/response schemas and validate all model outputs.
-7. Handle model-unavailable, timeout, cancellation, malformed-output, and context-limit errors.
-8. Store model/provider name and prompt/schema version for reproducibility, but never log secrets.
-9. Add tests using a mock provider so most tests do not require a running model.
-10. Keep optional hosted-provider support behind the same interface; do not make it mandatory.
+1. Use the feasibility-spike evidence to select an initial provider/model combination.
+2. Define a provider-neutral interface independent of any single vendor's API format.
+3. Implement direct provider adapters for OpenAI, Anthropic Claude, and Google Gemini.
+4. Implement an OpenAI-compatible Chat Completions adapter for additional providers; verify feature support per provider/model.
+5. Support multiple provider-specific API keys coexisting in the environment; each configured provider ID maps to its own secret variable.
+6. Define request/response schemas and validate all model outputs using local runtime validation.
+7. Implement model-level capability checks (tool use, structured output, context limits).
+8. Handle missing/invalid credentials, provider errors, rate limits, quota exhaustion, timeouts, cancellation, malformed output, and context-limit errors.
+9. Store provider/model name and prompt/schema version for reproducibility, but never log secrets or full payloads.
+10. Add tests using a mock provider so most tests do not require real API calls.
+11. Implement data minimization: send only necessary context; never include secrets in prompts.
+12. Paid API calls remain disabled by default until the user explicitly approves usage.
 
-**Exit criteria:** The CLI can send a structured task to the local model and validate the returned result. The system reports uncertainty or malformed output rather than silently accepting it.
+**Exit criteria:** The CLI can send a structured task to a configured hosted provider and validate the returned result. The system reports uncertainty, capability limitations, or malformed output rather than silently accepting it. Switching provider does not require changes to business/agent logic.
 
 ## 8. Phase 4 — Playwright MCP browser exploration
 
@@ -648,7 +674,7 @@ Tasks:
 4. Wrap the connection in the platform MCP adapter.
 5. Validate tool arguments and apply timeouts/cancellation.
 6. Enforce approved domains before navigation and re-check navigation destinations where possible; do not rely only on a prompt for domain security.
-7. Ask the selected local model to perform a limited read-only exploration of a demo site.
+7. Ask the configured hosted provider/model to perform a limited read-only exploration of a demo site.
 8. Store returned observations as structured records with project/release context and evidence metadata.
 9. Test connection failure, tool error, wrong domain, prompt-injection content, timeout, and browser cleanup behavior.
 
@@ -748,7 +774,7 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. **Align hosted-API documentation:** Update PROJECT_SPEC.md, ARCHITECTURE.md §3.4, and IMPLEMENTATION_PLAN.md Phase 3 to reflect DEC-028 (hosted AI provider API). Remove or update local-model-first language.
+1. **Align hosted-API documentation:** PROJECT_SPEC.md, ARCHITECTURE.md §3.4, and IMPLEMENTATION_PLAN.md Phase 3 have been aligned with DEC-028 and DEC-034 (multi-provider support).
 
 2. **Pre-Phase 3 feasibility experiment:** Run the hosted-API + Playwright-MCP experiment (modified per DEC-028). Validate that a hosted provider can use MCP tools and generate a basic Playwright test.
 
@@ -766,5 +792,7 @@ Tasks:
 - Playwright MCP: https://playwright.dev/docs/getting-started-mcp
 - Vitest configuration: https://vitest.dev/config/
 - MCP TypeScript SDK v2 client: https://ts.sdk.modelcontextprotocol.io/v2/get-started/first-client.html
-- Ollama tool support: https://registry.ollama.com/blog/tool-support
+- OpenAI API: https://platform.openai.com/docs/api-reference
+- Anthropic API: https://docs.anthropic.com/en/api
+- Google AI Gemini API: https://ai.google.dev/api
 - Node.js child processes: https://nodejs.org/api/child_process.html

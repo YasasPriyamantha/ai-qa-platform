@@ -25,7 +25,7 @@ flowchart TD
     APP --> DOC[Document and Requirement Service]
     APP --> ORCH[Agent / Workflow Orchestrator]
     ORCH --> LLM[Model Provider Adapter]
-    LLM --> LOCAL[Local Model Runtime]
+    LLM --> HOSTED[Hosted Provider APIs]
     ORCH --> MCPCLIENT[MCP Client Adapter]
     MCPCLIENT --> MCP[Playwright MCP Server]
     MCP --> SITE[Approved Target Website]
@@ -100,15 +100,50 @@ Structured documents should use author-assigned stable requirement IDs. The same
 
 ### 3.4 Model provider adapter
 
-Responsibilities:
+The model provider adapter is a provider-neutral port that separates agent/workflow logic from provider-specific API details.
+
+**Direct provider adapters:**
+
+- **OpenAI adapter:** Direct integration with OpenAI Responses API.
+- **Anthropic Claude adapter:** Direct integration with Anthropic Messages API.
+- **Google Gemini adapter:** Direct integration with Google AI Gemini API.
+
+**Configurable OpenAI-compatible adapter:**
+
+A separate configurable adapter supports providers implementing the OpenAI-compatible Chat Completions API dialect. This adapter is distinct from the native OpenAI Responses adapter. Feature support (tool use, structured output, streaming) is verified per provider/model, not assumed from API compatibility.
+
+**Provider-specific credentials:**
+
+- Multiple provider-specific API keys may coexist in the platform environment.
+- Each configured provider ID maps to its own secret environment variable (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`).
+- No universal API key or universal API protocol is assumed; no mandatory gateway.
+- Credentials are platform secrets stored in `.env`, never in project-role configuration.
+- Switching provider does not require changes to business/agent logic; no silent fallback between providers.
+
+**Responsibilities:**
 
 - Provide a single internal interface for sending instructions and structured context to a model.
-- Implement the first local provider (candidate: Ollama, subject to a feasibility experiment).
-- Normalize model outputs and surface malformed responses.
-- Apply timeouts, cancellation, logging metadata, and context limits where supported.
-- Allow an optional hosted provider to be added later without rewriting agent logic.
+- Map provider-specific request/response formats to the shared internal representation.
+- Perform model-level capability checks (tool use, structured output, context limits).
+- Convert canonical structured-output schemas to provider-specific formats; apply local runtime validation after response.
+- Handle multi-turn tool-call and tool-result message sequences.
+- Preserve opaque provider continuation state where needed for multi-turn conversations.
+- Normalize model outputs, completion reasons, token usage, and surface malformed responses.
+- Apply timeouts, cancellation, rate-limit handling, and context limits.
+- Implement data minimization: send only necessary context; never include secrets in prompts.
+- Log request metadata for debugging without logging credentials or full payloads.
 
-Do not couple business logic directly to one provider's response format. Model output is untrusted input and must be parsed and validated.
+**Request lifecycle:**
+
+1. Agent prepares a request using the internal interface.
+2. Adapter selects the configured provider and resolves its API key from the environment.
+3. Adapter converts the request to provider-specific format, including schema lowering.
+4. Adapter sends the request with appropriate timeout and retry policy.
+5. Adapter normalizes the response to the shared format.
+6. Adapter validates structured output against the canonical schema.
+7. Adapter returns the normalized response or a typed error.
+
+Do not couple business logic directly to one provider's response format. Model output is untrusted input and must be parsed and validated. Providers using another API protocol require a provider-specific adapter.
 
 ### 3.5 Agent / workflow orchestrator
 
@@ -492,7 +527,7 @@ The accepted cross-phase decisions and their rationale are recorded in `DECISION
 
 ## 10. Known limitations
 
-The platform cannot infer every business rule from appearance alone. CAPTCHA, SSO, multi-factor authentication, complex test-data setup, payment integrations, anti-bot controls, and changing sites may require explicit setup or human intervention. Local models vary in tool-calling and code-generation quality. The architecture must surface these limitations honestly rather than claim universal support.
+The platform cannot infer every business rule from appearance alone. CAPTCHA, SSO, multi-factor authentication, complex test-data setup, payment integrations, anti-bot controls, and changing sites may require explicit setup or human intervention. Provider/model capabilities vary in tool-calling support, structured-output reliability, context limits, and code-generation quality. Provider rate limits, quotas, and pricing constraints may affect usage. The architecture must surface these limitations honestly rather than claim universal support.
 
 ## 11. References
 
@@ -502,6 +537,8 @@ The platform cannot infer every business rule from appearance alone. CAPTCHA, SS
 - Playwright authentication: https://playwright.dev/docs/auth
 - Playwright MCP: https://playwright.dev/docs/getting-started-mcp
 - MCP TypeScript SDK v2: https://ts.sdk.modelcontextprotocol.io/v2/
-- Ollama tool support: https://registry.ollama.com/blog/tool-support
+- OpenAI API: https://platform.openai.com/docs/api-reference
+- Anthropic API: https://docs.anthropic.com/en/api
+- Google AI Gemini API: https://ai.google.dev/api
 - Vitest configuration: https://vitest.dev/config/
 - Node.js child processes: https://nodejs.org/api/child_process.html

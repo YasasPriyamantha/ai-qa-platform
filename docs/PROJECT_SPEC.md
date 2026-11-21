@@ -5,7 +5,7 @@
 **Initial deployment:** Local-first, single-user  
 **Primary language:** TypeScript for new platform code  
 **Browser test runner:** Playwright Test  
-**AI strategy:** Local model first; optional provider adapter later
+**AI strategy:** Hosted provider APIs with configurable multi-provider support; platform remains local-first for CLI, files, and tests
 
 ---
 
@@ -33,7 +33,7 @@ This project uses AI to assist with discovery, planning, generation, and failure
 6. Maintain approved tests across releases and compare new requirements with earlier requirements.
 7. Run approved tests against a new release, including tests for earlier behavior that should still work.
 8. Produce clear reports containing outcomes, requirement links, and debugging evidence.
-9. Run without a mandatory paid AI API or paid Playwright service; allow an optional hosted AI provider later.
+9. The non-AI platform core (CLI, project management, document handling, test execution, reporting) operates without paid AI services. Hosted AI inference requires a configured provider and may incur charges; all paid API calls remain disabled until explicitly approved by the user.
 10. Keep the codebase understandable to a beginner building the platform with AI coding assistance.
 
 ## 4. Non-goals for the initial MVP
@@ -46,7 +46,7 @@ The MVP will not attempt to:
 - Autonomously deploy code or change a user's application.
 - Run destructive or financial actions against production systems by default.
 - Accept AI-generated tests as correct without validation and an approval process.
-- Require a vector database, distributed agent infrastructure, Kubernetes, or a cloud-hosted AI service.
+- Require a vector database, distributed agent infrastructure, or Kubernetes. The platform itself is not deployed as a cloud AI service; optional hosted provider API calls are supported when explicitly enabled.
 - Support multiple concurrent users or public multi-tenant hosting in its first release.
 - Parse every document format in the first version. Start with Markdown and plain text; add other formats only after the core flow works.
 
@@ -236,7 +236,7 @@ Approved tests must not be silently deleted, weakened, or replaced by newly gene
 
 ## 8. AI-agent behavior and trust rules
 
-Agents may assist with requirements analysis, exploration, planning, generation, and failure triage. The initial implementation can use one local model for multiple agent roles; separate models or services are not required.
+Agents may assist with requirements analysis, exploration, planning, generation, and failure triage. The implementation uses hosted provider APIs for model inference; one configured provider/model may serve multiple agent roles. Separate models or services are not required, but multiple provider-specific keys may coexist and each configured provider ID maps to its own secret environment variable and model ID.
 
 The following rules are mandatory:
 
@@ -254,11 +254,12 @@ The following rules are mandatory:
 
 ## 9. Cost and licensing constraints
 
-- The project should run without paid Playwright features or a mandatory paid AI API.
+- The non-AI platform core (CLI, project management, test execution, reporting) runs without paid AI services.
 - Use Playwright Test and freely available/open-source components where practical, checking each dependency's current license before adopting it.
-- Start with a local model provider such as Ollama, subject to hardware and model capability testing.
-- Design a provider adapter so a compatible hosted provider can optionally be added later, but never make it mandatory for the MVP.
-- Document that local operation can still require computer hardware, electricity, storage, and setup effort; zero-cost means no required paid service/API subscription, not literally zero operating cost.
+- AI features use hosted provider APIs (OpenAI, Anthropic Claude, Google Gemini) through direct provider adapters; additional providers are supported via OpenAI-compatible Chat Completions or new native adapters.
+- Multiple provider-specific API keys may coexist; each provider ID maps to its own secret environment variable. No universal API key or mandatory gateway is assumed.
+- Paid AI API calls remain disabled until the user explicitly approves usage and spending limits. Provider data-handling terms, rate limits, pricing, and context limits must be reviewed before enabling calls.
+- Document that platform operation requires computer hardware, electricity, storage, and setup effort; "no mandatory paid services" means the non-AI core works without subscriptions, not that all features are free.
 
 ## 10. Technical direction
 
@@ -267,7 +268,7 @@ The following rules are mandatory:
 - **Browser/test runner:** Playwright Test (`@playwright/test`).
 - **Platform unit/integration test framework:** Vitest, explicitly restricted to platform test directories.
 - **Browser exploration:** Playwright MCP server connected through the platform's own MCP client.
-- **AI integration:** provider adapter; local model first.
+- **AI integration:** Hosted provider API adapters; built-in support for OpenAI, Anthropic Claude, and Google Gemini; OpenAI-compatible adapter for additional providers.
 - **Initial interface:** command-line prototype.
 - **Later interface:** local web UI after the CLI workflow is reliable.
 - **Persistence:** Git/files for version-controlled documents and test code; SQLite for structured project and execution metadata when persistence is introduced.
@@ -277,7 +278,7 @@ The following rules are mandatory:
 
 The completed JavaScript tutorial project remains a separate learning/demo reference. It does not need to be converted or imported into the platform. Playwright can load TypeScript configuration and test files directly; the platform must still run a separate type-check command.
 
-The final frontend framework, backend web framework, and local model must be chosen or validated when their phase begins rather than added prematurely.
+The final frontend framework and backend web framework must be chosen or validated when their phase begins rather than added prematurely. AI provider selection evaluates tool-calling support, structured-output capability, reliability, context limits, pricing, rate limits, and data-handling terms.
 
 ## 11. Initial success criteria
 
@@ -292,7 +293,7 @@ The prototype is successful when it can:
 7. Execute approved tests and produce an accurate report with artifacts for failures.
 8. Accept a second release document, compare it with the prior release, and preserve valid existing regression tests.
 9. Demonstrate the process on SauceDemo and at least one different demo web application before claiming the framework is reusable.
-10. Operate without mandatory paid AI API calls or paid Playwright services.
+10. The non-AI platform core operates without paid services. AI features require a configured hosted provider and may incur charges; paid API calls are disabled until explicitly approved.
 
 ## 12. Assumptions and open decisions
 
@@ -302,7 +303,7 @@ The prototype is successful when it can:
 - Author-assigned requirement IDs are authoritative; AI-proposed IDs require human approval.
 - A human approves new generated tests and material changes to approved tests.
 - Release execution is initially started manually; automation via CI/CD is added later.
-- Model choice depends on available hardware and must be benchmarked for structured output, tool use, exploration, and test generation before commitment.
+- Provider/model choice depends on tool-use support, structured-output capability, reliability, context limits, pricing, rate limits, quotas, data-handling terms, and latency. Each provider/model combination must be verified for the required capabilities before commitment.
 - Authentication and test-data setup may require project-specific configuration. The platform must surface blockers instead of claiming universal support.
 - Additional document parsers, test runners, multi-user features, and remote deployment are later extensions.
 
