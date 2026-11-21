@@ -710,6 +710,14 @@ Context
 
 Read Task 3.2 contracts and SDK decision, DEC-026, package.json/lockfile, installed Node.js/TypeScript versions, the selected SDK's schema interfaces, and current official Zod 4 documentation. Inspect existing validation patterns. Do not change Phase 1 project-config validation.
 
+Additional context
+
+1. Task 3.2 is committed. request.ts already defines JsonSchemaHandle (lines ~55–80) and StructuredOutputMode (~98) as the structured-output slot. Connect the canonical schema to that existing slot (extend or replace it in place); do not create a parallel schema-handle type. Update affected Task 3.2 tests.
+2. Response.structuredOutput is currently `unknown`. Local validation must produce distinct results for invalid JSON, schema-invalid data, refusal, and incomplete output, consistent with the existing FinishReason/refusalReason/truncated fields.
+3. The latest decision is DEC-036 (provisional SDK strategy). Verify the next number (expected DEC-037) before recording the schema-library decision.
+4. Check Zod 4 against the installed Node (v22.11.0 at 3.0a), TypeScript version, ESM/NodeNext settings and build target. DEC-026's Phase 1 custom validator stays unchanged.
+5. No provider SDKs, adapters, credentials, lifecycle, or live calls.
+
 Requirements
 
 1. Evaluate Zod 4 compatibility with the actual runtime, TypeScript version, build target, ESM setup, and selected SDK. Prefer Zod 4 if compatible because `z.toJSONSchema()` and runtime parsing can derive from one schema definition.
