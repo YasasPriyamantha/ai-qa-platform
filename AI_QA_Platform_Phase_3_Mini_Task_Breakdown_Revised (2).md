@@ -776,6 +776,28 @@ Context
 
 Read DEC-028, the multi-provider decision, the Task 3.2 contract/SDK decision, Task 3.2a schema decision, DEC-032, docs/AUTHENTICATION_AND_CREDENTIALS.md, Phase 2 .env conventions, .gitignore, actual Node version, startup path, project config loader, Playwright process runner, and tests. Inspect the actual .env.example and whether a real .env file exists. Preserve its contents unless the user explicitly authorises a change.
 
+### Additional context — existing role configuration reference
+
+Read the supplied `project-config-with-roles.example.json` as an example of the platform's existing Phase 2 project configuration.
+
+It demonstrates:
+- The `saucedemo` project configuration.
+- Role profiles for standard_user, locked-out-user and problem_user.
+- Username/password credential references using SAUCEDEMO_* environment-variable names.
+- Separate storageStatePath values for each role.
+
+Preserve this configuration structure and existing Phase 1/2 behaviour.
+
+Add regression coverage proving:
+1. The example's ordinary SAUCEDEMO_* credential references remain valid.
+2. Built-in platform AI credential references are rejected in project-role credentials.
+3. Custom AI_PROVIDER_* references are rejected.
+4. Existing role and storage-state configuration semantics remain unchanged.
+
+Important: The presence of role credential references in project configuration does not prove that the runner loads or injects those credentials into the Playwright child environment. Inspect the actual implementation. Do not introduce a new role-credential loading or injection mechanism in Task 3.3.
+
+Do not modify the supplied example merely to make the tests pass.
+
 Requirements
 
 1. Use these explicit platform paths unless repository inspection reveals a concrete conflict and a replacement is recorded before implementation:
