@@ -799,3 +799,97 @@ If Task 3.0b fails or reveals SDK limitations, this decision may be revisited. T
 - Platform contracts (Task 3.2) remain SDK-agnostic
 - Adapters own message/tool translation, NOT retry policy
 - SDK version selection may be adjusted when Tasks 3.4–3.6a are implemented
+
+## DEC-037 — Zod 4 for AI Structured-Output Schemas
+
+**Status:** Accepted
+
+**Decision:** Use Zod 4 as the single source of truth for AI structured-output schemas. Both provider JSON Schema generation and local runtime validation derive from the same Zod schema definition.
+
+**Package and Version:** `zod@^4.6.7` (installed as a runtime dependency)
+
+**Exact Resolved Version:** `4.6.7` (verified from `package-lock.json` on 2026-11-22)
+
+**Compatibility Verification:**
+
+| Requirement | Evidence |
+|-------------|----------|
+| Node.js 22.11.0 | Zod 4 requires Node ≥18 (verified in environment) |
+| TypeScript 7.0.2 | Zod 4 provides TypeScript types; tested compatible |
+| ESM/NodeNext | Zod 4 exports ESM (`type: 'module'`, proper `import/require` exports) |
+| ES2022 build target | Compatible; Zod 4 uses modern JS features |
+
+**Input-Side JSON Schema Generation:**
+
+JSON Schema is generated using `z.toJSONSchema(schema, { io: "input" })`. This produces the schema that describes what the model is allowed to produce (the input to Zod parsing), not the post-transform output. This distinction matters for:
+
+- **Optional fields:** The model may omit them; the generated schema reflects this.
+- **Defaulted fields:** The model may omit them; local parsing applies the defaults.
+- **Transforms:** Cannot be represented in JSON Schema; conversion returns an unsupported result rather than silently losing semantics.
+
+The `unrepresentable: "throw"` option ensures that schemas containing types that cannot be expressed in JSON Schema (such as `z.date()` or transforms) result in a typed unsupported conversion result, rather than silently weakening constraints.
+
+**Scope:**
+
+- **In scope:** AI structured-output schemas for model responses (Task 3.2a and future adapter tasks)
+- **Out of scope:** Phase 1 project configuration validation (unchanged per DEC-026)
+- **Out of scope:** Phase 2 requirement/document schemas (not migrated as part of this task)
+
+**Rationale:**
+
+1. **Single source of truth:** Zod 4's native `z.toJSONSchema()` function generates JSON Schema directly from the same schema used for runtime parsing. This eliminates the risk of drift between independently maintained schema definitions.
+
+2. **Distinct validation results:** Zod's `safeParse()` returns structured errors with path information, enabling distinct classification of invalid JSON, schema-invalid data, refusal, and incomplete output.
+
+3. **Provider-neutral:** The canonical schema is a Zod schema; JSON Schema conversion happens per-provider with optional filtering for unsupported keywords.
+
+4. **Future extensibility:** Zod supports complex schema compositions (unions, discriminated unions, recursive schemas) that may be needed for tool definitions.
+
+**DEC-026 Relationship:**
+
+DEC-026 established custom validation for Phase 1 project configuration. That decision remains unchanged. This new Zod dependency is strictly for AI structured-output schemas, not for migrating existing Phase 1/Phase 2 validation logic.
+
+**Implementation:**
+
+- `src/model-providers/schema.ts`: Canonical schema abstraction using Zod
+- `CanonicalSchema<T>`: Generic interface wrapping a Zod schema with JSON Schema generation
+- `StructuredOutputValidator`: Validates responses with distinct error categories
+- Schema conversion interface for provider-specific JSON Schema adaptation
+
+**Structured Output vs. Tool Parameter Schemas:**
+
+The canonical-schema-only requirement applies specifically to structured output schemas (`StructuredOutputMode.schema`). These schemas define the shape of AI model responses and require local runtime validation.
+
+Tool parameter schemas (`ToolDefinition.parameters`) have a different requirement:
+
+- **Platform-defined tools:** Use `CanonicalSchema` to get local validation of tool arguments.
+- **External tools (MCP, OpenAPI):** Use `ExternalToolSchema`, which wraps externally supplied JSON Schema with explicit provenance metadata.
+
+This distinction exists because:
+
+1. External tool servers (e.g., Playwright MCP) supply their parameter schemas as JSON Schema at runtime. Requiring manual Zod schema creation for every external tool is impractical.
+
+2. Tool-call arguments returned by the model are untrusted JSON. Their validation belongs to the tool owner/orchestrator before execution, not to the structured-output validator.
+
+3. Structured output validation ensures the AI response matches what the platform code expects. Tool argument validation ensures the tool receives valid inputs—these are different trust boundaries.
+
+The `ExternalToolSchema` type explicitly identifies externally sourced schemas:
+
+```typescript
+interface ExternalToolSchema {
+  readonly kind: 'external_json_schema';
+  readonly source: string;  // e.g., 'mcp:playwright'
+  readonly jsonSchema: Readonly<Record<string, unknown>>;
+}
+```
+
+Plain JSON Schema objects without this wrapper are rejected. This prevents implicit acceptance of arbitrary objects while enabling MCP integration.
+
+**Consequences:**
+
+- Zod is a runtime dependency (2kb gzipped core)
+- AI structured-output schemas are defined once in Zod, not duplicated
+- Provider adapters receive JSON Schema from the canonical schema, not raw Zod schemas
+- Tool parameters accept both canonical and external schemas via discriminated union
+- External tool argument validation is deferred to the tool owner/orchestrator (Phase 4)
+- Phase 1 and Phase 2 validators remain unchanged

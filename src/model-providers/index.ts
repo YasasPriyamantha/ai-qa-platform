@@ -88,7 +88,8 @@ export {
 // Request types
 export {
   type ToolDefinition,
-  type JsonSchemaHandle,
+  type ToolParameterSchema,
+  type ExternalToolSchema,
   type ToolChoicePolicy,
   type StructuredOutputMode,
   type RequestOptions,
@@ -96,8 +97,45 @@ export {
   type RequestMetadata,
   type RequestValidationResult,
   validateRequest,
+  extractJsonSchema,
+  isExternalToolSchema,
+  validateExternalToolSchema,
+  validateToolParameterSchema,
   DEFAULT_REQUEST_OPTIONS,
 } from './request.js';
+
+// Schema types (Task 3.2a / DEC-037)
+export {
+  type GeneratedJsonSchema,
+  type CanonicalSchema,
+  type JsonSchemaOptions,
+  type JsonSchemaConversionResult,
+  type JsonSchemaConversionSuccess,
+  type JsonSchemaConversionUnsupported,
+  type SchemaValidationResult,
+  type SchemaValidationError,
+  type StructuredOutputValidationResult,
+  type StructuredOutputValid,
+  type StructuredOutputInvalidJson,
+  type StructuredOutputSchemaInvalid,
+  type StructuredOutputRefusal,
+  type StructuredOutputIncomplete,
+  type SchemaConversionContext,
+  type SchemaConversionResult,
+  type SchemaConversionSuccess,
+  type SchemaConversionUnsupported,
+  SchemaRegistry,
+  createCanonicalSchema,
+  validateStructuredOutput,
+  convertSchemaForProvider,
+  isCanonicalSchema,
+  isValidStructuredOutput,
+  isInvalidJsonOutput,
+  isSchemaInvalidOutput,
+  isRefusalOutput,
+  isIncompleteOutput,
+  z,
+} from './schema.js';
 
 // Response types
 export {

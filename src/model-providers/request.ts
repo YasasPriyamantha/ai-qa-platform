@@ -2,16 +2,67 @@
  * Provider-neutral request types.
  *
  * Implements Task 3.2 requirement 6: Common request contract.
+ * Implements Task 3.2a: Canonical schema integration (DEC-037).
  *
  * Key principles:
  * - Bounded request options with explicit limits
- * - Structured output mode with schema handle (not schema conversion)
+ * - Structured output mode with canonical schema reference
  * - Tool definitions with tool-choice policy
  * - Timeout and cancellation support
  */
 
 import type { ConversationMessage } from './messages.js';
 import type { ContinuationRef, ContinuationPolicy } from './continuation.js';
+import type { CanonicalSchema, JsonSchemaConversionResult } from './schema.js';
+import { isCanonicalSchema as isCanonicalSchemaFromSchema } from './schema.js';
+
+/**
+ * External tool schema for tools supplied by external servers (e.g., MCP).
+ *
+ * This type wraps a JSON Schema obtained from an external tool server at runtime.
+ * It is explicitly marked as externally supplied and untrusted.
+ *
+ * IMPORTANT: Tool-call arguments returned by the model are untrusted JSON.
+ * External tool parameter schemas are NOT canonical structured-output schemas.
+ * The tool owner/orchestrator (Phase 4) is responsible for validating tool
+ * arguments before execution. The structured-output validator does not
+ * validate external tool-call arguments.
+ *
+ * Provider adapters may reject an external schema if they cannot represent
+ * it in their selected API. They must not silently discard constraints.
+ */
+export interface ExternalToolSchema {
+  /**
+   * Discriminator identifying this as an external JSON Schema.
+   * Must be exactly 'external_json_schema'.
+   */
+  readonly kind: 'external_json_schema';
+
+  /**
+   * Source/provenance identifier for the external schema.
+   * Must be a non-empty string identifying where the schema came from.
+   * Examples: 'mcp:playwright', 'mcp:filesystem', 'openapi:petstore'
+   */
+  readonly source: string;
+
+  /**
+   * The external JSON Schema object.
+   * Must be a plain, non-null, non-array object.
+   * This schema data is externally supplied and untrusted.
+   */
+  readonly jsonSchema: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * Tool parameter schema type.
+ *
+ * Tool parameters can be defined as:
+ * 1. A CanonicalSchema for platform-defined tools (provides local validation)
+ * 2. An ExternalToolSchema for tools from external servers (e.g., MCP)
+ *
+ * Plain JSON Schema objects without a wrapper are not accepted.
+ */
+export type ToolParameterSchema = CanonicalSchema<unknown> | ExternalToolSchema;
 
 /**
  * Tool definition for model requests.
@@ -32,11 +83,19 @@ export interface ToolDefinition {
   readonly description: string;
 
   /**
-   * JSON Schema for the tool's parameters.
-   * Adapters convert this to provider-specific schema format.
-   * Task 3.2a handles schema conversion; this is a schema handle.
+   * Schema for the tool's parameters.
+   *
+   * Can be provided as:
+   * - A CanonicalSchema for platform-defined tools (provides local validation)
+   * - An ExternalToolSchema for tools from external servers (e.g., MCP)
+   *
+   * Plain JSON Schema objects without a wrapper are not accepted.
+   *
+   * IMPORTANT: Tool-call arguments returned by the model are untrusted JSON.
+   * The tool owner/orchestrator is responsible for validating arguments before
+   * execution. The structured-output validator does not validate tool arguments.
    */
-  readonly parameters: JsonSchemaHandle;
+  readonly parameters?: ToolParameterSchema;
 
   /**
    * Whether this tool requires human confirmation before execution.
@@ -46,37 +105,121 @@ export interface ToolDefinition {
 }
 
 /**
- * JSON Schema handle.
- *
- * This is a placeholder for the actual JSON Schema definition.
- * Task 3.2a defines the schema types and conversion.
- * For now, we use a generic object that adapters pass through.
+ * Type guard for external tool schema.
  */
-export interface JsonSchemaHandle {
-  /**
-   * Schema type (always 'object' for tool parameters).
-   */
-  readonly type: 'object';
+export function isExternalToolSchema(value: unknown): value is ExternalToolSchema {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as Record<string, unknown>).kind === 'external_json_schema' &&
+    typeof (value as ExternalToolSchema).source === 'string' &&
+    typeof (value as ExternalToolSchema).jsonSchema === 'object' &&
+    (value as ExternalToolSchema).jsonSchema !== null
+  );
+}
 
-  /**
-   * Property definitions.
-   */
-  readonly properties?: Record<string, unknown>;
+/**
+ * Check if a value is a plain object (object literal or null-prototype object).
+ *
+ * Rejects arrays, null, Date, Map, Set, and custom class instances.
+ * Accepts ordinary object literals and Object.create(null) objects.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  // Accept plain objects (prototype is Object.prototype) and null-prototype objects
+  return proto === Object.prototype || proto === null;
+}
 
-  /**
-   * Required property names.
-   */
-  readonly required?: readonly string[];
+/**
+ * Validate an external tool schema wrapper.
+ *
+ * Returns an array of validation error messages, or empty array if valid.
+ */
+export function validateExternalToolSchema(schema: unknown): string[] {
+  const errors: string[] = [];
 
-  /**
-   * Whether to allow additional properties.
-   */
-  readonly additionalProperties?: boolean;
+  if (typeof schema !== 'object' || schema === null) {
+    errors.push('external tool schema must be an object');
+    return errors;
+  }
 
-  /**
-   * Description of the schema (for documentation).
-   */
-  readonly description?: string;
+  const obj = schema as Record<string, unknown>;
+
+  if (obj.kind !== 'external_json_schema') {
+    errors.push("external tool schema must have kind 'external_json_schema'");
+  }
+
+  if (typeof obj.source !== 'string' || obj.source.trim() === '') {
+    errors.push('external tool schema source must be a non-empty string');
+  }
+
+  if (typeof obj.jsonSchema !== 'object' || obj.jsonSchema === null) {
+    errors.push('external tool schema jsonSchema must be a non-null object');
+  } else if (!isPlainObject(obj.jsonSchema)) {
+    errors.push('external tool schema jsonSchema must be a plain object');
+  }
+
+  return errors;
+}
+
+/**
+ * Validate a tool parameter schema.
+ *
+ * Returns an array of validation error messages, or empty array if valid.
+ */
+export function validateToolParameterSchema(schema: unknown, toolName: string): string[] {
+  // Check if it's a canonical schema
+  if (isCanonicalSchema(schema)) {
+    return [];
+  }
+
+  // Check if it looks like an external tool schema
+  if (typeof schema === 'object' && schema !== null) {
+    const obj = schema as Record<string, unknown>;
+    if (obj.kind === 'external_json_schema') {
+      const externalErrors = validateExternalToolSchema(schema);
+      return externalErrors.map(e => `tool '${toolName}': ${e}`);
+    }
+  }
+
+  // Not a recognized schema type
+  return [`tool '${toolName}': parameters must be a CanonicalSchema or ExternalToolSchema`];
+}
+
+/**
+ * Re-export isCanonicalSchema from schema.ts for convenience.
+ *
+ * This type guard uses the brand symbol to reliably distinguish genuine
+ * canonical schemas from arbitrary structurally similar objects.
+ */
+export const isCanonicalSchema = isCanonicalSchemaFromSchema;
+
+/**
+ * Extract JSON Schema from a canonical schema.
+ *
+ * Only accepts genuine CanonicalSchema instances created via createCanonicalSchema().
+ * Raw JSON Schema objects are not accepted as request inputs.
+ *
+ * @param schema The canonical schema to extract JSON Schema from
+ * @returns The JSON Schema conversion result (success or unsupported)
+ * @throws TypeError if the input is not a genuine CanonicalSchema
+ */
+export function extractJsonSchema(
+  schema: CanonicalSchema<unknown>
+): JsonSchemaConversionResult {
+  if (!isCanonicalSchema(schema)) {
+    throw new TypeError(
+      'extractJsonSchema requires a genuine CanonicalSchema created via createCanonicalSchema(). ' +
+      'Raw JSON Schema objects are not accepted as request inputs.'
+    );
+  }
+  return schema.toJsonSchema();
 }
 
 /**
@@ -94,16 +237,28 @@ export type ToolChoicePolicy =
  * Structured output mode for responses.
  *
  * When enabled, the response is constrained to match a schema.
+ *
+ * Per DEC-037: The schema must be a genuine CanonicalSchema created via
+ * createCanonicalSchema(). This provides both JSON Schema generation
+ * (for the provider) and local runtime validation (for response verification)
+ * from a single Zod schema definition.
  */
 export interface StructuredOutputMode {
   /**
-   * Schema handle for the structured output.
-   * Adapters convert this to provider-specific formats.
+   * Canonical schema for the structured output.
+   *
+   * Must be a genuine CanonicalSchema created via createCanonicalSchema().
+   * The platform validates responses locally using the schema's Zod validator
+   * even when provider-side validation is enabled.
+   *
+   * Plain JSON Schema objects are not accepted. Use createCanonicalSchema() to
+   * wrap a Zod schema definition.
    */
-  readonly schema: JsonSchemaHandle;
+  readonly schema: CanonicalSchema<unknown>;
 
   /**
    * Optional name for the schema (used by some providers).
+   * Overrides the schema's name property if set.
    */
   readonly name?: string;
 
@@ -296,7 +451,7 @@ export function validateRequest(request: ModelRequest): RequestValidationResult 
     errors.push(...orderErrors);
   }
 
-  // Check tool name uniqueness
+  // Check tool name uniqueness and parameter schema validity
   if (request.tools && request.tools.length > 0) {
     const toolNames = new Set<string>();
     for (const tool of request.tools) {
@@ -306,6 +461,12 @@ export function validateRequest(request: ModelRequest): RequestValidationResult 
         errors.push(`duplicate tool name: ${tool.name}`);
       } else {
         toolNames.add(tool.name);
+      }
+
+      // Validate tool parameter schema if provided
+      if (tool.parameters !== undefined) {
+        const paramErrors = validateToolParameterSchema(tool.parameters, tool.name);
+        errors.push(...paramErrors);
       }
     }
   }
