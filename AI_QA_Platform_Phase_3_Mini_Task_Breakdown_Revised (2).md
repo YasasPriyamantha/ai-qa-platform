@@ -861,6 +861,158 @@ Context
 
 Read DEC-028, the provider contract/SDK decision from Task 3.2, canonical schema/conversion contract from Task 3.2a, provider config and file-path decisions from Task 3.3, the selected SDK's current official retry/timeout/cancellation documentation, and existing CLI/logging conventions. Provider adapters have not been implemented yet; do not assume they exist. Inspect how the current app handles AbortSignal, child processes and environment variables. Preserve existing Phase 1 test-runner behaviour.
 
+## Additional context for Task 3.3a
+
+### 1. Current baseline and decisions
+
+- Tasks 3.2, 3.2a and 3.3 must be committed before implementation begins.
+- Current full-suite baseline: 1,528 tests across 41 files.
+- Latest decision: DEC-037. Inspect the actual latest decision before adding another; DEC-038 is expected.
+
+### 2. Reuse existing contracts
+
+Read and reuse:
+- Request, response, errors and `RetrySafety` in `src/model-providers`.
+- Provider configuration types, including `ProviderConfigBase`, `ProviderConfig` and `ProviderConfigEntry`.
+- Provider enablement and `SecureSecretStore` in `src/provider-secrets`.
+
+Do not create parallel provider, request, response, error or credential types.
+
+### 3. Adapter boundary
+
+Define the interface that future adapters (Tasks 3.4–3.6a) will implement.
+
+For example, an adapter operation should receive a normalized request and explicit context containing the selected provider configuration, API key and AbortSignal, and return a normalized response or normalized error.
+
+The shared lifecycle calls this interface. Adapters must not independently implement retries, timeout enforcement or usage budgets.
+
+Use fake adapters only. Do not implement actual vendor adapters.
+
+### 4. Timeout and cancellation
+
+- Combine the caller's AbortSignal with the per-request timeout, using `AbortSignal.any()` and `AbortSignal.timeout()` where appropriate.
+- Verify behaviour on the installed Node 22.11 runtime.
+- Distinguish caller cancellation from lifecycle timeout in normalized results and diagnostics.
+- Test both independently.
+
+### 5. Retry policy
+
+Use the existing `RetrySafety` contract.
+
+- `retryable_safe`: eligible for bounded retry.
+- `retryable_with_delay`: eligible after a bounded delay, respecting `Retry-After`.
+- `retryable_ambiguous`: never automatically retry.
+- `unknown`: never automatically retry.
+- `not_retryable`: never retry.
+
+Bound total attempts and cap server-provided retry delays. Count every attempt against request budgets and reservations.
+
+Underlying SDK retries remain disabled. The shared lifecycle is the only retry owner.
+
+### 6. Usage metadata
+
+Represent each usage field independently as known or unknown. For example, input tokens may be known while output tokens are unknown.
+
+Keep:
+- Provider-observed usage.
+- Locally estimated usage.
+- Reservations.
+
+As separate values. Never replace unknown values with zero or report an estimate as observed usage.
+
+Update the existing Task 3.2 response contract and its tests rather than creating a parallel response model.
+
+### 7. Input-size estimation
+
+The conservative preflight estimate must include:
+- System/developer instructions.
+- All conversation messages and tool results.
+- Tool definitions.
+- Canonical tool parameter schemas.
+- External tool JSON Schemas.
+- The structured-output schema.
+- Supported image content items.
+
+Do not estimate only from message text.
+
+If image content cannot be bounded conservatively, reject the request before network activity rather than ignoring its potential cost.
+
+Keep the hard input-character limit as an additional safeguard.
+
+### 8. Budget configuration and approval
+
+Budgets must be platform-scoped and non-secret, not project configuration or role credentials.
+
+Define a tracked configuration structure and location. A section in `config/ai-providers.json` or a separate configuration file may be considered, but inspect existing conventions before deciding.
+
+Require explicit approved limits for:
+- Total requests.
+- Maximum input size/tokens per request.
+- Maximum output tokens per request.
+- Cumulative input usage.
+- Cumulative output usage.
+- The budget window.
+
+If no approved budget is configured, no external provider request is allowed.
+
+Cost estimates must use a dated pricing source for the selected model. If pricing is unavailable, cost must be reported as unknown, not zero. Do not claim a guaranteed dollar spend cap from local token estimates.
+
+### 9. Persistent usage ledger
+
+Implement `.qa-platform/usage-ledger.json`, whose parent directory is already ignored by Git.
+
+Requirements:
+- Atomic writes using a temporary file and rename, compatible with Windows.
+- Concurrency protection against lost updates from simultaneous CLI invocations, using an appropriate lock or conflict-detection design.
+- Tests for concurrent updates and recovery from interrupted writes.
+- No prompts, model outputs, keys, tool arguments, or continuation payloads in the ledger.
+- Explicit user-initiated reset/rollover only.
+- Record the budget window and reset operation.
+- Never silently reset counters on process startup or after a failed request.
+
+Do not introduce SQLite.
+
+### 10. Provider configuration conversion
+
+Task 3.3 defines:
+- `ProviderConfigEntry` as JSON configuration input, with optional simplified capabilities.
+- `ProviderConfig` as the complete runtime provider type, including `DeclaredCapabilities`.
+
+Implement one explicit conversion function from `ProviderConfigEntry` to `ProviderConfig`.
+
+Capabilities that are not declared must become `unknown`, not `supported`.
+
+Do not infer support for schema keywords, structured output, tool calling or other provider features merely because the provider is configured.
+
+Test conversion with missing, partial and complete capability declarations.
+
+### 11. Fail-closed request gate
+
+Before any external network activity, enforce this order:
+
+1. `AI_ENABLED` is exactly enabled through the existing provider-secret boundary.
+2. Provider configuration and model ID are valid.
+3. The matching provider key exists and is not a placeholder.
+4. Required provider/model capabilities are supported or explicitly verified.
+5. Budget and request reservations succeed.
+6. Only then may the fake adapter be called.
+
+Add tests proving that each failed gate prevents the adapter from being invoked.
+
+Do not silently switch providers or models.
+
+### 12. Scope boundaries
+
+- No OpenAI, Anthropic or Gemini SDK integration.
+- No vendor adapters.
+- No live API calls.
+- No MCP integration or tool execution.
+- No new CLI commands unless the breakdown explicitly requires them.
+- No change to Phase 1 test-runner credential behaviour.
+- Do not commit.
+
+Run the prescribed lifecycle tests, typecheck, build and full Vitest suite. Inspect the full diff and test output.
+
 Requirements
 
 1. Add a shared request lifecycle contract/service before provider adapters exist: per-request timeout, caller cancellation, bounded attempt count, and a consistent completion/error result. Vendor adapters will call through this service later and must not duplicate lifecycle logic.
