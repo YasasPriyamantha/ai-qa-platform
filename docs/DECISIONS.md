@@ -685,7 +685,7 @@ A separate configurable adapter supports providers implementing the OpenAI-compa
 
 ## DEC-035 — Block Built-In Provider Key Names in Project-Role Credentials
 
-**Status:** Accepted (not yet enforced in code)
+**Status:** Accepted (not enforced at acceptance; implementation completed in Task 3.3)
 
 **Amends:** DEC-032 (CLI validates Phase 2 config before execution)
 
@@ -705,9 +705,9 @@ A separate configurable adapter supports providers implementing the OpenAI-compa
 
 The Phase 2 loader (`loadPhase2ProjectConfig()`) shall reject configurations where any role's `credentials` values match these blocked names. The validation error message shall indicate the blocked name and explain that these are reserved for platform AI provider credentials. This check shall run alongside the existing `AI_PROVIDER_*` pattern check from DEC-032.
 
-**Implementation status:** Not yet enforced in code. The Phase 2 loader validation change is scheduled for Task 3.3.
+**Historical note:** This decision was accepted during Task 3.1 (hosted provider feasibility) before the enforcement code was written. DEC-032 established the `AI_PROVIDER_*` namespace reservation; DEC-035 adds the specific built-in provider key names as additional blocked references.
 
-**Historical note:** This decision explicitly amends DEC-032 without rewriting its historical entry. DEC-032 established the `AI_PROVIDER_*` namespace reservation; DEC-035 adds the specific built-in provider key names as additional blocked references.
+**Implementation status:** Implementation completed in Task 3.3. The Phase 2 loader (`src/projects/phase2-loader.ts`) now rejects built-in provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) in addition to `AI_PROVIDER_*` prefixed variables.
 
 **Consequences:**
 

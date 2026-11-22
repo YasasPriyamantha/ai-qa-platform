@@ -63,6 +63,8 @@ export {
   validateRoleIdFormat,
   checkCredentialPresence,
   checkRoleCredentialPresence,
+  isAiProviderCredential,
+  isBuiltInProviderKey,
   ROLE_ID_PATTERN,
   ROLE_ID_MAX_LENGTH,
 } from './phase2-loader.js';

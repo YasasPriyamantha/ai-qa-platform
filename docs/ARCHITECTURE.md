@@ -120,6 +120,15 @@ A separate configurable adapter supports providers implementing the OpenAI-compa
 - Credentials are platform secrets stored in `.env`, never in project-role configuration.
 - Switching provider does not require changes to business/agent logic; no silent fallback between providers.
 
+**Credential boundary implementation (Task 3.3):**
+
+- The platform credential boundary parses the root `.env` file using Node.js built-in `util.parseEnv` into a separate in-memory secret map.
+- Provider keys are never loaded into `process.env`; they remain in the isolated secret map.
+- The selected key is passed explicitly to the adapter as a parameter, not through environment variables.
+- The in-memory secret map uses `SecureSecretStore` to prevent accidental serialization of secret values through `JSON.stringify`, `util.inspect`, or error messages.
+- Provider secrets found in inherited OS environment variables are removed from Playwright child process environments to prevent leakage.
+- The `AI_ENABLED` flag is fixed in code and cannot be redirected through configuration; only the exact value `"true"` enables provider calls.
+
 **Responsibilities:**
 
 - Provide a single internal interface for sending instructions and structured context to a model.

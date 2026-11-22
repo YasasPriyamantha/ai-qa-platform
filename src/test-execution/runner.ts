@@ -15,6 +15,7 @@ import {
   type ProcessResult,
   type LogPersistenceResult,
 } from './process-manager.js';
+import { createFilteredChildEnv } from '../provider-secrets/child-env-filter.js';
 
 /**
  * Result of creating a collision-safe run directory.
@@ -255,13 +256,28 @@ export async function runPlaywrightTests(
     ...(options.additionalArgs || []),
   ];
 
-  // Prepare environment variables for the child process
-  // Pass absolute paths to the config and run directory
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    QA_PROJECT_CONFIG_PATH: config.configPath,
-    QA_RUN_DIR: runDirectory,
-  };
+  // Prepare environment variables for the child process.
+  // Task 3.3: Filter out provider secrets from inherited environment.
+  // This prevents AI provider API keys from being exposed to:
+  // - Browser content (via page.evaluate or similar)
+  // - Test output/logs
+  // - Child process arguments
+  //
+  // The filter removes:
+  // - Built-in provider keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY)
+  // - All AI_PROVIDER_* variables (case-insensitive)
+  // - Any registered provider key variables from config
+  //
+  // Windows system variables (PATH, SystemRoot, etc.) are preserved.
+  const env = createFilteredChildEnv({
+    baseEnv: process.env,
+    // Note: registeredKeyVars could be loaded from provider config in future,
+    // but the built-in names and AI_PROVIDER_* prefix cover all current cases
+    additions: {
+      QA_PROJECT_CONFIG_PATH: config.configPath,
+      QA_RUN_DIR: runDirectory,
+    },
+  });
 
   // Launch Playwright process with optional timeout and stream callbacks
   const processResult = await launchPlaywrightProcess({

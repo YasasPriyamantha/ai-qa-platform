@@ -43,6 +43,10 @@ test-results/
 project-data/**/artifacts/
 tests/fixtures/**/artifacts/
 
+# Platform runtime data (usage ledger, etc.)
+# Task 3.3: Usage ledger must never be committed
+.qa-platform/
+
 # Do NOT ignore:
 # - Source code and tests (*.ts)
 # - Project configurations (project.config.json)

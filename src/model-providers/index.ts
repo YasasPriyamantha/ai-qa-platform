@@ -21,6 +21,7 @@
 export {
   type BuiltInAdapterType,
   type AdapterType,
+  type ProviderConfigBase,
   type ProviderConfig,
   type CapabilityState,
   type DeclaredCapabilities,

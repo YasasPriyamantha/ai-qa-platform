@@ -613,13 +613,45 @@ export function loadPhase2ProjectConfig(configPath: string): ResolvedPhase2Confi
 const AI_PROVIDER_PREFIX = 'AI_PROVIDER_';
 
 /**
- * Check if a credential environment variable name uses the reserved AI provider prefix.
+ * Built-in provider key names that cannot be used as project-role credentials.
+ * Per DEC-035: Block OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY.
+ */
+const BUILT_IN_PROVIDER_KEY_NAMES = new Set([
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GEMINI_API_KEY',
+]);
+
+/**
+ * Check if a credential environment variable name uses a reserved AI provider name.
+ *
+ * Per DEC-032 amendment and DEC-035, project role credentials must not reference:
+ * - Variables starting with AI_PROVIDER_ (custom provider keys)
+ * - Built-in provider keys: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
  *
  * @param envVarName - Environment variable name to check
- * @returns true if the name starts with AI_PROVIDER_
+ * @returns true if the name is reserved for platform AI provider use
  */
 export function isAiProviderCredential(envVarName: string): boolean {
-  return envVarName.toUpperCase().startsWith(AI_PROVIDER_PREFIX);
+  const upper = envVarName.toUpperCase();
+
+  // Check built-in provider key names (DEC-035)
+  if (BUILT_IN_PROVIDER_KEY_NAMES.has(upper)) {
+    return true;
+  }
+
+  // Check AI_PROVIDER_ prefix (DEC-032)
+  return upper.startsWith(AI_PROVIDER_PREFIX);
+}
+
+/**
+ * Check if a credential environment variable name is a built-in provider key.
+ *
+ * @param envVarName - Environment variable name to check
+ * @returns true if the name is a built-in provider key
+ */
+export function isBuiltInProviderKey(envVarName: string): boolean {
+  return BUILT_IN_PROVIDER_KEY_NAMES.has(envVarName.toUpperCase());
 }
 
 /**
@@ -881,11 +913,18 @@ function validateCredentials(
     const envVarResult = validateEnvVarName(value);
 
     if (envVarResult.valid) {
-      // Valid env var name - check for reserved prefix
+      // Valid env var name - check for reserved provider credential names
+      // Per DEC-032 amendment and DEC-035: Block both AI_PROVIDER_* prefix
+      // and built-in provider keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY)
       if (isAiProviderCredential(value)) {
+        const isBuiltIn = isBuiltInProviderKey(value);
+        const errorMessage = isBuiltIn
+          ? `Project role credentials must not reference platform AI provider keys. ` +
+            `"${value}" is a built-in AI provider key reserved for platform use.`
+          : `Project role credentials must not reference platform AI provider variables. ` +
+            `Environment variable names starting with "AI_PROVIDER_" are reserved for platform use.`;
         throw new ConfigValidationError(
-          `Project role credentials must not reference platform AI provider variables. ` +
-          `Environment variable names starting with "AI_PROVIDER_" are reserved for platform use.`,
+          errorMessage,
           fieldPath,
           '[REDACTED]'
         );

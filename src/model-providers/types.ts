@@ -31,12 +31,16 @@ export type BuiltInAdapterType =
 export type AdapterType = BuiltInAdapterType | `custom:${string}`;
 
 /**
- * Provider configuration identity.
+ * Base provider configuration fields shared between JSON input and runtime types.
  *
- * Each configured provider entry has a unique provider ID and maps
- * to a specific adapter type, model, and credential source.
+ * This interface contains all provider identity and credential fields that are
+ * shared between the JSON config representation (ProviderConfigEntry) and the
+ * runtime representation (ProviderConfig).
+ *
+ * Per Task 3.3: This base type enables composition/extension rather than
+ * duplicating field definitions across provider-secrets and model-providers.
  */
-export interface ProviderConfig {
+export interface ProviderConfigBase {
   /**
    * Unique identifier for this provider configuration.
    * Used to reference the provider in workflows and requests.
@@ -72,13 +76,6 @@ export interface ProviderConfig {
   readonly apiKeyEnvVar: string;
 
   /**
-   * Declared capabilities for this provider/model combination.
-   * These are configuration-time declarations; actual support is
-   * verified at runtime by the adapter.
-   */
-  readonly capabilities: DeclaredCapabilities;
-
-  /**
    * Optional display name for the provider.
    */
   readonly displayName?: string;
@@ -88,6 +85,21 @@ export interface ProviderConfig {
    * @default true
    */
   readonly enabled?: boolean;
+}
+
+/**
+ * Full provider configuration with required capabilities.
+ *
+ * Used at runtime when full capability information is required.
+ * Extends ProviderConfigBase with required DeclaredCapabilities.
+ */
+export interface ProviderConfig extends ProviderConfigBase {
+  /**
+   * Declared capabilities for this provider/model combination.
+   * These are configuration-time declarations; actual support is
+   * verified at runtime by the adapter.
+   */
+  readonly capabilities: DeclaredCapabilities;
 }
 
 /**
