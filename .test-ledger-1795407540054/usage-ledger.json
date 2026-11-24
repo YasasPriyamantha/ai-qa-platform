@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "createdAt": "2026-11-23T04:19:00.196Z",
+  "updatedAt": "2026-11-23T04:19:00.199Z",
+  "version": 2,
+  "budgetState": {
+    "requestCount": 1,
+    "cumulativeInputTokens": 950,
+    "cumulativeOutputTokens": 450,
+    "windowStart": "2026-11-23T04:19:00.196Z",
+    "windowEnd": "2026-11-24T04:19:00.196Z"
+  },
+  "entries": [
+    {
+      "platformRequestId": "locked-req",
+      "timestamp": "2026-11-23T04:19:00.198Z",
+      "providerId": "openai",
+      "modelId": "gpt-4o",
+      "attemptNumber": 1,
+      "success": true,
+      "estimatedInputTokens": 1000,
+      "maxOutputTokens": 500,
+      "observedInputTokens": 950,
+      "observedOutputTokens": 450,
+      "durationMs": 1500
+    }
+  ],
+  "resets": [],
+  "activeReservations": []
+}

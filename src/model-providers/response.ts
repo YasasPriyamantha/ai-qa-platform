@@ -7,13 +7,14 @@
  * - Text/structured output with provider-validated content
  * - Tool calls with stable IDs for correlation
  * - Finish state distinguishing stop, tool calls, length, refusal
- * - Usage statistics (input/output tokens, timing)
+ * - Usage statistics with known/unknown representation (Task 3.3a)
  * - Provider/model/request identification
  */
 
 import type { ToolCall, AssistantMessage } from './messages.js';
 import type { ContinuationRef } from './continuation.js';
 import type { ProviderIdentity } from './types.js';
+import type { ObservedUsage } from './usage.js';
 
 /**
  * Finish reason indicating why generation stopped.
@@ -28,35 +29,8 @@ export type FinishReason =
   | 'error' // Provider error during generation
   | 'cancelled'; // Request was cancelled
 
-/**
- * Token usage statistics.
- */
-export interface TokenUsage {
-  /**
-   * Tokens in the input/prompt.
-   */
-  readonly inputTokens: number;
-
-  /**
-   * Tokens in the output/completion.
-   */
-  readonly outputTokens: number;
-
-  /**
-   * Total tokens (input + output).
-   */
-  readonly totalTokens: number;
-
-  /**
-   * Tokens used for cached/prompt-cached content (if supported).
-   */
-  readonly cachedTokens?: number;
-
-  /**
-   * Tokens used for reasoning/thinking (if supported and reported).
-   */
-  readonly reasoningTokens?: number;
-}
+// TokenUsage interface removed in Task 3.3a cleanup.
+// No consumers existed. Use ObservedUsage from usage.ts instead.
 
 /**
  * Response timing information.
@@ -156,9 +130,11 @@ export interface ModelResponse {
   readonly hasContinuation: boolean;
 
   /**
-   * Token usage statistics.
+   * Provider-observed token usage with known/unknown representation.
+   * Each field (input, output, total) can independently be known or unknown.
+   * Unknown values are never converted to zero.
    */
-  readonly usage?: TokenUsage;
+  readonly usage?: ObservedUsage;
 
   /**
    * Response timing information.
@@ -237,8 +213,9 @@ export interface ModelErrorResponse {
 
   /**
    * Partial usage if available before error.
+   * Uses ObservedUsage with known/unknown representation.
    */
-  readonly partialUsage?: Partial<TokenUsage>;
+  readonly partialUsage?: Partial<ObservedUsage>;
 
   /**
    * Timing up to the error.
@@ -297,7 +274,7 @@ export function errorResponse(
     identity?: ProviderIdentity;
     providerRequestId?: string;
     platformRequestId?: string;
-    partialUsage?: Partial<TokenUsage>;
+    partialUsage?: Partial<ObservedUsage>;
     timing?: Partial<ResponseTiming>;
   }
 ): ModelErrorResponse {
@@ -318,7 +295,7 @@ export class ResponseBuilder {
   private _finishReason: FinishReason = 'stop';
   private _providerRequestId?: string;
   private _platformRequestId?: string;
-  private _usage?: TokenUsage;
+  private _usage?: ObservedUsage;
   private _timing!: ResponseTiming;
   private _continuationRef?: ContinuationRef;
   private _structuredOutput?: unknown;
@@ -351,7 +328,10 @@ export class ResponseBuilder {
     return this;
   }
 
-  usage(usage: TokenUsage): this {
+  /**
+   * Set provider-observed usage with known/unknown representation.
+   */
+  usage(usage: ObservedUsage): this {
     this._usage = usage;
     return this;
   }

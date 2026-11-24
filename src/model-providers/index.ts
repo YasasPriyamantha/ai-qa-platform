@@ -141,7 +141,7 @@ export {
 // Response types
 export {
   type FinishReason,
-  type TokenUsage,
+  // TokenUsage removed in Task 3.3a - use ObservedUsage from usage.ts instead
   type ResponseTiming,
   type ModelResponse,
   type ContentFilterResult,
@@ -191,3 +191,158 @@ export {
   validateToolCorrelation,
   validateMessageSequence,
 } from './validation.js';
+
+// Usage metadata (Task 3.3a)
+export {
+  type KnownUsageValue,
+  type UnknownUsageValue,
+  type UsageUnknownReason,
+  type UsageValue,
+  type ObservedUsage,
+  type EstimatedUsage,
+  type EstimationMethod,
+  type ReservedUsage,
+  type ReservationReconciliation,
+  type RequestUsageMetadata,
+  isKnownUsage,
+  isUnknownUsage,
+  knownUsage,
+  unknownUsage,
+  createUnknownObservedUsage,
+  createObservedUsage,
+  createReservation,
+  reconcileReservation,
+  getUsageValueOrUndefined,
+  addUsageValues,
+  hasCompleteUsage,
+} from './usage.js';
+
+// Adapter interface (Task 3.3a)
+export {
+  type AdapterContext,
+  type AdapterResult,
+  type AdapterSuccess,
+  type AdapterError,
+  type ProviderAdapter,
+  type FakeAdapterBehavior,
+  isAdapterSuccess,
+  isAdapterError,
+  createFakeAdapter,
+  AdapterRegistry,
+  globalAdapterRegistry,
+} from './adapter-interface.js';
+
+// Config conversion (Task 3.3a)
+export {
+  type ConfigConversionResult,
+  convertProviderConfigEntry,
+  convertProviderConfigEntries,
+  getSuccessfulConfigs,
+  isCapabilitySupported,
+  isCapabilityUnsupported,
+  isCapabilityUnknown,
+  requireCapability,
+  categorizeSchemaKeywords,
+} from './config-conversion.js';
+
+// Input-size estimation (Task 3.3a)
+export {
+  type EstimationConfig,
+  type EstimationResult,
+  type EstimationBreakdown,
+  type EstimationError,
+  type EstimationErrorCode,
+  estimateInputSize,
+  quickSizeCheck,
+  calculateOutputReservation,
+  calculateTotalReservation,
+  DEFAULT_ESTIMATION_CONFIG,
+} from './estimation.js';
+
+// Budget configuration (Task 3.3a)
+export {
+  type BudgetConfig,
+  type BudgetWindow,
+  type CostEstimateConfig,
+  type BudgetCheckResult,
+  type BudgetDenialReason,
+  type BudgetState,
+  type CostEstimate,
+  type ReservationRequest,
+  type ReservationResult,
+  type BudgetConfigErrorCode,
+  type BudgetConfigError,
+  type BudgetConfigResult,
+  type UnknownPricingPolicy,
+  validateBudgetConfig,
+  checkBudget,
+  calculateWindowEnd,
+  isWindowExpired,
+  createInitialBudgetState,
+  generateReservationId,
+  loadBudgetConfig,
+  loadBudgetConfigFromPath,
+  isBudgetConfigSuccess,
+  isBudgetConfigError,
+  isPricingStale,
+  hasMonetaryLimit,
+  NoBudgetConfiguredError,
+  BudgetExceededError,
+  BudgetConfigLoadError,
+  DEFAULT_BUDGET_CONFIG_PATH,
+  DEFAULT_BUDGET_CONFIG_PATHS,
+  DEFAULT_UNKNOWN_PRICING_POLICY,
+} from './budget.js';
+
+// Usage ledger (Task 3.3a)
+export {
+  type UsageLedger,
+  type LedgerEntry,
+  type LedgerReset,
+  type ResetReason,
+  type ActiveReservation,
+  type LedgerOperationResult,
+  type LedgerError,
+  type LedgerErrorCode,
+  type LedgerSummary,
+  type LockAcquisitionResult,
+  type LockAcquisitionFailure,
+  type LockResult,
+  loadLedger,
+  saveLedger,
+  createEmptyLedger,
+  initializeLedger,
+  addLedgerEntry,
+  addReservation,
+  removeReservation,
+  resetBudget,
+  isLedgerWindowExpired,
+  getLedgerSummary,
+  validateEntrySafety,
+  validateRecordSafety,
+  getLockPath,
+  isLockStale,
+  acquireLedgerLock,
+  withLedgerLock,
+  modifyLedger,
+  DEFAULT_LEDGER_PATH,
+  LEDGER_SCHEMA_VERSION,
+  DEFAULT_STALE_LOCK_THRESHOLD_MS,
+} from './ledger.js';
+
+// Request lifecycle (Task 3.3a)
+export {
+  type LifecycleConfig,
+  type LifecycleContext,
+  type LifecycleResult,
+  type LifecycleDiagnostics,
+  type RequestGateResult,
+  type RequestGate,
+  executeRequest,
+  runRequestGate,
+  createCombinedSignal,
+  calculateRetryDelay,
+  shouldRetry,
+  generatePlatformRequestId,
+  DEFAULT_LIFECYCLE_CONFIG,
+} from './lifecycle.js';

@@ -893,3 +893,168 @@ Plain JSON Schema objects without this wrapper are rejected. This prevents impli
 - Tool parameters accept both canonical and external schemas via discriminated union
 - External tool argument validation is deferred to the tool owner/orchestrator (Phase 4)
 - Phase 1 and Phase 2 validators remain unchanged
+
+## DEC-038 — Request Lifecycle, Budget Controls, and Usage Ledger
+
+**Status:** Accepted
+
+**Decision:** Implement a shared request lifecycle service that enforces budget controls, bounded retry, and safe diagnostics before any external provider request.
+
+### Budget Configuration and Default-Deny Behaviour
+
+**Location:** Budget configuration is loaded from `config/ai-budget.json` (platform-level, tracked in Git but not containing secrets).
+
+**Default-deny:** If no valid budget configuration exists, all external provider requests are denied. The platform does not invent permissive fallback limits.
+
+**Required fields:**
+
+```typescript
+interface BudgetConfig {
+  maxTotalRequests: number;           // Per-window request count limit
+  maxInputTokensPerRequest: number;   // Hard per-request input ceiling
+  maxOutputTokensPerRequest: number;  // Hard per-request output ceiling
+  maxCumulativeInputTokens: number;   // Window-wide input ceiling
+  maxCumulativeOutputTokens: number;  // Window-wide output ceiling
+  window: BudgetWindow;               // Rolling or fixed window
+  costEstimate?: CostEstimateConfig;  // Optional dated pricing
+}
+```
+
+### Budget Window and Reset
+
+**Window types:** `rolling` (N hours from first request) or `fixed` (calendar-aligned).
+
+**Reset policy:** Budget resets require explicit user action. The ledger records reset history with:
+- Timestamp
+- Reason (`user_requested`, `window_expired`, `budget_config_changed`)
+- Previous state before reset
+- Initiator
+
+**No silent reset:** Process startup, budget load failure, or other errors do not automatically reset the ledger.
+
+### Usage Ledger Persistence
+
+**Path:** `.qa-platform/usage-ledger.json` (per-project, Git-ignored via `.gitignore`).
+
+**Format:** JSON with schema version for forward compatibility.
+
+**Atomic writes:** Uses temp-file-and-rename pattern for Windows compatibility. Never leaves a partial write visible.
+
+**Concurrency protection:** Version-based optimistic concurrency control. Concurrent writes from separate processes receive `VERSION_CONFLICT` errors; callers must reload and retry.
+
+**Exclusive lock-file mechanism:** Cross-process locking uses `fs.open()` with the `'wx'` (write exclusive) flag for atomic lock file creation. Lock files are stored at `<ledger-path>.lock` and contain JSON with PID, timestamp, and hostname.
+
+**Stale-lock detection:** A lock is considered stale if older than 5 minutes (configurable). Stale locks may be forcibly removed. The check compares both the file modification time and the timestamp inside the lock content. A legitimate live lock (held by a process actively performing a read-modify-write operation) must NOT be reclaimed merely because it exceeds the threshold—the threshold exists for crashed processes, not slow operations. The lock protects only the ledger read-modify-write operation, NOT the duration of external provider requests.
+
+**Data stored:** Request metadata only (platform request ID, provider ID, model ID, timestamps, token counts, error codes). No prompts, outputs, API keys, tool arguments, or continuation payloads.
+
+### Retry Policy
+
+**Single retry owner:** The lifecycle service owns retry decisions. Provider adapters must NOT implement independent retries or timeout enforcement.
+
+**Permitted classifications:**
+
+| `RetrySafety` | Retry Allowed | Rationale |
+|---------------|---------------|-----------|
+| `retryable_safe` | Yes | Request definitely did not complete |
+| `retryable_with_delay` | Yes (after delay) | Rate limited; respect Retry-After |
+| `retryable_ambiguous` | **NO** | Request may have been accepted |
+| `unknown` | **NO** | Cannot determine safety |
+| `not_retryable` | **NO** | Credentials invalid, content filtered, etc. |
+
+**Maximum attempts:** Configurable, default 3.
+
+**Retry-After cap:** Respects `Retry-After` headers up to a configured maximum (default 60 seconds). Longer delays are capped.
+
+**Budget per attempt:** Every actual external attempt counts against the request budget and is recorded in the ledger.
+
+**Per-attempt reservations:** Each outgoing retry attempt obtains its own budget reservation BEFORE making the external call. If the reservation would exceed any budget ceiling, the retry is refused and the request fails with the last error. This ensures budget protection even under retry scenarios.
+
+**Timeout is not cancellation:** A timeout error is classified as `retryable_ambiguous`, NOT as caller cancellation. The request may have been accepted by the provider. Timeouts are NEVER automatically retried.
+
+**No cross-provider fallback:** If a request fails for one provider, it is not automatically retried against a different provider. Cross-provider fallback requires explicit orchestrator logic.
+
+### Cost Estimation
+
+**Cost is an estimate, not a hard spend cap.** The platform provides cost estimates for informational purposes only.
+
+**Requirements:**
+- Pricing requires a trusted source and effective date.
+- If pricing is unavailable or outdated, cost is `unknown`, not zero.
+- Estimates are clearly marked as estimates in all outputs.
+
+**Example:**
+
+```typescript
+interface CostEstimateConfig {
+  inputPricePerKToken: number;
+  outputPricePerKToken: number;
+  pricingSource: string;    // e.g., "OpenAI pricing page"
+  pricingDate: string;      // ISO 8601 date
+  modelId: string;          // Model this pricing applies to
+  maxEstimatedCostUsd?: number;  // Optional soft limit
+}
+```
+
+### Unknown or Stale Pricing with Monetary Limits
+
+**Invariant:** If a monetary limit (`maxEstimatedCostUsd`) is configured and model pricing is unknown or stale, the request is DENIED before the adapter is called. No configuration value may bypass this rule.
+
+**Pricing staleness:** Pricing is considered stale if the `pricingDate` is more than 90 days old. Stale pricing is treated the same as unknown pricing when a monetary limit exists.
+
+**Without monetary limits:** If no `maxEstimatedCostUsd` is configured:
+- Cost may remain `unknown`
+- Request and token ceilings must still be enforced independently
+- The request may proceed without cost enforcement
+
+This policy is NOT configurable. The `UnknownPricingPolicy` type does not apply when monetary limits are present.
+
+### Budget Loading and Error Codes
+
+**Single location:** Budget configuration is loaded ONLY from `config/ai-budget.json`. There is no fallback to `.qa-platform/budget.json` or any other location. The `.qa-platform/` directory is reserved for runtime data (usage ledger), not configuration.
+
+**Error codes:**
+- `BUDGET_NOT_CONFIGURED`: No budget configuration file exists. All requests denied.
+- `BUDGET_INVALID`: Budget file exists but contains invalid JSON or fails validation. All requests denied.
+- `BUDGET_FILE_NOT_FOUND`: Configuration file path does not exist.
+- `BUDGET_FILE_READ_ERROR`: I/O error reading the configuration file.
+- `BUDGET_FILE_MALFORMED_JSON`: File content is not valid JSON.
+- `BUDGET_VALIDATION_ERROR`: JSON is valid but values fail validation rules.
+
+The adapter is NEVER called for any of these failures. Validation failures surface immediately and explicitly.
+
+### Pre-Request Gate Order
+
+Before invoking any adapter, the lifecycle checks gates in this order:
+
+1. `AI_ENABLED` — Provider inference enabled via `.env`
+2. `PROVIDER_CONFIG` — Provider and model configuration valid
+3. `API_KEY` — Matching API key present and not a placeholder
+4. `CAPABILITIES` — Required provider/model capabilities supported
+5. `BUDGET` — Budget available and reservation recorded
+
+If any gate fails, the adapter is never called.
+
+### Safe Diagnostics
+
+Diagnostic output (`LifecycleDiagnostics`) contains only:
+- Platform request ID
+- Provider/model identifiers
+- Timing and duration
+- Error codes and retry safety
+- Budget check status
+
+Diagnostics never contain:
+- API keys or authorization data
+- Prompt content or model output
+- Tool arguments
+- Continuation payloads
+
+**Consequences:**
+
+- No external request without explicit budget approval
+- Usage is tracked and bounded at multiple dimensions
+- Failed requests due to ambiguous errors preserve at-most-once semantics
+- Cost visibility exists but users must understand estimates are not guarantees
+- Concurrent CLI usage detects version conflicts rather than corrupting the ledger
+- Provider adapters (Tasks 3.4–3.6a) implement only translation, not lifecycle policy

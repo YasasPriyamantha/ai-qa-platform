@@ -15,6 +15,9 @@ import {
   successResponse,
   errorResponse,
   ProviderErrors,
+  createObservedUsage,
+  knownUsage,
+  isKnownUsage,
   type ModelResponse,
   type ModelResult,
   type ModelSuccessResponse,
@@ -113,20 +116,23 @@ describe('ResponseBuilder', () => {
   it('builds response with usage', () => {
     const message: AssistantMessage = { role: 'assistant', content: 'Response' };
 
+    const usage = createObservedUsage({
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+    });
+
     const response = new ResponseBuilder()
       .identity(identity)
       .message(message)
-      .usage({
-        inputTokens: 100,
-        outputTokens: 50,
-        totalTokens: 150,
-      })
+      .usage(usage)
       .timing(timing)
       .build();
 
-    expect(response.usage?.inputTokens).toBe(100);
-    expect(response.usage?.outputTokens).toBe(50);
-    expect(response.usage?.totalTokens).toBe(150);
+    expect(response.usage).toBe(usage);
+    expect(isKnownUsage(response.usage!.inputTokens)).toBe(true);
+    expect(isKnownUsage(response.usage!.outputTokens)).toBe(true);
+    expect(isKnownUsage(response.usage!.totalTokens)).toBe(true);
   });
 
   it('extracts refusal reason from content', () => {
@@ -309,12 +315,12 @@ describe('errorResponse', () => {
       identity,
       providerRequestId: 'req_123',
       platformRequestId: 'platform_456',
-      partialUsage: { inputTokens: 100 },
+      partialUsage: { inputTokens: knownUsage(100) },
     });
 
     expect(result.identity).toEqual(identity);
     expect(result.providerRequestId).toBe('req_123');
     expect(result.platformRequestId).toBe('platform_456');
-    expect(result.partialUsage?.inputTokens).toBe(100);
+    expect(isKnownUsage(result.partialUsage!.inputTokens!)).toBe(true);
   });
 });
