@@ -48,6 +48,14 @@ describe('parseArgs', () => {
     });
   });
 
+  describe('ai-check command', () => {
+    it('parses ai-check with and without --live, and rejects unknown options', () => {
+      expect(parseArgs(['ai-check'])).toEqual({ command: 'ai-check', aiCheckOptions: { live: false }, errors: [] });
+      expect(parseArgs(['ai-check', '--live'])).toEqual({ command: 'ai-check', aiCheckOptions: { live: true }, errors: [] });
+      expect(parseArgs(['ai-check', '--force']).errors).toContain('Unknown option: --force');
+    });
+  });
+
   describe('run command', () => {
     it('should parse run command with --config option', () => {
       const result = parseArgs(['run', '--config', 'path/to/config.json']);

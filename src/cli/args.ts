@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'help';
+export type Command = 'run' | 'ai-check' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -23,6 +23,12 @@ export interface ParsedArgs {
     configPath: string;
   };
 
+  /** Options for the ai-check command */
+  aiCheckOptions?: {
+    /** Send one live request */
+    live: boolean;
+  };
+
   /** Parse errors encountered */
   errors: string[];
 }
@@ -32,6 +38,7 @@ export interface ParsedArgs {
  *
  * Expected usage:
  *   npm run qa -- run --config <project-config-path>
+ *   npm run qa -- ai-check [--live]
  *   npm run qa -- help
  *
  * @param args - Command line arguments (typically process.argv.slice(2))
@@ -59,6 +66,11 @@ export function parseArgs(args: string[]): ParsedArgs {
   // Run command
   if (command === 'run') {
     return parseRunArgs(args.slice(1));
+  }
+
+  // ai-check command
+  if (command === 'ai-check') {
+    return parseAiCheckArgs(args.slice(1));
   }
 
   // Unknown command
@@ -126,6 +138,30 @@ function parseRunArgs(args: string[]): ParsedArgs {
 }
 
 /**
+ * Parse arguments for the ai-check command.
+ */
+function parseAiCheckArgs(args: string[]): ParsedArgs {
+  const errors: string[] = [];
+  let live = false;
+
+  for (const arg of args) {
+    if (arg === '--live') {
+      live = true;
+    } else if (arg.startsWith('-')) {
+      errors.push(`Unknown option: ${arg}`);
+    } else {
+      errors.push(`Unexpected argument: ${arg}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { command: 'ai-check', errors };
+  }
+
+  return { command: 'ai-check', aiCheckOptions: { live }, errors: [] };
+}
+
+/**
  * Get CLI help text.
  */
 export function getHelpText(): string {
@@ -134,15 +170,22 @@ AI QA Automation Platform - Phase 1 CLI
 
 Usage:
   npm run qa -- run --config <project-config-path>
+  npm run qa -- ai-check [--live]
   npm run qa -- help
 
 Commands:
-  run     Execute tests for a configured project
-  help    Show this help message
+  run       Execute tests for a configured project
+  ai-check  Show AI provider, key and budget status (no network call)
+  help      Show this help message
 
 Run Command Options:
   --config, -c <path>   Path to the project configuration file (required)
                         Example: project-data/saucedemo/project.config.json
+
+ai-check Options:
+  --live                Send one bounded request to the configured provider.
+                        Requires AI_ENABLED=true, the API key in .env and
+                        config/ai-budget.json.
 
 Examples:
   npm run qa -- run --config project-data/saucedemo/project.config.json

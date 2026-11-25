@@ -5,6 +5,7 @@
  *
  * Supports the following commands:
  *   npm run qa -- run --config <project-config-path>
+ *   npm run qa -- ai-check [--live]
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -12,6 +13,7 @@
 
 import { parseArgs, getHelpText } from './args.js';
 import { executeRunCommand, EXIT_SUCCESS, EXIT_FAILURE } from './run-command.js';
+import { executeAiCheckCommand } from './ai-check-command.js';
 
 /**
  * Main CLI entry point.
@@ -48,6 +50,10 @@ async function main(): Promise<void> {
 
       const exitCode = await executeRunCommand(parsed.runOptions.configPath);
       process.exit(exitCode);
+      break;
+
+    case 'ai-check':
+      process.exit(await executeAiCheckCommand({ live: parsed.aiCheckOptions?.live ?? false }));
       break;
 
     default:
