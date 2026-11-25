@@ -346,3 +346,6 @@ export {
   generatePlatformRequestId,
   DEFAULT_LIFECYCLE_CONFIG,
 } from './lifecycle.js';
+
+// OpenAI adapter (Task N3)
+export { createOpenAIAdapter } from './openai-adapter.js';

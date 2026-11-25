@@ -715,9 +715,11 @@ The Phase 2 loader (`loadPhase2ProjectConfig()`) shall reject configurations whe
 - Project test credentials must use a different naming pattern (e.g., `MYAPP_ADMIN_PASSWORD`).
 - Platform provider keys remain isolated from project credential workflows.
 
-## DEC-036 — Direct Official SDKs with Thin Adapters (PROVISIONAL)
+## DEC-036 — Direct Official SDKs with Thin Adapters (ACCEPTED for OpenAI; PROVISIONAL for others)
 
-**Status:** PROVISIONAL — awaiting Task 3.0b success or explicit deferral decision
+**Status:** ACCEPTED for OpenAI (Task N3, 2026-11-25); PROVISIONAL for Anthropic and Google (deferred, DEC-039)
+
+**OpenAI (Task N3):** `openai` 7.64.0 is installed (`package.json`: `^7.64.0`) and used by `src/model-providers/openai-adapter.ts` with the Responses API, `store: false` and `maxRetries: 0`. The API was checked against the installed SDK types.
 
 **Decision:** Use direct official provider SDKs (`openai`, `@anthropic-ai/sdk`, `@google/genai`) behind provider-specific adapters, rather than a unified multi-provider SDK like Vercel AI SDK.
 
