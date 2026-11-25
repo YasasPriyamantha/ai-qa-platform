@@ -1,6 +1,6 @@
 # Phase 3 Plan (revised, MVP-first)
 
-**Status:** Active. Replaces the remaining tasks of `docs/archive/AI_QA_Platform_Phase_3_Mini_Task_Breakdown_Revised (2).md` (see DEC-039).
+**Status:** Complete (2026-11-25). Replaces the remaining tasks of `docs/archive/AI_QA_Platform_Phase_3_Mini_Task_Breakdown_Revised (2).md` (see DEC-039).
 **Rules:** `AGENTS.md` → *Scope discipline* and `docs/REVIEW_RULES.md` apply to every task.
 
 ## 1. Where Phase 3 stands

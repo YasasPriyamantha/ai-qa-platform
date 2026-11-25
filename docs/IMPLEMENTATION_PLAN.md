@@ -189,7 +189,10 @@ Source-document and architecture alignment, including DEC-034 and DEC-035 correc
 - Stale-lock recovery is based on age and does not check whether the owning process is alive; lock release does not check ownership.
 - `UnknownPricingPolicy` is still configurable.
 
-**Remaining Phase 3 work:** Tasks N1–N4 in `docs/PHASE_3_PLAN.md`. Tasks 3.5, 3.6 and 3.6a are deferred (DEC-039).
+**Remaining Phase 3 work:** **Tasks N1–N4 — Complete (2026-11-25).** N1 `c9f3866`, N2 `9559edc`, N3 `9e740b4`, N4 (ai-check command).
+Live check: `node dist/cli/index.js ai-check --live` → `{"status":"ok"}` validated locally; model gpt-6-luna; request `req_3c1b003fe58849329a9a347cb6f7c46d`; 5,960 ms; usage input 57 / output 13 / reasoning 0 tokens.
+**Phase 3 complete per DEC-039 MVP exit criteria.** Tasks 3.5, 3.6 and 3.6a remain deferred; the usage ledger remains frozen.
+Known limitation: in PowerShell, `npm run qa -- <command> --flag` can drop the flag (npm warns "Unknown cli config"); use `node dist/cli/index.js <command> --flag` instead.
 
 ## 5. Phase 1 — Generic Playwright execution engine
 
