@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 2 complete; ready for hosted-provider feasibility spike and Phase 3
+**Current status:** Phase 3 in progress, MVP-first scope (DEC-039). The current task list is in `docs/PHASE_3_PLAN.md`; progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -16,7 +16,9 @@ This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that
    - `IMPLEMENTATION_PLAN.md` — Phased task breakdown and acceptance criteria
    - `DECISIONS.md` — Architecture and implementation decision record
 
-2. Review the current task definition and its acceptance criteria in `IMPLEMENTATION_PLAN.md`
+2. Review the current task definition and its acceptance criteria in `docs/PHASE_3_PLAN.md` (current phase) or `IMPLEMENTATION_PLAN.md`.
+
+3. Files in `docs/archive/` are historical records. Do not treat them as instructions.
 
 ## Development workflow
 
@@ -29,21 +31,34 @@ This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that
      - Verify with executable commands and tests
      - Review the complete diff before finishing
      - Report what was and was not verified honestly
-3. **Optional: software-engineering-best-practices skill:** Available in `.claude/skills/software-engineering-best-practices/SKILL.md` for architecture decisions, testing strategies, and security considerations. Reference files are available at:
-   - `references/security.md` — Security guidance for trust boundaries and sensitive data
-   - `references/release-operations.md` — CI/CD and deployment guidance
+3. **Optional: software-engineering-best-practices skill:** Available in `.claude/skills/software-engineering-best-practices/SKILL.md`, with references in its `references/` folder. Use it only as far as the current task needs; it is not a reason to add scope.
 4. **Windows compatibility:** Use PowerShell-compatible commands on this Windows repository
 5. **Preserve user work:** Inspect working tree and preserve pre-existing uncommitted changes
 6. **No destructive actions:** Never commit, push, deploy, delete user work, or perform irreversible operations
 7. **Task boundaries:** Implement only the current requested task; do not implement later-phase features early
+
+## Scope discipline (mandatory, DEC-039)
+
+1. **Implement only the listed acceptance criteria.** No extra options, configuration settings, abstractions, "future-proofing" or features that nothing currently needs. If something extra seems necessary, stop and ask.
+2. **Every new exported function or type needs a production caller** in this task or the next listed task. Don't build code that only tests use.
+3. **Reuse existing types and helpers.** Search `src/` before creating a type, validator or utility. Never create a parallel version of an existing contract.
+4. **Respect the size budget** given in the task. If the change would exceed it, stop and explain before continuing.
+5. **No new dependencies** unless the task names them.
+6. **Never skip, weaken or delete a test to make the suite pass.** If a test cannot pass, stop and report the root cause. Tests for behaviour that only exists on one OS may be limited to that OS with a comment explaining why.
+7. **Tests must pass on Windows and Linux** (CI runs on Linux). Tests write only to `os.tmpdir()`, never into the repository.
+8. **Keep tests proportionate.** Test the behaviour named in the acceptance criteria and its important failure cases. Don't add many tests for trivial type guards or constants.
+9. **Don't edit `docs/DECISIONS.md` or other source documents** unless the task says to.
+10. **No unrelated refactoring or cleanup.** Don't rename, reorganise, consolidate or delete existing code during a task unless a criterion requires it. List suspected dead code or duplication in the report instead.
+11. **Report against the criteria:** a table of criterion → file:line → test name or command output, then raw Vitest summary lines and `git status --short`. Say "not met" for anything without evidence. Never call a task complete because a module exists or typecheck passes.
 
 ## Build and test commands
 
 ```bash
 npm run build      # Compile src/ to dist/
 npm run typecheck  # Type-check all TypeScript (no emit)
-npm test           # Run platform unit/integration tests (Vitest)
-npm run qa -- run --config <path>  # Execute project tests via CLI
+npm test           # All platform tests (unit + slow browser integration tests)
+npm run test:unit  # Fast platform unit tests (added in Task N1)
+npm run qa -- run --config <path>  # Run a project's approved Playwright tests (requires npm run build first)
 ```
 
 ## Project structure
@@ -83,20 +98,11 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 
 ## Phase boundaries
 
-- **Phase 2 (complete):** Project and workflow-document management
-  - Project workspaces, document ingestion, requirement schema, role profiles
-  - No AI, no MCP, no SQLite, no web UI yet
-  - Deterministic document and requirement handling
-  - 999 tests passing (27 test files)
+- **Phases 1–2 (complete):** Playwright execution engine; project and requirement management.
+- **Phase 3 (in progress, DEC-039):** OpenAI adapter only, plus a CLI AI check. Anthropic, Gemini and OpenAI-compatible adapters, and the persistent usage ledger, are deferred. Don't extend them.
+- **CI mode:** CI runs only approved Playwright tests. It never calls AI providers, MCP or the usage ledger.
 
-- **Phase 3 (next):** Hosted AI provider integration
-  - Multi-provider adapter interface (OpenAI, Anthropic Claude, Google Gemini)
-  - OpenAI-compatible adapter for additional providers
-  - Provider-specific credentials with no universal key
-  - Structured-output validation and tool-call support
-  - Paid API calls disabled until explicitly approved
-
-Later phases add MCP exploration, test generation, release comparison, and local UI.
+Later phases add MCP exploration (Phase 4), test generation (Phase 5), candidate validation (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
 
 ## Decision record
 

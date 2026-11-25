@@ -4,11 +4,16 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 2 — Project and Workflow-Document Management** (Complete)
+**Phase 3, Hosted AI Provider Integration** (in progress, MVP-first scope per DEC-039)
 
-Project workspaces, document ingestion, requirement schema, role profiles, and credential security are implemented. 999 tests passing across 27 test files.
+- Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
+- Next: approved-test CI pipeline, the OpenAI adapter, and a CLI AI check. See [`docs/PHASE_3_PLAN.md`](docs/PHASE_3_PLAN.md).
+- Detailed progress: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
-**Next:** Hosted-provider feasibility spike and Phase 3 (Hosted AI Provider Integration).
+### Two operating modes
+
+- **AI-assisted authoring (on demand):** AI explores a site, proposes tests, and a human approves them. Planned for Phases 4–6.
+- **CI execution (every pipeline run):** only approved Playwright tests run. No AI calls.
 
 ## Project Documentation
 
@@ -18,11 +23,14 @@ Complete project specifications and architecture are maintained in the `docs/` d
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design and component responsibilities
 - **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** — Phased task breakdown with acceptance criteria
 - **[DECISIONS.md](docs/DECISIONS.md)** — Architecture and implementation decision record
+- **[PHASE_3_PLAN.md](docs/PHASE_3_PLAN.md)** — Current phase task list
+- **[REVIEW_RULES.md](docs/REVIEW_RULES.md)** — Rules for writing and reviewing coding tasks
+- `docs/archive/` — Historical phase breakdowns (not current instructions)
 
 ## Technology Stack
 
 - **Language:** TypeScript (ES Modules)
-- **Runtime:** Node.js 22+
+- **Runtime:** Node.js 22.11+
 - **Browser automation:** Playwright Test
 - **Platform tests:** Vitest
 - **Initial interface:** CLI (local web UI in later phase)
@@ -40,8 +48,11 @@ npm run build
 # Type-check all TypeScript
 npm run typecheck
 
-# Run platform tests
+# Run platform tests (all, including slow browser integration tests)
 npm test
+
+# Fast unit tests only (script added in Task N1)
+npm run test:unit
 
 # Execute project tests via CLI
 npm run qa -- run --config project-data/saucedemo/project.config.json

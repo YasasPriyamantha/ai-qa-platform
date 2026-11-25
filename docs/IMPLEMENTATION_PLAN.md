@@ -2,7 +2,7 @@
 
 **Document status:** Phase 3 in progress
 **Planning style:** Small, verifiable increments
-**Estimated focused effort:** Approximately 113–196 hours, including the separate local AI/MCP feasibility spike; re-estimate after each phase
+**Estimated focused effort:** Approximately 113–196 hours, including the separate hosted-provider/MCP feasibility spike; re-estimate after each phase
 **Actual Phase 1 effort:** To be filled in by the user
 
 ---
@@ -32,12 +32,13 @@ Use `reliable-ai-coding` as the coding-assistant skill. It reinforces repository
 | Pre-Phase 3 spike | Hosted provider + Playwright MCP feasibility | 2–4 hours | Evidence that a hosted provider API can use MCP tools and generate a basic Playwright test |
 | 1 | Generic Playwright execution engine | 14–22 hours | Run configured tests and collect trustworthy reports without application-specific logic in the platform core |
 | 2 | Project and workflow-document management | 8–14 hours | Separate projects, read Markdown/text requirements, maintain stable IDs and project settings |
-| 3 | Hosted AI provider integration | 12–20 hours | Call hosted provider APIs through a multi-provider interface and validate structured results |
+| CI-1 | Approved-test CI pipeline (brought forward, DEC-039) | ~1–2 hours | Approved Playwright tests run automatically on every push; no AI involved |
+| 3 | Hosted AI provider integration (MVP: OpenAI only, DEC-039) | see `docs/PHASE_3_PLAN.md` | One working provider adapter and a CLI AI check with one live smoke test |
 | 4 | Playwright MCP browser exploration | 12–22 hours | Platform backend can explore an approved website through MCP |
 | 5 | Requirements, planning, and generation agents | 18–30 hours | Generate traceable candidate scenarios and candidate test code |
 | 6 | Validation, execution, and reports | 14–24 hours | Validate generated tests, assess repeatability, execute safely, and create evidence-based reports |
 | 7 | Release comparison and regression memory | 14–24 hours | Compare releases and preserve approved tests across versions |
-| 8 | Local UI, CI/CD, and expansion hooks | 16–30 hours | Usable local web UI and a path to automated release triggers |
+| 8 | Local UI, release triggers, and expansion hooks | 16–30 hours | Usable local web UI and automated release triggers (basic CI delivered early as CI-1) |
 
 **Estimate note:** The combined estimate is provisional. The 2–4-hour feasibility spike is counted separately from the nine implementation phases. Provider API integration, MCP integration, and diagnosing generated-code failures can expand the schedule. Re-estimate after the feasibility spike and after each phase. The local UI is postponed until the CLI workflow is reliable.
 
@@ -169,11 +170,26 @@ Observed limitation:
 
 - An external project workspace does not automatically discover the platform's `node_modules`; the tested workspace required a scoped junction to the existing Playwright package.
 
-Tasks 3.4–3.6a remain on hold until Task 3.0b succeeds or an explicit deferral decision is recorded.
+**Superseded by DEC-039 (2026-11-24).** The spike is not rerun. The first live request goes through the platform CLI (Task N4 in `docs/PHASE_3_PLAN.md`), and the first model-driven MCP exploration happens in Phase 4 inside the platform. Accepted risk: a model that does not request page observations is detected in Phase 4.
 
 **Task 3.1 — Complete**
 
 Source-document and architecture alignment, including DEC-034 and DEC-035 corrections.
+
+**Task 3.2 — Complete.** Provider-neutral contracts and secure continuation state (DEC-036, SDK choice provisional until Task N3).
+
+**Task 3.2a — Complete.** Zod 4 canonical structured-output schemas and external tool schemas (DEC-037).
+
+**Task 3.3 — Complete.** Platform provider config, isolated secret resolution, child-process environment filtering, DEC-035 enforcement.
+
+**Task 3.3a — Complete with known limitations; frozen by DEC-039.** Shared request lifecycle, gate order, retry policy and budget checks (DEC-038). Known limitations, to be fixed only if the ledger is ever wired in:
+- The usage ledger is not called by the request lifecycle; budget state is passed in by the caller.
+- Reservations are per request, not per attempt.
+- The two-process ledger lock test is skipped on Windows (EPERM).
+- Stale-lock recovery is based on age and does not check whether the owning process is alive; lock release does not check ownership.
+- `UnknownPricingPolicy` is still configurable.
+
+**Remaining Phase 3 work:** Tasks N1–N4 in `docs/PHASE_3_PLAN.md`. Tasks 3.5, 3.6 and 3.6a are deferred (DEC-039).
 
 ## 5. Phase 1 — Generic Playwright execution engine
 
@@ -568,7 +584,7 @@ Tasks:
     - `storageStatePath` validated for `.auth/<role-id>.json` convention
 
 11. ✅ Add tests for missing documents, malformed configs, path handling, duplicate IDs, and cross-project isolation.
-    - 996 tests total (27 test files)
+    - 999 tests total (27 test files)
     - Tests cover path containment, traversal attacks, sibling-prefix attacks, duplicate IDs, lifecycle rules
 
 **Extra scope completed (not in original list):**
@@ -643,24 +659,18 @@ The following files have been aligned with DEC-028 and DEC-034 (multi-provider s
 
 ## 7. Phase 3 — Hosted AI provider integration
 
-**Goal:** Let the platform call hosted provider APIs through a multi-provider interface.
+**Goal:** Let the platform call one hosted provider (OpenAI) through the provider-neutral interface, and prove it with one live request through the CLI.
 
-Tasks:
+**Scope (DEC-039):** The contracts, schemas, secret handling and lifecycle are complete (Tasks 3.2–3.3a). Remaining work is in `docs/PHASE_3_PLAN.md`:
 
-1. Use the feasibility-spike evidence to select an initial provider/model combination.
-2. Define a provider-neutral interface independent of any single vendor's API format.
-3. Implement direct provider adapters for OpenAI, Anthropic Claude, and Google Gemini.
-4. Implement an OpenAI-compatible Chat Completions adapter for additional providers; verify feature support per provider/model.
-5. Support multiple provider-specific API keys coexisting in the environment; each configured provider ID maps to its own secret variable.
-6. Define request/response schemas and validate all model outputs using local runtime validation.
-7. Implement model-level capability checks (tool use, structured output, context limits).
-8. Handle missing/invalid credentials, provider errors, rate limits, quota exhaustion, timeouts, cancellation, malformed output, and context-limit errors.
-9. Store provider/model name and prompt/schema version for reproducibility, but never log secrets or full payloads.
-10. Add tests using a mock provider so most tests do not require real API calls.
-11. Implement data minimization: send only necessary context; never include secrets in prompts.
-12. Paid API calls remain disabled by default until the user explicitly approves usage.
+1. N1: repository cleanup; tests pass on Windows and Linux.
+2. N2: approved-test CI pipeline (also CI-1 in the phase table).
+3. N3: OpenAI adapter (Responses API), mock-tested.
+4. N4: `ai-check` CLI command and one user-run live smoke test.
 
-**Exit criteria:** The CLI can send a structured task to a configured hosted provider and validate the returned result. The system reports uncertainty, capability limitations, or malformed output rather than silently accepting it. Switching provider does not require changes to business/agent logic.
+**Deferred:** Anthropic, Gemini and OpenAI-compatible adapters (DEC-034 remains the target architecture); the persistent usage ledger and cross-process locking (DEC-038).
+
+**Exit criteria:** The OpenAI adapter passes its mock tests; `npm run qa -- ai-check --live` returns a locally validated structured result within the per-run limits of `config/ai-budget.json`; the output is recorded here.
 
 ## 8. Phase 4 — Playwright MCP browser exploration
 
@@ -752,7 +762,7 @@ Tasks:
 2. Add a local API layer that calls existing application services.
 3. Add screens for projects, document upload, exploration, requirement/test-plan review, approvals, runs, and reports.
 4. Add user-visible progress, cancellation, and explicit error states.
-5. Add CI workflow to execute approved tests after a manual or configured release trigger.
+5. Extend the CI workflow delivered in CI-1 with release triggers (manual or configured).
 6. Store CI artifacts and link them to release/run records.
 7. Add optional integrations for accessibility, visual, performance, or security tools only when needed.
 8. Review secrets handling, filesystem permissions, allowed-domain controls, process isolation, and generated-code isolation before exposing the app beyond localhost.
@@ -771,16 +781,13 @@ Tasks:
 - Make generated output inspectable and reproducible where possible.
 - Record what failed, what was not tested, and what remains uncertain.
 - Update this document after each task/phase with actual effort, outcome, and lessons learned. This is the single source of truth for implementation progress.
+- Follow the scope rules in `AGENTS.md` and the review rules in `docs/REVIEW_RULES.md` (DEC-039): build only what a current feature needs, and accept a task once its acceptance criteria are met.
 
 ## 14. Immediate next actions
 
-1. **Align hosted-API documentation:** PROJECT_SPEC.md, ARCHITECTURE.md §3.4, and IMPLEMENTATION_PLAN.md Phase 3 have been aligned with DEC-028 and DEC-034 (multi-provider support).
-
-2. **Pre-Phase 3 feasibility experiment:** Run the hosted-API + Playwright-MCP experiment (modified per DEC-028). Validate that a hosted provider can use MCP tools and generate a basic Playwright test.
-
-3. **Task 2.11 (before Phase 7):** Implement the local demo app with V1/V2 reproducible behavior for release-comparison demonstrations. This can be done any time before Phase 7 begins.
-
-4. **Phase 3 planning:** After feasibility success, create the detailed Phase 3 task breakdown using the hosted provider adapter approach.
+1. Run Tasks N1 to N4 from `docs/PHASE_3_PLAN.md`, in order, following `docs/REVIEW_RULES.md`.
+2. After N4, plan a minimal Phase 4: the platform connects to Playwright MCP and the OpenAI model explores one SauceDemo page.
+3. Task 2.11 (local V1/V2 demo app) is still required before Phase 7.
 
 ## References
 

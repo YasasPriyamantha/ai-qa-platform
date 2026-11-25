@@ -16,6 +16,11 @@ Start as a modular monolith rather than separate microservices. Most components 
 
 The Phase 1 execution engine must work without AI or MCP. It proves the deterministic test execution path before AI is introduced.
 
+**Operating modes (DEC-039):**
+
+- **AI-assisted authoring (on demand):** model provider, MCP exploration, planning and generation produce *candidate* tests for human approval. This mode can be slow and incurs API costs.
+- **CI execution (every pipeline run):** only *approved* Playwright tests run through the test execution service. It makes no AI calls and uses no MCP or usage ledger, so it is deterministic, reproducible and fast.
+
 ## 2. High-level architecture
 
 ```mermaid
@@ -101,6 +106,8 @@ Structured documents should use author-assigned stable requirement IDs. The same
 ### 3.4 Model provider adapter
 
 The model provider adapter is a provider-neutral port that separates agent/workflow logic from provider-specific API details.
+
+**Implementation status (DEC-039):** The MVP implements only the OpenAI adapter. The Anthropic, Gemini and OpenAI-compatible adapters below remain the target design but are deferred. The persistent usage ledger (DEC-038) is frozen; the MVP enforces per-run limits from `config/ai-budget.json` plus the provider's account spend limit.
 
 **Direct provider adapters:**
 

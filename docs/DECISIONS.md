@@ -1058,3 +1058,28 @@ Diagnostics never contain:
 - Cost visibility exists but users must understand estimates are not guarantees
 - Concurrent CLI usage detects version conflicts rather than corrupting the ledger
 - Provider adapters (Tasks 3.4–3.6a) implement only translation, not lifecycle policy
+
+## DEC-039 — MVP-First Scope Reset
+
+**Status:** Accepted
+
+**Date:** 2026-11-24
+
+**Context:** By the end of Task 3.3a the provider infrastructure (`src/model-providers`, `src/provider-secrets`) had grown to about 10,000 source lines, about 40% of the platform, while no provider adapter, MCP integration or AI workflow existed. An audit of the repository found that the command-line tool reaches only about 29% of the source code, that the usage ledger built in Task 3.3a is not called by the request lifecycle, and that Task 3.3a needed six correction rounds. The product goal is a QA tool whose approved tests can run in a CI/CD pipeline. That goal was being delayed by infrastructure for future scenarios.
+
+**Decision:** Deliver the smallest working product first and add infrastructure only when a working feature needs it.
+
+1. **Two operating modes.** AI-assisted test authoring runs on demand and may be slow. CI execution runs only approved Playwright tests, with no AI calls, MCP exploration or usage ledger. This makes the intent of DEC-004 and DEC-008 explicit.
+2. **Approved-test CI is brought forward.** A CI pipeline that builds the platform and runs approved project tests is delivered now, before the provider adapters. It is no longer deferred to Phase 8. Phase 8 keeps the local UI and release triggers.
+3. **One provider first.** Phase 3 implements only the OpenAI adapter (Responses API) and a CLI AI check with one live smoke test. DEC-034 remains the target architecture. The Anthropic, Gemini and OpenAI-compatible adapters (old Tasks 3.5, 3.6 and 3.6a) are deferred until AI-generated tests have proved useful with one provider.
+4. **Budget controls for the MVP.** Per-run limits from `config/ai-budget.json` (requests, input size, output tokens), enforced by the existing lifecycle gate, plus the provider's own account spend limit, are sufficient for a single user. The persistent cross-run ledger, cross-process locking and per-attempt reservation accounting from DEC-038 are frozen: the code stays, but it is not wired in or extended. Only one AI session per workspace is supported. DEC-038 is revisited only if CI or concurrent AI sessions are introduced.
+5. **Task 3.0b is superseded.** Instead of rerunning the disposable spike, the first live smoke test goes through the platform's own CLI path. The first model-driven MCP exploration happens in Phase 4 inside the platform. Accepted risk: if the model still does not request page observations, this is found in Phase 4 instead of beforehand.
+6. **Scope discipline.** New code must have a production caller within the same task or the next listed task. A task has at most about six acceptance criteria. Each task allows at most one correction round, and correction rounds add no new requirements. Rules are recorded in `AGENTS.md` and `docs/REVIEW_RULES.md`.
+
+**Supersedes in part:** DEC-034 (implementation order only; the architecture is unchanged), DEC-038 (ledger, locking and cross-run budgets are frozen, not removed), and the Task 3.0b gate in the Phase 3 breakdown.
+
+**Consequences:**
+
+- Remaining Phase 3 work and its order are defined in `docs/PHASE_3_PLAN.md`. The original long breakdowns are archived in `docs/archive/` as historical records and are no longer instructions.
+- Code already written for deferred features is kept but frozen. It is removed only by a later explicit decision.
+- Phase 3 exits when the OpenAI adapter passes mock tests and one approved live smoke test runs through the platform CLI.

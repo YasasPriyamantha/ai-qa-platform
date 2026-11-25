@@ -302,7 +302,7 @@ The prototype is successful when it can:
 - Initial documents are Markdown and plain text; a structured Markdown requirements template is preferred.
 - Author-assigned requirement IDs are authoritative; AI-proposed IDs require human approval.
 - A human approves new generated tests and material changes to approved tests.
-- Release execution is initially started manually; automation via CI/CD is added later.
+- Approved tests run in a CI pipeline early in the project (DEC-039). AI-assisted test authoring runs on demand and is never part of every pipeline run. Release-triggered automation is extended later.
 - Provider/model choice depends on tool-use support, structured-output capability, reliability, context limits, pricing, rate limits, quotas, data-handling terms, and latency. Each provider/model combination must be verified for the required capabilities before commitment.
 - Authentication and test-data setup may require project-specific configuration. The platform must surface blockers instead of claiming universal support.
 - Additional document parsers, test runners, multi-user features, and remote deployment are later extensions.
