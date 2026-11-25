@@ -69,7 +69,8 @@ describe('isAbsolutePath', () => {
       expect(isAbsolutePath('D:/projects')).toBe(true);
     });
 
-    it('should recognize Windows UNC paths', () => {
+    // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+    it.runIf(process.platform === 'win32')('should recognize Windows UNC paths', () => {
       // Note: These would be handled by parsePath detecting root
       expect(isAbsolutePath('\\\\server\\share')).toBe(true);
     });
@@ -122,12 +123,14 @@ describe('isPathContained', () => {
   });
 
   describe('Windows drive letter handling', () => {
-    it('should treat D: and d: as equivalent', () => {
+    // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+    it.runIf(process.platform === 'win32')('should treat D: and d: as equivalent', () => {
       expect(isPathContained('D:\\projects\\sub', 'd:\\projects')).toBe(true);
       expect(isPathContained('d:\\projects\\sub', 'D:\\projects')).toBe(true);
     });
 
-    it('should handle mixed case paths', () => {
+    // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+    it.runIf(process.platform === 'win32')('should handle mixed case paths', () => {
       expect(isPathContained('D:\\Projects\\Sub', 'd:\\projects')).toBe(true);
       expect(isPathContained('d:\\PROJECTS\\sub', 'D:\\Projects')).toBe(true);
     });

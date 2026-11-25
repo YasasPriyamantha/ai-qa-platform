@@ -231,7 +231,8 @@ describe('isPathContained', () => {
     expect(isPathContained('D:\\other\\file.txt', 'D:\\projects')).toBe(false);
   });
 
-  it('should handle case differences on Windows', () => {
+  // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+  it.runIf(process.platform === 'win32')('should handle case differences on Windows', () => {
     // On Windows, D: and d: are the same drive
     expect(isPathContained('D:\\projects\\sub', 'd:\\projects')).toBe(true);
     expect(isPathContained('d:\\projects\\sub', 'D:\\projects')).toBe(true);

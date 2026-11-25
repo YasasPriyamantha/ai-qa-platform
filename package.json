@@ -4,12 +4,14 @@
   "description": "AI-powered QA automation platform for browser-based web applications",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.11.0"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --project tsconfig.typecheck.json",
     "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
     "qa": "node dist/cli/index.js"
   },

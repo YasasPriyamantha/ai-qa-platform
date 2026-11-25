@@ -47,6 +47,10 @@ tests/fixtures/**/artifacts/
 # Task 3.3: Usage ledger must never be committed
 .qa-platform/
 
+# Local test output and stray test ledger folders (Task N1)
+test-output.txt
+.test-ledger-*/
+
 # Do NOT ignore:
 # - Source code and tests (*.ts)
 # - Project configurations (project.config.json)

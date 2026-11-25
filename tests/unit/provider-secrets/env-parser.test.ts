@@ -68,11 +68,13 @@ describe('parseEnvFile', () => {
   });
 
   it('should handle comments', () => {
-    writeFileSync(envPath, '# This is a comment\nKEY=value # inline comment');
+    // Unquoted inline " #" handling differs between Node versions, so values
+    // containing " #" must be quoted (documented in .env.example).
+    writeFileSync(envPath, '# This is a comment\nKEY="value # not a comment"');
     const result = parseEnvFile(envPath);
 
     expect(result.success).toBe(true);
-    expect(result.values.KEY).toBe('value # inline comment');
+    expect(result.values.KEY).toBe('value # not a comment');
     expect(result.values['# This is a comment']).toBeUndefined();
   });
 

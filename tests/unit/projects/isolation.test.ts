@@ -357,13 +357,15 @@ describe('Project Workspace Isolation', () => {
   });
 
   describe('Windows Drive Letter Case Handling', () => {
-    it('should treat D: and d: as equivalent', () => {
+    // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+    it.runIf(process.platform === 'win32')('should treat D: and d: as equivalent', () => {
       // D:\\projects\\sub should be inside d:\\projects
       expect(isPathContained('D:\\projects\\sub', 'd:\\projects')).toBe(true);
       expect(isPathContained('d:\\projects\\sub', 'D:\\projects')).toBe(true);
     });
 
-    it('should handle mixed case in Windows paths', () => {
+    // Windows-only: isPathContained/isAbsolutePath use the platform's own node:path.
+    it.runIf(process.platform === 'win32')('should handle mixed case in Windows paths', () => {
       expect(isPathContained('D:\\Projects\\Sub\\file.txt', 'd:\\projects')).toBe(true);
       expect(isPathContained('d:\\PROJECTS\\sub', 'D:\\Projects')).toBe(true);
     });
