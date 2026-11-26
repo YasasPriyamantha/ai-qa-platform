@@ -12,6 +12,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { LifecycleResult } from './lifecycle.js';
+import { getUsageValueOrUndefined, type UsageValue } from './usage.js';
 
 /**
  * Budget configuration for AI provider usage.
@@ -636,6 +638,28 @@ export function createInitialBudgetState(window: BudgetWindow): BudgetState {
     cumulativeOutputTokens: 0,
     windowStart,
     windowEnd: calculateWindowEnd(window, windowStart),
+  };
+}
+
+/**
+ * Count one executeRequest() call in a per-run, in-memory budget state
+ * (DEC-039; the usage ledger is not used). executeRequest() does not update
+ * the state itself. A request refused by the gate (no attempt made) is not
+ * counted. Unknown output usage counts as the full reservation, never as zero.
+ */
+export function countRunRequest(
+  state: BudgetState,
+  outcome: Pick<LifecycleResult, 'finalAttemptNumber' | 'usageMetadata'>,
+  maxOutputTokens: number
+): BudgetState {
+  if (outcome.finalAttemptNumber === 0) return state;
+  const known = (value: UsageValue | undefined) => (value ? getUsageValueOrUndefined(value) : undefined);
+  const observed = outcome.usageMetadata.observed;
+  return {
+    ...state,
+    requestCount: state.requestCount + 1,
+    cumulativeInputTokens: state.cumulativeInputTokens + (known(observed?.inputTokens) ?? 0),
+    cumulativeOutputTokens: state.cumulativeOutputTokens + (known(observed?.outputTokens) ?? maxOutputTokens),
   };
 }
 

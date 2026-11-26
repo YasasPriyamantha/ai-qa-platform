@@ -30,3 +30,17 @@ export function descendants(root: number): number[] {
   }
   return found;
 }
+
+/**
+ * PIDs from `pids` still alive after polling every 100 ms for up to 30000 ms.
+ * Chromium processes can take ~500 ms to exit after close() returns.
+ */
+export async function stillAliveAfterWait(pids: number[]): Promise<number[]> {
+  const deadline = Date.now() + 30000;
+  let alive = pids.filter(isAlive);
+  while (alive.length > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    alive = alive.filter(isAlive);
+  }
+  return alive;
+}

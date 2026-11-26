@@ -279,6 +279,7 @@ export {
   calculateWindowEnd,
   isWindowExpired,
   createInitialBudgetState,
+  countRunRequest,
   generateReservationId,
   loadBudgetConfig,
   loadBudgetConfigFromPath,

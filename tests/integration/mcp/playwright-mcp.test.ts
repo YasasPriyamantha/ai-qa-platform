@@ -8,7 +8,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildPlaywrightMcpLaunch, McpConnection, McpStartError } from '../../../src/mcp/playwright-mcp.js';
-import { descendants, isAlive } from './process-tree.js';
+import { descendants, isAlive, stillAliveAfterWait } from './process-tree.js';
 
 let outputDir: string;
 beforeEach(async () => { outputDir = await mkdtemp(join(tmpdir(), 'qa-mcp-it-')); });
@@ -33,7 +33,7 @@ describe('McpConnection (real Playwright MCP server)', () => {
     const children = descendants(pid);
     await connection.close();
     expect(isAlive(pid)).toBe(false);
-    expect(children.filter(isAlive)).toEqual([]);
+    expect(await stillAliveAfterWait(children)).toEqual([]);
   }, 60_000);
 });
 

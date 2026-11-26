@@ -15,7 +15,7 @@ import { join, basename } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { buildPlaywrightMcpLaunch, McpConnection } from '../../../src/mcp/playwright-mcp.js';
 import { ToolGateway } from '../../../src/mcp/tool-gateway.js';
-import { descendants, isAlive } from './process-tree.js';
+import { descendants, isAlive, stillAliveAfterWait } from './process-tree.js';
 
 const SITE_DIR = join(import.meta.dirname, '..', '..', 'fixtures', 'mcp-site');
 
@@ -81,7 +81,7 @@ async function withGateway(body: (gateway: ToolGateway) => Promise<void>): Promi
   }
   expect(children.length).toBeGreaterThan(0); // the browser was started
   expect(isAlive(pid)).toBe(false);
-  expect(children.filter(isAlive)).toEqual([]);
+  expect(await stillAliveAfterWait(children)).toEqual([]);
 }
 
 let n = 0;

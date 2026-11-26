@@ -41,6 +41,7 @@ export class StdioProcessTransport implements Transport {
   private child?: ChildProcess;
   private readonly readBuffer = new ReadBuffer();
   private stderr = '';
+  private closing?: Promise<void>;
 
   constructor(private readonly launch: StdioLaunch) {}
 
@@ -111,9 +112,15 @@ export class StdioProcessTransport implements Transport {
   /**
    * Stop the server: end stdin (Playwright MCP then closes its browser and
    * exits), and if it has not exited in time, stop the whole process tree.
-   * Throws if the process could not be stopped.
+   * Throws if the process could not be stopped. Calls made while a close is
+   * running share it (the SDK calls close() without awaiting on handshake failure).
    */
-  async close(): Promise<void> {
+  close(): Promise<void> {
+    this.closing ??= this.stop().finally(() => { this.closing = undefined; });
+    return this.closing;
+  }
+
+  private async stop(): Promise<void> {
     const child = this.child;
     if (!child || child.pid === undefined || hasProcessExited(child)) return;
 
@@ -125,7 +132,8 @@ export class StdioProcessTransport implements Transport {
     if (hasProcessExited(child)) return;
 
     const result = await terminateProcessTree({ pid: child.pid!, childProcess: child });
-    if (!result.success) {
+    // A failed tree kill is only an error if the server itself is still running.
+    if (!result.success && !hasProcessExited(child)) {
       throw new Error(`Could not stop MCP server process ${child.pid}: ${result.error ?? 'unknown error'}`);
     }
   }

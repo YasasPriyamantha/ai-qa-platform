@@ -22,6 +22,7 @@ import {
   convertProviderConfigEntry,
   loadBudgetConfig,
   createInitialBudgetState,
+  countRunRequest,
   globalAdapterRegistry,
   createOpenAIAdapter,
   executeRequest,
@@ -155,15 +156,7 @@ export async function executeAiCheckCommand(options: AiCheckOptions): Promise<nu
   });
 
   const observed = outcome.usageMetadata.observed;
-  if (outcome.finalAttemptNumber > 0) {
-    budgetState = {
-      ...budgetState,
-      requestCount: budgetState.requestCount + 1,
-      // Unknown usage counts as the full reservation, never as zero.
-      cumulativeInputTokens: budgetState.cumulativeInputTokens + (knownValue(observed?.inputTokens) ?? 0),
-      cumulativeOutputTokens: budgetState.cumulativeOutputTokens + (knownValue(observed?.outputTokens) ?? maxOutputTokens),
-    };
-  }
+  budgetState = countRunRequest(budgetState, outcome, maxOutputTokens);
 
   if (!outcome.result.success) {
     const { error } = outcome.result;
