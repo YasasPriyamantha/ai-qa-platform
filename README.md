@@ -56,7 +56,20 @@ npm run test:unit
 
 # Execute project tests via CLI
 npm run qa -- run --config project-data/saucedemo/project.config.json
+
+# Start the platform's Playwright MCP server, list its tools and close it
+npm run qa -- mcp-check --config project-data/saucedemo/project.config.json
 ```
+
+### Browser for Playwright MCP (Phase 4)
+
+`@playwright/mcp` 0.0.86 ships its own Playwright (1.66.0-alpha), which needs a different Chromium build (v1255) from the runner's `@playwright/test` 1.64.1 (v1248). Install it once with the MCP package's own installer:
+
+```bash
+node node_modules/@playwright/mcp/cli.js install-browser --no-remove chromium
+```
+
+`--no-remove` keeps the runner's Chromium build; without it, Playwright may delete browser builds it thinks are unused. `mcp-check` does not need the browser (it starts no browser); exploration does.
 
 ## Project Structure
 

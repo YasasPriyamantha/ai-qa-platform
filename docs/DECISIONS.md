@@ -1085,3 +1085,33 @@ Diagnostics never contain:
 - Remaining Phase 3 work and its order are defined in `docs/PHASE_3_PLAN.md`. The original long breakdowns are archived in `docs/archive/` as historical records and are no longer instructions.
 - Code already written for deferred features is kept but frozen. It is removed only by a later explicit decision.
 - Phase 3 exits when the OpenAI adapter passes mock tests and one approved live smoke test runs through the platform CLI.
+
+## DEC-040 — Playwright MCP Integration (Phase 4)
+
+**Status:** Accepted
+
+**Date:** 2026-11-26
+
+**Context:** Phase 4 lets the configured AI model explore an approved website read-only through Playwright MCP. The design choices below are fixed for the whole phase (`docs/PHASE_4_PLAN.md` §3) so that P1–P4 and Phases 5–7 stay compatible. Package versions and APIs were verified in the installed packages (type definitions, `--help` output and source), not from memory.
+
+**Decision:**
+
+1. **Packages (verified 2026-11-26, pinned exactly in `package.json` and the lockfile):**
+   - `@playwright/mcp` **0.0.86** (npm `latest`). It depends on `playwright`/`playwright-core` **1.66.0-alpha-2026-11-18**, which needs Chromium build **v1255**; the runner's `@playwright/test` 1.64.1 uses v1248. The README documents the separate install (`node node_modules/@playwright/mcp/cli.js install-browser --no-remove chromium`). `@playwright/test` is not upgraded.
+   - `@modelcontextprotocol/client` **2.4.0** (MCP TypeScript SDK v2). **Reason:** its npm `latest` tag is a stable, non-prerelease 2.x (2.4.0), which is the condition in §3.1; v1 (`@modelcontextprotocol/sdk` 1.32.2) is therefore not used. The client uses the SDK's default version negotiation mode (`legacy`, plain `initialize` handshake), which starts no probe process.
+   - Never `npx …@latest` at runtime.
+2. **Process model.** The server is started as `process.execPath` plus the package's `cli.js` (resolved from the installed package), an argument array, no shell (DEC-019), detached into its own process group on Linux/macOS only (as the runner does). The environment comes from `createFilteredChildEnv()`, so provider API keys never reach the server or browser. The platform uses its own small stdio transport (`src/mcp/stdio-transport.ts`) that implements the SDK's `Transport` interface with the SDK's `ReadBuffer` and `serializeMessage`. The SDK's `StdioClientTransport` is not used because it hides the child process, creates no process group on Linux and signals only the direct child. Close ends the server's stdin (Playwright MCP then closes its browser and exits); if the server has not exited within 5 seconds, `terminateProcessTree()` stops the whole tree. A failed start (spawn error, early exit, or no handshake within the startup timeout, default 30 seconds) stops the process and raises an error with the exit code and the server's stderr.
+3. **Browser settings (verified CLI flags):** `--headless`, `--isolated` (in-memory profile), `--browser chromium` (maps to Playwright's bundled Chromium, `chrome-for-testing`; the server's default would be the Chrome channel), `--image-responses omit`, `--allowed-origins` built from the project's `allowedDomains` (`https://<host>`; for `localhost` also `http://localhost:*`, as in DEC-015) and `--output-dir` set to the exploration's own folder, which is also the server's working directory and therefore its file-access root. The server documents that `--allowed-origins` is not a security boundary and does not affect redirects; it is extra protection only.
+4. **Tool allowlist (read-only):** only `browser_navigate`, `browser_snapshot`, `browser_navigate_back` and `browser_wait_for` (exact names from the installed server's `tools/list`) are offered to the model. All other tools are not offered and are refused if requested. Interaction tools and logged-in exploration are deferred to Phase 5 (interaction policy, DEC-024 role credentials).
+5. **Domain guard in platform code:** before navigate, the URL must parse, use HTTPS (HTTP only for `localhost`, DEC-015) and have a hostname in `allowedDomains`. After every tool call the page URL is checked again; off-domain stops exploration with `domain_violation`, and the off-domain content is not sent to the model.
+6. **Tool definitions** are passed to the model as `ExternalToolSchema` (DEC-037, `strict: false`, schema unchanged); tool results become `ToolResultMessage` text, with MCP errors written as `Tool error: …`.
+7. **AI requests** go through `executeRequest()` and the OpenAI adapter, with `config/ai-budget.json` limits and per-run in-memory counting (DEC-039), no ledger. The `ai-check` per-run counter becomes one shared helper in P3.
+8. **Observation storage:** `<project-workspace>/observations/<exploration-id>/` with versioned `observations.json` and `evidence/`, git-ignored. It records project, `releaseId` (null until Phase 7), provider and model, limits and usage, stop reason, visited pages and the model summary; model statements are separate from tool evidence and cite evidence IDs.
+9. **MCP element references** (for example `ref=e12`) may appear only in raw evidence files, never in the summary or any field meant to become a locator.
+10. **CI stays AI-free:** no MCP or AI step in CI. Unit tests use no real MCP server; real-server tests are integration tests (`npm run test:integration`) and run locally.
+
+**Consequences:**
+
+- The platform's MCP server is independent of any IDE MCP configuration.
+- Two Chromium builds are installed side by side until `@playwright/test` and `@playwright/mcp` use the same Playwright version.
+- `@playwright/mcp` is pre-1.0 and pinned exactly; upgrading it is a deliberate change that re-checks tool names and CLI flags.

@@ -56,6 +56,15 @@ describe('parseArgs', () => {
     });
   });
 
+  describe('mcp-check command', () => {
+    it('parses mcp-check --config and requires the config path', () => {
+      expect(parseArgs(['mcp-check', '--config', 'p.json'])).toEqual({
+        command: 'mcp-check', mcpCheckOptions: { configPath: 'p.json' }, errors: [],
+      });
+      expect(parseArgs(['mcp-check']).errors).toContain('Missing required option: --config <project-config-path>');
+    });
+  });
+
   describe('run command', () => {
     it('should parse run command with --config option', () => {
       const result = parseArgs(['run', '--config', 'path/to/config.json']);

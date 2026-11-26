@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -29,6 +29,12 @@ export interface ParsedArgs {
     live: boolean;
   };
 
+  /** Options for the mcp-check command */
+  mcpCheckOptions?: {
+    /** Path to the project configuration file */
+    configPath: string;
+  };
+
   /** Parse errors encountered */
   errors: string[];
 }
@@ -39,6 +45,7 @@ export interface ParsedArgs {
  * Expected usage:
  *   npm run qa -- run --config <project-config-path>
  *   npm run qa -- ai-check [--live]
+ *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- help
  *
  * @param args - Command line arguments (typically process.argv.slice(2))
@@ -71,6 +78,12 @@ export function parseArgs(args: string[]): ParsedArgs {
   // ai-check command
   if (command === 'ai-check') {
     return parseAiCheckArgs(args.slice(1));
+  }
+
+  // mcp-check command: same --config option as run
+  if (command === 'mcp-check') {
+    const parsed = parseRunArgs(args.slice(1));
+    return { command: 'mcp-check', mcpCheckOptions: parsed.runOptions, errors: parsed.errors };
   }
 
   // Unknown command
@@ -171,16 +184,21 @@ AI QA Automation Platform - Phase 1 CLI
 Usage:
   npm run qa -- run --config <project-config-path>
   npm run qa -- ai-check [--live]
+  npm run qa -- mcp-check --config <project-config-path>
   npm run qa -- help
 
 Commands:
-  run       Execute tests for a configured project
-  ai-check  Show AI provider, key and budget status (no network call)
-  help      Show this help message
+  run        Execute tests for a configured project
+  ai-check   Show AI provider, key and budget status (no network call)
+  mcp-check  Start the platform's Playwright MCP server, list its tools, close it
+  help       Show this help message
 
 Run Command Options:
   --config, -c <path>   Path to the project configuration file (required)
                         Example: project-data/saucedemo/project.config.json
+
+mcp-check Options:
+  --config, -c <path>   Path to the project configuration file (required)
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

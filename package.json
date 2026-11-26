@@ -33,6 +33,8 @@
     "vitest": "^4.1.12"
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@playwright/mcp": "0.0.86",
     "openai": "^7.64.0",
     "zod": "^4.6.7"
   }
