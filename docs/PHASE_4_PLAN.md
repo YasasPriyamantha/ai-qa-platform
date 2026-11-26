@@ -1,6 +1,6 @@
 # Phase 4 Plan: Playwright MCP Browser Exploration
 
-**Status:** Ready to start (Phase 3 MVP complete, 2026-11-25).
+**Status:** Complete (2026-11-26).
 **Rules:** `AGENTS.md` → *Scope discipline* and `docs/REVIEW_RULES.md` apply to every task. One task at a time, one correction round at most.
 
 ## 1. Goal and exit criteria

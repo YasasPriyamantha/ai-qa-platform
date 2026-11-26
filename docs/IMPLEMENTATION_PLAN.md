@@ -681,6 +681,10 @@ The following files have been aligned with DEC-028 and DEC-034 (multi-provider s
 
 Tasks:
 
+**Status: Complete (2026-11-26).** P1 `286f38d`, P2 `d873910`, P3 + P1 cleanup fix `e41f6f1`, P4 `1cd0dbf`.
+Live run: `node dist/cli/index.js explore --config project-data/saucedemo/project.config.json` → stop reason `completed`; 1 page (login page, no links without login); tool calls 2 (`browser_navigate`, then `browser_snapshot` requested by the model itself, which closes the Task 3.0b question); 3 AI requests; tokens input 2,730 / output 438; record `exp-20261126T132458Z-07f2ba`; all summary claims linked to evidence `ev-001`, none unsupported.
+Known limitations: on Windows, Chromium can take more than 5 s to exit after close() (it does exit; integration tests wait up to 30 s); the summary omitted the Login button; evidence links are not yet checked against evidence text (Phase 5); provider/key/budget checks are duplicated in `ai-check` and `explore` (extract if a third command needs them).
+
 1. Read the current official Playwright MCP instructions and current MCP TypeScript SDK documentation.
 2. Install and configure the Playwright MCP server in a development environment.
 3. Build a standalone MCP client check that connects, lists tools, and closes cleanly.

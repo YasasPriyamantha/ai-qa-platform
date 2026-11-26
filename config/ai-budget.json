@@ -1,9 +1,9 @@
 {
-  "maxTotalRequests": 3,
-  "maxInputTokensPerRequest": 2000,
+  "maxTotalRequests": 20,
+  "maxInputTokensPerRequest": 30000,
   "maxOutputTokensPerRequest": 4000,
-  "maxCumulativeInputTokens": 2000,
-  "maxCumulativeOutputTokens": 4000,
+  "maxCumulativeInputTokens": 300000,
+  "maxCumulativeOutputTokens": 40000,
   "window": {
     "type": "rolling",
     "durationHours": 24

@@ -4,7 +4,7 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 3, Hosted AI Provider Integration**: complete (MVP: OpenAI only, DEC-039). **Next:** Phase 4, Playwright MCP browser exploration.
+**Phase 4, Playwright MCP Browser Exploration**: complete (read-only exploration with OpenAI; observations saved with evidence). **Next:** Phase 5, requirements, test planning and generation.
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
 - Next: approved-test CI pipeline, the OpenAI adapter, and a CLI AI check. See [`docs/PHASE_3_PLAN.md`](docs/PHASE_3_PLAN.md).
