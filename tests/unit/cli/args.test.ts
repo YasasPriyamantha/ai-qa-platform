@@ -65,6 +65,19 @@ describe('parseArgs', () => {
     });
   });
 
+  describe('explore command', () => {
+    it('parses --config with an optional --start URL', () => {
+      expect(parseArgs(['explore', '--config', 'p.json'])).toEqual({
+        command: 'explore', exploreOptions: { configPath: 'p.json' }, errors: [],
+      });
+      expect(parseArgs(['explore', '--start', 'https://a.test/x', '-c', 'p.json'])).toEqual({
+        command: 'explore', exploreOptions: { configPath: 'p.json', startUrl: 'https://a.test/x' }, errors: [],
+      });
+      expect(parseArgs(['explore']).errors).toContain('Missing required option: --config <project-config-path>');
+      expect(parseArgs(['explore', '--config', 'p.json', '--start']).errors).toContain('--start requires a URL argument');
+    });
+  });
+
   describe('run command', () => {
     it('should parse run command with --config option', () => {
       const result = parseArgs(['run', '--config', 'path/to/config.json']);

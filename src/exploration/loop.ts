@@ -28,7 +28,7 @@ import {
   type ProviderAdapter,
 } from '../model-providers/index.js';
 import type { SecretResolutionContext } from '../provider-secrets/index.js';
-import type { Evidence, GatewayStopReason, ToolGateway } from '../mcp/tool-gateway.js';
+import { pageUrls, type Evidence, type GatewayStopReason, type ToolGateway } from '../mcp/tool-gateway.js';
 import { checkEvidence, EXPLORATION_SUMMARY_SCHEMA, type CheckedSummary } from './summary.js';
 
 export type ExplorationStopReason =
@@ -56,6 +56,19 @@ export interface ExplorationOptions {
   readonly maxDurationMs: number;
 }
 
+/** One tool call as logged in the observation record (P4): no page text. */
+export interface ToolCallLogEntry {
+  readonly tool: string;
+  /** The arguments the model sent, as the gateway checked them; null when they were not a JSON object. */
+  readonly arguments: Record<string, unknown> | null;
+  readonly durationMs: number;
+  /** The call was refused or failed (`Tool error: …`). */
+  readonly error: boolean;
+  readonly evidenceId?: string;
+  /** The page the browser was on after a successful call. */
+  readonly pageUrl?: string;
+}
+
 export interface ExplorationResult {
   readonly stopReason: ExplorationStopReason;
   /** Set when a valid summary was returned. */
@@ -64,6 +77,7 @@ export interface ExplorationResult {
   readonly error?: string;
   readonly evidence: readonly Evidence[];
   readonly toolCalls: number;
+  readonly toolLog: readonly ToolCallLogEntry[];
   readonly budgetState: BudgetState;
 }
 
@@ -93,6 +107,15 @@ function compactSnapshots(
   });
 }
 
+function parseArguments(text: string): Record<string, unknown> | null {
+  try {
+    const value: unknown = JSON.parse(text || '{}');
+    return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function runExploration(options: ExplorationOptions): Promise<ExplorationResult> {
   const { budgetConfig, gateway } = options;
   const deadline = AbortSignal.timeout(options.maxDurationMs);
@@ -101,12 +124,13 @@ export async function runExploration(options: ExplorationOptions): Promise<Explo
   const messages: ConversationMessage[] = [userMessage(`Start page: ${options.startUrl}`)];
   const evidence: Evidence[] = [];
   const evidenceByCall = new Map<string, string>();
+  const toolLog: ToolCallLogEntry[] = [];
   let budgetState = createInitialBudgetState(budgetConfig.window);
   let toolCalls = 0;
   let limit: ExplorationStopReason | undefined;
 
   const end = (stopReason: ExplorationStopReason, extra: { summary?: CheckedSummary; error?: string } = {}): ExplorationResult =>
-    ({ stopReason, ...extra, evidence, toolCalls, budgetState });
+    ({ stopReason, ...extra, evidence, toolCalls, toolLog, budgetState });
 
   const request = (final: boolean): ModelRequest => ({
     providerId: options.providerId,
@@ -171,8 +195,20 @@ export async function runExploration(options: ExplorationOptions): Promise<Explo
       messages.push(response.message);
       for (const call of response.toolCalls) {
         toolCalls++;
+        const started = Date.now();
         const result = await gateway.call(call, deadline);
         messages.push(result.result);
+        const error = result.result.isError === true;
+        const { content } = result.result;
+        const pageUrl = error || typeof content !== 'string' ? undefined : pageUrls(content).at(-1);
+        toolLog.push({
+          tool: call.name,
+          arguments: parseArguments(call.arguments),
+          durationMs: Date.now() - started,
+          error,
+          ...(result.evidence ? { evidenceId: result.evidence.id } : {}),
+          ...(pageUrl ? { pageUrl } : {}),
+        });
         if (result.evidence) {
           evidence.push(result.evidence);
           evidenceByCall.set(call.id, result.evidence.id);

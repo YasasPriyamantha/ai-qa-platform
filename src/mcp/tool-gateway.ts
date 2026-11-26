@@ -57,7 +57,7 @@ type McpToolClient = Pick<McpConnection, 'listTools' | 'callTool'>;
 type ArgumentCheck = (input: unknown) => { valid: boolean; errorMessage?: string };
 
 /** Page URLs reported in a Playwright MCP result ("- Page URL: …" lines). */
-function pageUrls(text: string): string[] {
+export function pageUrls(text: string): string[] {
   return [...text.matchAll(/^- Page URL: (\S+)/gm)].map((m) => m[1]);
 }
 

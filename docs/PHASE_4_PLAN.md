@@ -148,6 +148,9 @@ and the project config loader. Do not run a live exploration; the user runs it. 
 typecheck, build, npm run test:unit, npm run test:integration, and `node dist/cli/index.js explore --config
 project-data/saucedemo/project.config.json` with AI disabled (must refuse cleanly). Report the criterion table, raw Vitest lines and
 git status --short.
+Carry-over notes: (a) Start the MCP server for each exploration with its --output-dir inside observations/<exploration-id>/
+(design §3.3), so the .yml snapshot files the server writes on navigate stay inside the git-ignored exploration folder.
+(b) Navigate/back/wait results contain only a link to a .yml file, not page content; only browser_snapshot results are evidence. Keep that rule.
 ```
 
 **Phase 4 exit:** P1–P4 done, the live run is recorded, and the `IMPLEMENTATION_PLAN.md` and `README.md` statuses are updated.

@@ -43,6 +43,9 @@ test-results/
 project-data/**/artifacts/
 tests/fixtures/**/artifacts/
 
+# Exploration observations (Task P4, DEC-040 §3.8): real sites may show personal data
+project-data/**/observations/
+
 # Platform runtime data (usage ledger, etc.)
 # Task 3.3: Usage ledger must never be committed
 .qa-platform/

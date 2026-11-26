@@ -143,6 +143,10 @@ describe('runExploration', () => {
     expect(result.budgetState.requestCount).toBe(3);
     expect(result.toolCalls).toBe(2);
     expect(result.evidence.map((e) => e.id)).toEqual(['ev-001']);
+    expect(result.toolLog).toMatchObject([
+      { tool: 'browser_navigate', arguments: { url: 'https://example.com/' }, error: false, pageUrl: 'https://example.com/' },
+      { tool: 'browser_snapshot', arguments: {}, error: false, evidenceId: 'ev-001' },
+    ]);
     expect(mcp.callTool).toHaveBeenCalledTimes(2);
     expect(mcp.close).toHaveBeenCalledTimes(1);
 

@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -35,6 +35,14 @@ export interface ParsedArgs {
     configPath: string;
   };
 
+  /** Options for the explore command */
+  exploreOptions?: {
+    /** Path to the project configuration file */
+    configPath: string;
+    /** Start page instead of the project's baseUrl */
+    startUrl?: string;
+  };
+
   /** Parse errors encountered */
   errors: string[];
 }
@@ -46,6 +54,7 @@ export interface ParsedArgs {
  *   npm run qa -- run --config <project-config-path>
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
+ *   npm run qa -- explore --config <project-config-path> [--start <url>]
  *   npm run qa -- help
  *
  * @param args - Command line arguments (typically process.argv.slice(2))
@@ -84,6 +93,23 @@ export function parseArgs(args: string[]): ParsedArgs {
   if (command === 'mcp-check') {
     const parsed = parseRunArgs(args.slice(1));
     return { command: 'mcp-check', mcpCheckOptions: parsed.runOptions, errors: parsed.errors };
+  }
+
+  // explore command: --config as for run, plus an optional --start <url>
+  if (command === 'explore') {
+    const rest = args.slice(1);
+    const startAt = rest.indexOf('--start');
+    let startUrl: string | undefined;
+    if (startAt !== -1) {
+      startUrl = rest[startAt + 1];
+      rest.splice(startAt, 2);
+      if (!startUrl || startUrl.startsWith('-')) {
+        return { command: 'explore', errors: ['--start requires a URL argument'] };
+      }
+    }
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command: 'explore', errors: parsed.errors };
+    return { command: 'explore', exploreOptions: { ...parsed.runOptions, ...(startUrl ? { startUrl } : {}) }, errors: [] };
   }
 
   // Unknown command
@@ -185,12 +211,14 @@ Usage:
   npm run qa -- run --config <project-config-path>
   npm run qa -- ai-check [--live]
   npm run qa -- mcp-check --config <project-config-path>
+  npm run qa -- explore --config <project-config-path> [--start <url>]
   npm run qa -- help
 
 Commands:
   run        Execute tests for a configured project
   ai-check   Show AI provider, key and budget status (no network call)
   mcp-check  Start the platform's Playwright MCP server, list its tools, close it
+  explore    Let the AI model explore the site read-only and save observations
   help       Show this help message
 
 Run Command Options:
@@ -199,6 +227,12 @@ Run Command Options:
 
 mcp-check Options:
   --config, -c <path>   Path to the project configuration file (required)
+
+explore Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --start <url>         Start page (default: the project's baseUrl); must be
+                        in allowedDomains. Requires AI_ENABLED=true, the API
+                        key in .env and config/ai-budget.json.
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

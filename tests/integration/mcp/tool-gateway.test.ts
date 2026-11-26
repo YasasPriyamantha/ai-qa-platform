@@ -8,42 +8,14 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { createServer, type Server } from 'node:http';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import type { Server } from 'node:http';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, basename } from 'node:path';
-import type { AddressInfo } from 'node:net';
+import { join } from 'node:path';
 import { buildPlaywrightMcpLaunch, McpConnection } from '../../../src/mcp/playwright-mcp.js';
 import { ToolGateway } from '../../../src/mcp/tool-gateway.js';
 import { descendants, isAlive, stillAliveAfterWait } from './process-tree.js';
-
-const SITE_DIR = join(import.meta.dirname, '..', '..', 'fixtures', 'mcp-site');
-
-/**
- * Static server for the fixture HTML. `/redirect-away` redirects to the
- * off-domain server, which runs on 127.0.0.1 (not in allowedDomains).
- */
-function startSite(host: string, redirectTarget?: () => string): Promise<Server> {
-  const server = createServer(async (req, res) => {
-    if (req.url === '/redirect-away' && redirectTarget) {
-      res.writeHead(302, { Location: redirectTarget() });
-      res.end();
-      return;
-    }
-    const file = req.url === '/' ? 'index.html' : basename(req.url ?? '');
-    try {
-      const body = await readFile(join(SITE_DIR, file));
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(body);
-    } catch {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-  return new Promise((resolve) => server.listen(0, host, () => resolve(server)));
-}
-
-const portOf = (server: Server) => (server.address() as AddressInfo).port;
+import { startSite, portOf } from './fixture-site.js';
 
 let site: Server;
 let offsite: Server;
