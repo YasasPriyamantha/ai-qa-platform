@@ -101,6 +101,7 @@ Follow AGENTS.md "Scope discipline". Reuse the P1 connection and the existing To
 types; create no parallel types. Use the project's existing allowedDomains/baseUrl validation rules (src/projects) rather than new
 URL logic. Size budget ~350 source lines. Verify: typecheck, build, npm run test:unit, npm run test:integration. Report the criterion
 table, raw Vitest lines and git status --short.
+P1 carry-over: P1's "close leaves no browser process" was not exercised because no browser started. In the P2 integration tests that open the fixture site, also assert that after close() no MCP server, Chromium or child process from that session remains (same check the P1 integration test uses).
 ```
 
 ---

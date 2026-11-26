@@ -8,7 +8,7 @@
 
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { Client, type Tool } from '@modelcontextprotocol/client';
+import { Client, type CallToolResult, type Tool } from '@modelcontextprotocol/client';
 import { createFilteredChildEnv } from '../provider-secrets/child-env-filter.js';
 import { VERSION } from '../application/version.js';
 import { StdioProcessTransport, type StdioLaunch } from './stdio-transport.js';
@@ -117,6 +117,15 @@ export class McpConnection {
   /** All tools the server offers (all pages). */
   async listTools(): Promise<Tool[]> {
     return (await this.client.listTools()).tools;
+  }
+
+  /** Call one tool; the request is cancelled when `signal` aborts or `timeoutMs` passes. */
+  async callTool(
+    name: string,
+    args: Record<string, unknown>,
+    options: { readonly signal: AbortSignal; readonly timeoutMs: number }
+  ): Promise<CallToolResult> {
+    return this.client.callTool({ name, arguments: args }, { signal: options.signal, timeout: options.timeoutMs });
   }
 
   /** Close the session and stop the server and its browser processes. */

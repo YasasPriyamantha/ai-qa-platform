@@ -358,8 +358,9 @@ function validateBareHostname(domain: string, index: number): void {
  *
  * Hostname matching uses exact equality, case-insensitive.
  * Subdomains and parent domains are not interchangeable.
+ * Also the MCP tool gateway's domain rule (Task P2, §3.5).
  */
-function validateBaseUrl(baseUrl: string, allowedDomains: string[]): void {
+export function validateBaseUrl(baseUrl: string, allowedDomains: string[]): void {
   let url: URL;
   try {
     url = new URL(baseUrl);
