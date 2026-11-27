@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T10:05:21.908Z",
+  "updatedAt": "2026-11-27T11:32:58.120Z",
   "requirements": {
     "REQ-001": {
       "projectId": "saucedemo",
@@ -202,6 +202,71 @@
           "reason": "Content changed on import"
         }
       ]
+    },
+    "REQ-004": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-004",
+      "title": "Require checkout details before proceeding",
+      "description": "After the shopper presses Checkout from the cart, the next page asks for their first name, last name and postal code. Nothing happens until all three are filled in.",
+      "expectedResult": "Nothing happens until all three are filled in.",
+      "negativeCases": [
+        {
+          "condition": "The first name is missing.",
+          "expectedOutcome": "The page shows \"Error: First Name is required\"."
+        }
+      ],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 3,
+          "end": 5
+        }
+      },
+      "createdAt": "2026-11-27T11:32:58.077Z",
+      "updatedAt": "2026-11-27T11:32:58.077Z"
+    },
+    "REQ-005": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-005",
+      "title": "Complete the order from the overview",
+      "description": "After Continue, the shopper sees an overview of the order. Pressing Finish completes the order and shows the confirmation message.",
+      "expectedResult": "The page shows \"Thank you for your order!\".",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 7,
+          "end": 8
+        }
+      },
+      "createdAt": "2026-11-27T11:32:58.089Z",
+      "updatedAt": "2026-11-27T11:32:58.089Z"
+    },
+    "REQ-006": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-006",
+      "title": "Include tax in the total",
+      "description": "The order total should include tax.",
+      "expectedResult": "The total should include tax.",
+      "negativeCases": [],
+      "priority": "medium",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 10,
+          "end": 10
+        }
+      },
+      "createdAt": "2026-11-27T11:32:58.120Z",
+      "updatedAt": "2026-11-27T11:32:58.120Z"
     }
   }
 }

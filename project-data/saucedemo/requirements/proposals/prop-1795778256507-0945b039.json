@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0",
+  "proposalId": "prop-1795778256507-0945b039",
+  "projectId": "saucedemo",
+  "name": "Proposals from saucedemo-checkout-notes",
+  "status": "accepted",
+  "createdBy": "ai:openai/gpt-6-luna",
+  "createdAt": "2026-11-27T11:17:36.509Z",
+  "updatedAt": "2026-11-27T11:32:58.123Z",
+  "sourceDocumentId": "saucedemo-checkout-notes",
+  "sourceContentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+  "proposedRequirements": [
+    {
+      "proposedId": "REQ-004",
+      "title": "Require checkout details before proceeding",
+      "description": "After the shopper presses Checkout from the cart, the next page asks for their first name, last name and postal code. Nothing happens until all three are filled in.",
+      "expectedResult": "Nothing happens until all three are filled in.",
+      "negativeCases": [
+        {
+          "condition": "The first name is missing.",
+          "expectedOutcome": "The page shows \"Error: First Name is required\"."
+        }
+      ],
+      "priority": "high",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 3,
+          "end": 5
+        }
+      },
+      "originalSourceText": "Once a shopper has something in the cart they open the cart and press Checkout. The next page asks for their first name,\nlast name and postal code, and nothing happens until all three are filled in. If the first name is missing the page\nshows \"Error: First Name is required\".",
+      "individualStatus": "accepted",
+      "reviews": [
+        {
+          "reviewId": "rev-1795779178078-f781daf8",
+          "reviewedAt": "2026-11-27T11:32:58.073Z",
+          "reviewer": "cli",
+          "action": "accept",
+          "reason": "Accepted into authoritative registry",
+          "affectedRequirementIds": [
+            "REQ-004"
+          ]
+        }
+      ],
+      "acceptedRequirementId": "REQ-004"
+    },
+    {
+      "proposedId": "REQ-005",
+      "title": "Complete the order from the overview",
+      "description": "After Continue, the shopper sees an overview of the order. Pressing Finish completes the order and shows the confirmation message.",
+      "expectedResult": "The page shows \"Thank you for your order!\".",
+      "negativeCases": [],
+      "priority": "high",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 7,
+          "end": 8
+        }
+      },
+      "originalSourceText": "After Continue the shopper sees an overview of the order. Pressing Finish completes the order and the page shows\n\"Thank you for your order!\".",
+      "individualStatus": "accepted",
+      "reviews": [
+        {
+          "reviewId": "rev-1795779178090-e42d108f",
+          "reviewedAt": "2026-11-27T11:32:58.084Z",
+          "reviewer": "cli",
+          "action": "accept",
+          "reason": "Accepted into authoritative registry",
+          "affectedRequirementIds": [
+            "REQ-005"
+          ]
+        }
+      ],
+      "acceptedRequirementId": "REQ-005"
+    },
+    {
+      "proposedId": "REQ-006",
+      "title": "Include tax in the total",
+      "description": "The order total should include tax.",
+      "expectedResult": "The total should include tax.",
+      "negativeCases": [],
+      "priority": "medium",
+      "sourceReference": {
+        "documentId": "saucedemo-checkout-notes",
+        "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+        "lineRange": {
+          "start": 10,
+          "end": 10
+        }
+      },
+      "originalSourceText": "We also talked about tax. The total should include tax, but nobody agreed on how it is shown.",
+      "individualStatus": "accepted",
+      "reviews": [
+        {
+          "reviewId": "rev-1795779178122-1544ec7c",
+          "reviewedAt": "2026-11-27T11:32:58.095Z",
+          "reviewer": "cli",
+          "action": "accept",
+          "reason": "Accepted into authoritative registry",
+          "affectedRequirementIds": [
+            "REQ-006"
+          ]
+        }
+      ],
+      "acceptedRequirementId": "REQ-006"
+    }
+  ],
+  "reviews": []
+}

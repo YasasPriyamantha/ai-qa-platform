@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T10:05:21.895Z",
+  "updatedAt": "2026-11-27T11:17:28.250Z",
   "documents": {
     "saucedemo-requirements": {
       "documentId": "saucedemo-requirements",
@@ -38,6 +38,22 @@
           "contentSize": 1654,
           "ingestedAt": "2026-11-27T10:05:21.895Z",
           "sourcePath": "docs/requirements.md",
+          "format": "markdown"
+        }
+      ]
+    },
+    "saucedemo-checkout-notes": {
+      "documentId": "saucedemo-checkout-notes",
+      "name": "saucedemo-checkout-notes",
+      "createdAt": "2026-11-27T11:17:28.250Z",
+      "updatedAt": "2026-11-27T11:17:28.250Z",
+      "versions": [
+        {
+          "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+          "snapshotPath": "sources/e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577.md",
+          "contentSize": 559,
+          "ingestedAt": "2026-11-27T11:17:28.250Z",
+          "sourcePath": "docs/checkout-notes.md",
           "format": "markdown"
         }
       ]
