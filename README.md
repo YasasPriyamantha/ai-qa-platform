@@ -4,10 +4,10 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 5, Requirements, Test Planning and Generation**: complete (requirement import, requirement-guided exploration, traced scenario plans and template-generated candidate tests, shown on SauceDemo and the local demo app). **Next:** Phase 6, candidate validation, human approval and promotion, and credentials and `storageState` in the runner.
+**Phase 5, Requirements, Test Planning and Generation**: complete (requirement import, requirement-guided exploration, traced scenario plans and template-generated candidate tests, shown on SauceDemo and the local demo app). **Next:** Phase 6 (in progress), candidate validation, human approval and CI with approved AI-planned tests. See [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md).
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
-- Phase 5 is complete. Next: Phase 6 (candidate validation, human approval and promotion). The Phase 6 plan file does not exist yet.
+- Phase 5 is complete. Phase 6 (candidate validation, human approval and promotion) is in progress: see [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md).
 - Detailed progress: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ### Two operating modes
@@ -23,7 +23,8 @@ Complete project specifications and architecture are maintained in the `docs/` d
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design and component responsibilities
 - **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** — Phased task breakdown with acceptance criteria
 - **[DECISIONS.md](docs/DECISIONS.md)** — Architecture and implementation decision record
-- **[PHASE_5_PLAN.md](docs/PHASE_5_PLAN.md)** — Phase 5 task list (complete); the Phase 6 plan has not been written yet
+- **[PHASE_6_PLAN.md](docs/PHASE_6_PLAN.md)** — Current phase task list (Phase 6)
+- **[PHASE_5_PLAN.md](docs/PHASE_5_PLAN.md)** — Phase 5 task list (complete)
 - **[REVIEW_RULES.md](docs/REVIEW_RULES.md)** — Rules for writing and reviewing coding tasks
 - `docs/archive/` — Historical phase breakdowns (not current instructions)
 

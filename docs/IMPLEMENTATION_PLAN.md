@@ -785,6 +785,8 @@ Tasks:
 
 **Goal:** Execute generated tests safely and produce evidence.
 
+**Task breakdown:** `docs/PHASE_6_PLAN.md` (Tasks V1–V4; design decisions DEC-042). Every item below is mapped to a task there. Item 9 (AI failure hypotheses) and `storageState` are deferred (DEC-042 §3, §8).
+
 Tasks:
 
 1. Add candidate-test syntax and TypeScript checks.
@@ -854,7 +856,7 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Write the Phase 6 plan: candidate validation runs, the three-run stability check, human approval and promotion to `tests/approved/`, and role credentials and `storageState` in the runner.
+1. Phase 6: follow `docs/PHASE_6_PLAN.md`, starting with Task V1 (role credentials in test runs).
 
 ## References
 
