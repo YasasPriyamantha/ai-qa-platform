@@ -176,6 +176,21 @@ describe('plan', () => {
     expect(set.notCovered).toEqual([{ requirementId: 'REQ-001', case: 'negative case: Wrong password' }]);
   });
 
+  it('accepts a negative-case quote with or without its condition prefix (carry-over a)', async () => {
+    writeRegistry({ 'REQ-001': requirement('REQ-001', {
+      negativeCases: [{ condition: 'Empty username', expectedOutcome: 'login is prevented and the message `Epic sadface: Username is required` is shown.' }],
+    }) });
+    const quoted = (title: string, quote: string) => scenario({ title, expectedResults: [{ requirementId: 'REQ-001', quote }] });
+    const { set } = await plan(output([
+      scenario(),
+      quoted('With condition', 'Empty username: login is prevented and the message `Epic sadface: Username is required` is shown.'),
+      quoted('Without condition', 'login is prevented and the message `Epic sadface: Username is required` is shown.'),
+    ]));
+    expect(set.rejected).toEqual([]);
+    expect(set.scenarios.map((s: { title: string }) => s.title)).toEqual(['Valid login', 'With condition', 'Without condition']);
+    expect(set.notCovered).toEqual([]);
+  });
+
   it('excludes an unresolved requirement with its reason and refuses unknown or retired ones before any request', async () => {
     const { set } = await plan(output([scenario()]), ['REQ-001', 'REQ-002']);
     expect(set.requirementIds).toEqual(['REQ-001']);

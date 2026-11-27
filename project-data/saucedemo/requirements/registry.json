@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T09:30:22.796Z",
+  "updatedAt": "2026-11-27T10:05:21.908Z",
   "requirements": {
     "REQ-001": {
       "projectId": "saucedemo",
@@ -15,7 +15,7 @@
         },
         {
           "condition": "Wrong password",
-          "expectedOutcome": "login is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
+          "expectedOutcome": "logging in with the standard user's username and the password `wrong_password` is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
         },
         {
           "condition": "Locked-out user",
@@ -26,7 +26,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "15b3f64dc72a2c2e67a2569297ecfb59a1affade1e9df4762114522d2e959022",
+        "contentHash": "3f4d3d944a9f3666234659124eb20aa1af8801e006eb7477dbfed0b6054da458",
         "section": "REQ-001: Login with valid credentials",
         "lineRange": {
           "start": 3,
@@ -35,8 +35,41 @@
       },
       "role": "standard_user",
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T09:30:22.796Z",
+      "updatedAt": "2026-11-27T10:05:21.907Z",
       "history": [
+        {
+          "title": "Login with valid credentials",
+          "description": "A registered standard user can log in to SauceDemo using the valid username and password published on the login page.",
+          "expectedResult": "After logging in with the standard user's credentials, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the title `Products`.",
+          "negativeCases": [
+            {
+              "condition": "Empty username",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Username is required` is shown."
+            },
+            {
+              "condition": "Wrong password",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
+            },
+            {
+              "condition": "Locked-out user",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Sorry, this user has been locked out.` is shown."
+            }
+          ],
+          "priority": "critical",
+          "role": "standard_user",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "saucedemo-requirements",
+            "contentHash": "15b3f64dc72a2c2e67a2569297ecfb59a1affade1e9df4762114522d2e959022",
+            "section": "REQ-001: Login with valid credentials",
+            "lineRange": {
+              "start": 3,
+              "end": 23
+            }
+          },
+          "supersededAt": "2026-11-27T10:05:21.908Z",
+          "reason": "Content changed on import"
+        },
         {
           "title": "Login with valid credentials",
           "description": "A registered standard user can log in to SauceDemo using the valid username and password published on the login page.",
@@ -116,7 +149,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "15b3f64dc72a2c2e67a2569297ecfb59a1affade1e9df4762114522d2e959022",
+        "contentHash": "3f4d3d944a9f3666234659124eb20aa1af8801e006eb7477dbfed0b6054da458",
         "section": "REQ-002: Login page controls",
         "lineRange": {
           "start": 24,
@@ -124,20 +157,20 @@
         }
       },
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T09:30:22.796Z"
+      "updatedAt": "2026-11-27T10:05:21.907Z"
     },
     "REQ-003": {
       "projectId": "saucedemo",
       "requirementId": "REQ-003",
       "title": "Add a product to the cart",
-      "description": "An authenticated standard user can add a product from the products page to the shopping cart.",
-      "expectedResult": "After the user clicks `Add to cart` for the `Sauce Labs Backpack` product once, the cart badge displays `1`.",
+      "description": "An authenticated standard user can add a product to the shopping cart from its product page.",
+      "expectedResult": "After the standard user opens `/inventory-item.html?id=4`, the product page for `Sauce Labs Backpack`, and clicks `Add to cart` once, the cart badge displays `1`.",
       "negativeCases": [],
       "priority": "high",
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "15b3f64dc72a2c2e67a2569297ecfb59a1affade1e9df4762114522d2e959022",
+        "contentHash": "3f4d3d944a9f3666234659124eb20aa1af8801e006eb7477dbfed0b6054da458",
         "section": "REQ-003: Add a product to the cart",
         "lineRange": {
           "start": 38,
@@ -146,7 +179,29 @@
       },
       "role": "standard_user",
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T09:30:22.796Z"
+      "updatedAt": "2026-11-27T10:05:21.907Z",
+      "history": [
+        {
+          "title": "Add a product to the cart",
+          "description": "An authenticated standard user can add a product from the products page to the shopping cart.",
+          "expectedResult": "After the user clicks `Add to cart` for the `Sauce Labs Backpack` product once, the cart badge displays `1`.",
+          "negativeCases": [],
+          "priority": "high",
+          "role": "standard_user",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "saucedemo-requirements",
+            "contentHash": "15b3f64dc72a2c2e67a2569297ecfb59a1affade1e9df4762114522d2e959022",
+            "section": "REQ-003: Add a product to the cart",
+            "lineRange": {
+              "start": 38,
+              "end": 51
+            }
+          },
+          "supersededAt": "2026-11-27T10:05:21.908Z",
+          "reason": "Content changed on import"
+        }
+      ]
     }
   }
 }

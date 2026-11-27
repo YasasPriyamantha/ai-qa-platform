@@ -171,6 +171,28 @@ Follow AGENTS.md "Scope discipline". Generation is deterministic template render
 model-written code. Reuse the project config loader, PROJECT_DIRECTORIES (tests/candidates) and atomic write helpers. Verify the
 TypeScript-check approach against the installed typescript package before choosing it. Size budget ~400 source lines. Verify:
 typecheck, build, npm run test:unit. Report the criterion table, one generated example file, raw Vitest lines and git status --short.
+Carry-over notes (from the live plan plan-20261127T094650Z-78789e):
+(a) Q3 planner fix: for the quote check and the notCovered check, a negative case's text is "<condition>: <expected outcome>" (normalised),
+    so a quote with or without the condition prefix is accepted. The live model quoted "Empty username: login is prevented and the message
+    `Epic sadface: Username is required` is shown." and it was wrongly rejected. Add a unit test with that exact quote.
+(b) Locator mapping (§3): a step target {role, name} becomes page.getByRole(role, { name, exact: true }). expect "text" with no target
+    becomes expect(page.getByText(value, { exact: true })).toBeVisible(). expect "visible" with a target becomes toBeVisible().
+    expect "url": a value starting with "/" is resolved against baseUrl; an absolute URL must be on allowedDomains; use toHaveURL.
+    getByLabel and getByPlaceholder are not generated in Phase 5.
+(c) Assertions come only from quotes (§1): every expect value (text or url) must appear, after the same normalisation as the quote
+    check, in one of that scenario's expected-result quotes. Otherwise skip the scenario and report why.
+(d) Fill and select values: a value that is exactly one placeholder {{credential:<roleId>.<key>}} becomes process.env.<VAR> from that
+    role in the project config (unknown role or key: skip the scenario). Any other literal value must appear (normalised) in the text
+    of one of the scenario's requirements; otherwise skip and report. A placeholder mixed with other text: skip.
+(e) In project-data/saucedemo/docs/requirements.md, then run the Q1 requirements import for SauceDemo:
+    - REQ-001 negative case "Wrong password" (keep the condition text): outcome becomes "logging in with the standard user's username
+      and the password `wrong_password` is prevented and the message `Epic sadface: Username and password do not match any user in
+      this service` is shown."
+    - REQ-003 expected result becomes "After the standard user opens `/inventory-item.html?id=4`, the product page for
+      `Sauce Labs Backpack`, and clicks `Add to cart` once, the cart badge displays `1`." Description becomes "An authenticated
+      standard user can add a product to the shopping cart from its product page."
+    Reason: the live plan had no invalid password to use, and on the products page several buttons share the name "Add to cart".
+(f) Run generate once on a test plan file only. Do not run any live AI command; the user runs explore, plan and generate live.
 ```
 
 ---

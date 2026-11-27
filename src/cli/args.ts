@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -58,6 +58,13 @@ export interface ParsedArgs {
     configPath: string;
     requirementIds: string[];
     explorationIds: string[];
+  };
+
+  /** Options for the generate command */
+  generateOptions?: {
+    configPath: string;
+    planId: string;
+    replace: boolean;
   };
 
   /** Parse errors encountered */
@@ -199,6 +206,20 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
+  // generate: --config as for run, plus required --plan <plan-id> and optional --replace
+  if (command === 'generate') {
+    const rest = args.slice(1);
+    const replaceAt = rest.indexOf('--replace');
+    if (replaceAt !== -1) rest.splice(replaceAt, 1);
+    const planAt = rest.indexOf('--plan');
+    const planId = planAt === -1 ? undefined : rest[planAt + 1];
+    if (planAt !== -1) rest.splice(planAt, 2);
+    if (!planId || planId.startsWith('-')) return { command: 'generate', errors: ['--plan requires a plan ID'] };
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command: 'generate', errors: parsed.errors };
+    return { command: 'generate', generateOptions: { configPath: parsed.runOptions.configPath, planId, replace: replaceAt !== -1 }, errors: [] };
+  }
+
   // Unknown command
   return {
     command: 'help',
@@ -302,6 +323,7 @@ Usage:
   npm run qa -- requirements import --config <project-config-path> --document <documentId>
   npm run qa -- requirements list --config <project-config-path>
   npm run qa -- plan --config <project-config-path> --requirements <IDs> --observations <exploration-IDs>
+  npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
   npm run qa -- help
 
 Commands:
@@ -314,6 +336,8 @@ Commands:
   requirements list    List the project's active, retired and unresolved requirements
   plan       Plan requirement-traced test scenarios from requirements and
              observation records; saves specs/candidates/<plan-id>.json
+  generate   Write type-checked candidate tests to tests/candidates/ from a
+             plan with fixed templates (no AI)
   help       Show this help message
 
 Run Command Options:
@@ -341,6 +365,11 @@ plan Options:
   --observations <IDs>  Comma-separated exploration IDs from observations/
                         (required). Requires AI_ENABLED=true, the API key
                         in .env and config/ai-budget.json.
+
+generate Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --plan <plan-id>      Plan from specs/candidates/ (required)
+  --replace             Overwrite existing candidate files
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

@@ -17,7 +17,7 @@ After logging in with the standard user's credentials, the user is taken to `htt
 ### Negative cases
 
 - Empty username: login is prevented and the message `Epic sadface: Username is required` is shown.
-- Wrong password: login is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown.
+- Wrong password: logging in with the standard user's username and the password `wrong_password` is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown.
 - Locked-out user: login is prevented and the message `Epic sadface: Sorry, this user has been locked out.` is shown.
 
 
@@ -43,8 +43,8 @@ Role: standard_user
 
 ### Description
 
-An authenticated standard user can add a product from the products page to the shopping cart.
+An authenticated standard user can add a product to the shopping cart from its product page.
 
 ### Expected result
 
-After the user clicks `Add to cart` for the `Sauce Labs Backpack` product once, the cart badge displays `1`.
+After the standard user opens `/inventory-item.html?id=4`, the product page for `Sauce Labs Backpack`, and clicks `Add to cart` once, the cart badge displays `1`.

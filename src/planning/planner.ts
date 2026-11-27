@@ -85,12 +85,12 @@ function observedLocators(observations: readonly LoadedObservation[]) {
 }
 
 /** Whitespace collapsed and Markdown inline-code backticks removed (§1, carry-over a). */
-const normalise = (s: string) => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+export const normalise = (s: string) => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
 
-/** The positive case and each negative case of a requirement, with their text. */
+/** The positive case and each negative case ("<condition>: <expected outcome>") of a requirement, with their text. */
 const casesOf = (r: RequirementWithHistory) => [
   { case: 'expected result', text: normalise(r.expectedResult ?? '') },
-  ...r.negativeCases.map((n) => ({ case: `negative case: ${n.condition}`, text: normalise(n.expectedOutcome) })),
+  ...r.negativeCases.map((n) => ({ case: `negative case: ${n.condition}`, text: normalise(`${n.condition}: ${n.expectedOutcome}`) })),
 ];
 
 const INSTRUCTIONS = [

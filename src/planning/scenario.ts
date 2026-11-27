@@ -63,6 +63,8 @@ export const TEST_SCENARIO = plannedScenario.extend({
   requirementVersions: z.record(z.string(), z.number().int().positive()),
   steps: z.array(step.extend({ locatorSource: z.enum(LOCATOR_SOURCES).nullable() }).strict()),
   status: z.literal('draft'),
+  /** Workspace-relative candidate file, set by `generate` (Task Q4). */
+  candidateFile: z.string().optional(),
 }).strict();
 
 export type TestScenario = z.infer<typeof TEST_SCENARIO>;
