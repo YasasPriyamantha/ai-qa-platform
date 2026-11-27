@@ -1,13 +1,13 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T07:07:28.138Z",
+  "updatedAt": "2026-11-27T07:48:37.454Z",
   "requirements": {
     "REQ-001": {
       "projectId": "saucedemo",
       "requirementId": "REQ-001",
       "title": "Login with valid credentials",
       "description": "A registered standard user can log in to SauceDemo using the valid username and password published on the login page.",
-      "expectedResult": "After logging in with `standard_user` and `secret_sauce`, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the heading `Products`.",
+      "expectedResult": "After logging in with the standard user's credentials, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the heading `Products`.",
       "negativeCases": [
         {
           "condition": "Empty username",
@@ -26,7 +26,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "contentHash": "b9cd1dd0c118f8937c3a2662bb18b72ec6458e26c29ef4194b0365c601bc61ff",
         "section": "REQ-001: Login with valid credentials",
         "lineRange": {
           "start": 3,
@@ -35,7 +35,42 @@
       },
       "role": "standard_user",
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T07:07:27.148Z"
+      "updatedAt": "2026-11-27T07:48:37.454Z",
+      "history": [
+        {
+          "title": "Login with valid credentials",
+          "description": "A registered standard user can log in to SauceDemo using the valid username and password published on the login page.",
+          "expectedResult": "After logging in with `standard_user` and `secret_sauce`, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the heading `Products`.",
+          "negativeCases": [
+            {
+              "condition": "Empty username",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Username is required` is shown."
+            },
+            {
+              "condition": "Wrong password",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
+            },
+            {
+              "condition": "Locked-out user",
+              "expectedOutcome": "login is prevented and the message `Epic sadface: Sorry, this user has been locked out.` is shown."
+            }
+          ],
+          "priority": "critical",
+          "role": "standard_user",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "saucedemo-requirements",
+            "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+            "section": "REQ-001: Login with valid credentials",
+            "lineRange": {
+              "start": 3,
+              "end": 23
+            }
+          },
+          "supersededAt": "2026-11-27T07:48:37.454Z",
+          "reason": "Content changed on import"
+        }
+      ]
     },
     "REQ-002": {
       "projectId": "saucedemo",
@@ -48,7 +83,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "contentHash": "b9cd1dd0c118f8937c3a2662bb18b72ec6458e26c29ef4194b0365c601bc61ff",
         "section": "REQ-002: Login page controls",
         "lineRange": {
           "start": 24,
@@ -56,7 +91,7 @@
         }
       },
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T07:07:27.148Z"
+      "updatedAt": "2026-11-27T07:48:37.454Z"
     },
     "REQ-003": {
       "projectId": "saucedemo",
@@ -69,7 +104,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "saucedemo-requirements",
-        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "contentHash": "b9cd1dd0c118f8937c3a2662bb18b72ec6458e26c29ef4194b0365c601bc61ff",
         "section": "REQ-003: Add a product to the cart",
         "lineRange": {
           "start": 38,
@@ -78,7 +113,7 @@
       },
       "role": "standard_user",
       "createdAt": "2026-11-27T07:07:27.148Z",
-      "updatedAt": "2026-11-27T07:07:27.148Z"
+      "updatedAt": "2026-11-27T07:48:37.454Z"
     }
   }
 }

@@ -18,6 +18,16 @@
         "password": "SAUCEDEMO_STANDARD_USER_PASSWORD"
       },
       "storageStatePath": ".auth/standard_user.json"
+    },
+    {
+      "roleId": "locked_out_user",
+      "name": "Locked Out User",
+      "credentials": {
+        "username": "SAUCEDEMO_LOCKED_OUT_USERNAME",
+        "password": "SAUCEDEMO_LOCKED_OUT_PASSWORD"
+      },
+      "storageStatePath": ".auth/locked_out_user.json"
     }
-  ]
+  ],
+  "exploration": { "mode": "interactive" }
 }
