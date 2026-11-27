@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 5 in progress (Phases 3–4 complete, MVP-first per DEC-039). The current task list is in `docs/PHASE_5_PLAN.md`; progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
+**Current status:** Phase 5 complete (2026-11-27; Phases 3–5 complete, MVP-first per DEC-039). Next is Phase 6 (candidate validation, human approval and promotion, credentials and `storageState` in the runner); Phase 6 has no plan file yet. Progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -103,7 +103,8 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 - **CI mode:** CI runs only approved Playwright tests. It never calls AI providers, MCP or the usage ledger.
 
 - **Phase 4 (complete):** Playwright MCP read-only exploration; observations saved with evidence (DEC-040).
-- **Phase 5 (current):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Never write to `tests/approved/`.
+- **Phase 5 (complete, 2026-11-27):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Never write to `tests/approved/`.
+- **Phase 6 (next, no plan file yet):** candidate validation, human approval and promotion, credentials and `storageState` in the runner.
 
 Later phases add candidate validation and approval (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
 

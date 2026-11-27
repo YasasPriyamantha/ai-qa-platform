@@ -4,7 +4,7 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 4, Playwright MCP Browser Exploration**: complete (read-only exploration with OpenAI; observations saved with evidence). **Next:** Phase 5, requirements, test planning and generation.
+**Phase 5, Requirements, Test Planning and Generation**: complete (requirement import, requirement-guided exploration, traced scenario plans and template-generated candidate tests, shown on SauceDemo and the local demo app). **Next:** Phase 6, candidate validation, human approval and promotion, and credentials and `storageState` in the runner.
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
 - Next: approved-test CI pipeline, the OpenAI adapter, and a CLI AI check. See [`docs/PHASE_3_PLAN.md`](docs/PHASE_3_PLAN.md).

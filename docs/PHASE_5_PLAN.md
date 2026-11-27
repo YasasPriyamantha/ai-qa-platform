@@ -1,6 +1,6 @@
 # Phase 5 Plan: Requirements, Test Planning and Candidate Generation
 
-**Status:** Ready to start (Phase 4 complete, 2026-11-26).
+**Status:** Complete (2026-11-27).
 **Rules:** `AGENTS.md` → *Scope discipline* and `docs/REVIEW_RULES.md` apply to every task. One task at a time, one correction round at most. Design decisions are recorded as **DEC-041**.
 
 ## 1. Goal and exit criteria

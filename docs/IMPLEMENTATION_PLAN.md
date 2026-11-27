@@ -703,6 +703,66 @@ Known limitations: on Windows, Chromium can take more than 5 s to exit after clo
 
 **Task breakdown:** `docs/PHASE_5_PLAN.md` (Tasks Q1–Q6; design decisions DEC-041). Every item below is mapped to a task there.
 
+**Status: Phase 5 complete (2026-11-27).**
+
+Tasks:
+- Q1 `8a19ceb`: `requirements import` / `requirements list` CLI over the Phase 2 parser and registry; SauceDemo requirements, roles and registry.
+- Q2 `f17a4a5` (+ `4338bf0`): interactive requirement-guided exploration, credential placeholders, evidence-text check; `locked_out_user` role.
+- Q3 `0c7cc97` (+ `4a51322`): scenario planner with validated, requirement-traced output; mcp-output deleted after every exploration; 180 s AI timeout, 12,000 output tokens.
+- Q4 `d9e6ee2` (+ `5a31b82`): template-based candidate generation into `tests/candidates/`; planner asserts only quoted text.
+- Q5 `fc3ec7b`, `0973f4a`: `requirements propose` / review; SauceDemo checkout notes accepted as REQ-004 to REQ-006.
+- Q6 `973d228`: release demo app V1, its requirements and approved CI smoke test; REQ-006 marked unresolved.
+
+Live demonstration (figures read from `observations.json` and the plan files; model `openai/gpt-6-luna`):
+
+*SauceDemo.* Requirements: REQ-001–003 imported from `docs/requirements.md`; REQ-004–006 from proposal `prop-1795778256507-0945b039` (checkout notes, status `accepted`); REQ-006 later marked unresolved ("tax display not agreed").
+
+| Exploration | Requirements | Stop reason | Pages | Tool calls | AI requests | Tokens in / out |
+|---|---|---|---:|---:|---:|---:|
+| `exp-20261127T083915Z-dbfe2c` | REQ-003 | completed | 2 | 13 | 13 | 36,900 / 2,362 |
+| `exp-20261127T093524Z-2d9873` | REQ-001, REQ-002 | ai_request_limit | 2 | 22 | 20 | 62,223 / 2,332 |
+| `exp-20261127T101141Z-d50936` | REQ-003 | ai_request_limit | 3 | 19 | 20 | 61,262 / 2,629 |
+
+| Plan | Requirements | Scenarios | Rejected | Not covered | Questions | Tokens in / out |
+|---|---|---:|---:|---:|---:|---:|
+| `plan-20261127T102111Z-8b4e28` | REQ-001–003 | 6 (SCN-0001–0006) | 0 | 0 | 1 (REQ-002 placeholders not observed) | 3,116 / 3,363 |
+| `plan-20261127T103359Z-4c3780` | REQ-003 | 1 (SCN-0007) | 0 | 0 | 0 | 1,959 / 1,029 |
+
+Generate: 6 written (SCN-0001–0005, SCN-0007). SCN-0006 skipped: its only check is `visible` on button "Cart, 1 items", which is not in the REQ-003 expected-result quote (reason derived from the plan file and the generator rule; the generate console output was not saved). REQ-003 was re-planned after the Q4 follow-up as SCN-0007, which checks the quoted badge text `1`. No candidate checks the REQ-002 placeholders.
+
+*Release Demo (local app V1).* Requirements: DEMO-001–004 imported from `docs/requirements.md`.
+
+| Exploration | Requirements | Stop reason | Pages | Tool calls | AI requests | Tokens in / out |
+|---|---|---|---:|---:|---:|---:|
+| `exp-20261127T170734Z-c524de` | DEMO-001, DEMO-002 | ai_request_limit | 2 | 19 | 20 | 45,951 / 1,649 |
+| `exp-20261127T170955Z-f3b18f` | DEMO-003, DEMO-004 | completed | 2 | 9 | 9 | 17,415 / 1,006 |
+
+| Plan | Requirements | Scenarios | Rejected | Not covered | Questions | Tokens in / out |
+|---|---|---:|---:|---:|---:|---:|
+| `plan-20261127T171129Z-333e91` | DEMO-001–004 | 8 (SCN-0001–0008) | 0 | 0 | 2 (DEMO-004 placeholder; no absence assertion) | 1,731 / 4,359 |
+
+Generate: 8 written, 0 skipped. These Release Demo files (documents, registry, plan, candidates) are untracked in Git at the time of this record.
+
+Exit criteria (`docs/PHASE_5_PLAN.md` §1):
+1. *Requirements plus observations produce traceable scenarios and files:* met. Both apps: requirements → explorations → plans (each lists `explorationIds`; every scenario has `requirementIds`, `requirementVersions` and expected-result quotes) → candidate files with a header naming scenario, requirements, plan and explorations.
+2. *Never written to `tests/approved/`, never promoted:* met. `src/planning/generator.ts:239-240` refuses a candidate folder that overlaps the approved folder; test `generate-command.test.ts` "never overwrites a candidate without --replace, never touches the approved folder, and enforces the file limit". The only Phase 5 change under `tests/approved/` is the hand-written Release Demo smoke test (Q6).
+3. *SauceDemo and one different application:* met. SauceDemo (6 candidates) and the local Release Demo app V1 (8 candidates), above.
+
+Known limitations / LATER:
+- Placeholder checks are not generated (SauceDemo REQ-002, DEMO-004).
+- No "absence" assertion: DEMO-004 "no task is added" checks only the message.
+- `getByText('1')` for the SauceDemo cart badge may match more than one element.
+- `checkCredentialPresence` reads `process.env`, not the parsed `.env` (Phase 6).
+- The planner line "a target is a role and accessible name exactly as observed" can conflict with the quote rule for visible checks (cause of the SCN-0006 skip).
+- Proposed requirement IDs are not checked against other pending proposals.
+- Coverage is matched by quote, so a short quote can count for two cases.
+- Scenario IDs can be reused if a plan file is deleted before generation.
+- SauceDemo SCN-0007 reaches the product page through "View details…" instead of the URL.
+- SauceDemo REQ-004/REQ-005 not yet explored or planned; REQ-006 unresolved.
+- `generate` needs the devDependencies `typescript` and `@playwright/test`.
+- Chromium exits slowly on Windows, and `close()` can race on a startup failure.
+- Vitest worker-timeout warning in `tests/unit/mcp/tool-gateway.test.ts`.
+
 Tasks:
 
 1. Implement structured requirement ingestion using the Phase 2 schema and stable author-assigned IDs.

@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 1,
+  "planId": "plan-20261127T171129Z-333e91",
+  "projectId": "release-demo",
+  "status": "generated",
+  "createdAt": "2026-11-27T17:11:29.595Z",
+  "requirementIds": [
+    "DEMO-001",
+    "DEMO-002",
+    "DEMO-003",
+    "DEMO-004"
+  ],
+  "excluded": [],
+  "explorationIds": [
+    "exp-20261127T170734Z-c524de",
+    "exp-20261127T170955Z-f3b18f"
+  ],
+  "provider": {
+    "providerId": "openai",
+    "modelId": "gpt-6-luna"
+  },
+  "limits": {
+    "maxScenarios": 20,
+    "maxAiRequests": 1
+  },
+  "usage": {
+    "aiRequests": 1,
+    "inputTokens": 1731,
+    "outputTokens": 4359
+  },
+  "stopReason": "completed",
+  "error": null,
+  "scenarios": [
+    {
+      "title": "Display the login form",
+      "requirementIds": [
+        "DEMO-001"
+      ],
+      "categories": [
+        "functional",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": null,
+      "preconditions": [],
+      "testData": [],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "heading",
+            "name": "Sign in to Release Demo"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-001",
+          "quote": "The page at `/` shows the heading `Sign in to Release Demo`, a username field labelled `Username`, a password field labelled `Password`, and a button labelled `Sign in`."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0001",
+      "requirementVersions": {
+        "DEMO-001": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0001.spec.ts"
+    },
+    {
+      "title": "Sign in with the demo account",
+      "requirementIds": [
+        "DEMO-002"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "critical",
+      "risk": "high",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is on the login page."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: {{credential:demo_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:demo_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "/tasks.html",
+          "assertion": "url",
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "heading",
+            "name": "My Tasks"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-002",
+          "quote": "the application navigates to `/tasks.html` and displays the heading `My Tasks`."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0002",
+      "requirementVersions": {
+        "DEMO-002": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0002.spec.ts"
+    },
+    {
+      "title": "Prevent login when the username is empty",
+      "requirementIds": [
+        "DEMO-002"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is on the login page."
+      ],
+      "testData": [
+        "Username: empty",
+        "Password: {{credential:demo_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:demo_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "/",
+          "assertion": "url",
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Username is required.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-002",
+          "quote": "Empty username: login is prevented, the page remains at `/`, and the message `Username is required.` is displayed."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0003",
+      "requirementVersions": {
+        "DEMO-002": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0003.spec.ts"
+    },
+    {
+      "title": "Prevent login when the password is empty",
+      "requirementIds": [
+        "DEMO-002"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is on the login page."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: empty"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "/",
+          "assertion": "url",
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Password is required.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-002",
+          "quote": "Empty password: login is prevented, the page remains at `/`, and the message `Password is required.` is displayed."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0004",
+      "requirementVersions": {
+        "DEMO-002": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0004.spec.ts"
+    },
+    {
+      "title": "Prevent login with an incorrect password",
+      "requirementIds": [
+        "DEMO-002"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "high",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is on the login page."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: wrong-password"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "wrong-password",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "/",
+          "assertion": "url",
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Username or password is incorrect.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-002",
+          "quote": "Incorrect credentials: signing in with the demo account's username and the password `wrong-password` is prevented, the page remains at `/`, and the message `Username or password is incorrect.` is displayed."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0005",
+      "requirementVersions": {
+        "DEMO-002": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0005.spec.ts"
+    },
+    {
+      "title": "Display the predefined task list after login",
+      "requirementIds": [
+        "DEMO-002",
+        "DEMO-003"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "The user can sign in with the configured demo account."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: {{credential:demo_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:demo_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "listitem",
+            "name": "Prepare release notes"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "listitem",
+            "name": "Review test results"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "listitem",
+            "name": "Approve deployment"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-003",
+          "quote": "The `/tasks.html` page displays all three task titles: `Prepare release notes`, `Review test results`, and `Approve deployment`."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0006",
+      "requirementVersions": {
+        "DEMO-002": 1,
+        "DEMO-003": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0006.spec.ts"
+    },
+    {
+      "title": "Add a task with a non-empty title",
+      "requirementIds": [
+        "DEMO-004"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is signed in and on `/tasks.html`."
+      ],
+      "testData": [
+        "Task title: Check deployment logs"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/tasks.html",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Task title"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Task title"
+          },
+          "value": "Check deployment logs",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "listitem",
+            "name": "Check deployment logs"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-004",
+          "quote": "The `/tasks.html` page shows a text field labelled `Task title` with the placeholder `Enter a task title` and a button labelled `Add task`."
+        },
+        {
+          "requirementId": "DEMO-004",
+          "quote": "When the user enters `Check deployment logs` and clicks `Add task`, `Check deployment logs` appears in the task list."
+        }
+      ],
+      "questions": [
+        "The observations show the textbox labelled `Task title` but do not show its placeholder. How can the placeholder `Enter a task title` be observed and verified?"
+      ],
+      "scenarioId": "SCN-0007",
+      "requirementVersions": {
+        "DEMO-004": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0007.spec.ts"
+    },
+    {
+      "title": "Prevent adding a task with an empty title",
+      "requirementIds": [
+        "DEMO-004"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "The user is signed in and on `/tasks.html`."
+      ],
+      "testData": [
+        "Task title: empty"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/tasks.html",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Task title is required.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-004",
+          "quote": "Empty task title: no task is added and the message `Task title is required.` is displayed."
+        }
+      ],
+      "questions": [
+        "What observable evidence should verify that no task was added? The supported expect actions do not provide an absence assertion, and the observations do not establish a task-list baseline for this case."
+      ],
+      "scenarioId": "SCN-0008",
+      "requirementVersions": {
+        "DEMO-004": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0008.spec.ts"
+    }
+  ],
+  "rejected": [],
+  "notCovered": [],
+  "conflicts": [],
+  "questions": [
+    "The observations show the textbox labelled `Task title` but do not show its placeholder. How can the placeholder `Enter a task title` be observed and verified?",
+    "What observable evidence should verify that no task was added? The supported expect actions do not provide an absence assertion, and the observations do not establish a task-list baseline for this case."
+  ]
+}

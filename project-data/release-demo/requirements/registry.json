@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAt": "2026-11-27T17:07:12.302Z",
+  "requirements": {
+    "DEMO-001": {
+      "projectId": "release-demo",
+      "requirementId": "DEMO-001",
+      "title": "Display the login form",
+      "description": "The Release Demo application provides a login page where a user can enter a username and password to access the task list.",
+      "expectedResult": "The page at `/` shows the heading `Sign in to Release Demo`, a username field labelled `Username`, a password field labelled `Password`, and a button labelled `Sign in`.",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "release-demo-requirements",
+        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "section": "DEMO-001: Display the login form",
+        "lineRange": {
+          "start": 3,
+          "end": 16
+        }
+      },
+      "createdAt": "2026-11-27T17:07:12.301Z",
+      "updatedAt": "2026-11-27T17:07:12.301Z"
+    },
+    "DEMO-002": {
+      "projectId": "release-demo",
+      "requirementId": "DEMO-002",
+      "title": "Log in with the demo account",
+      "description": "A user can access the task list by submitting the single configured demo account's valid credentials.",
+      "expectedResult": "When the user enters the demo account's username and password and clicks `Sign in`, the application navigates to `/tasks.html` and displays the heading `My Tasks`.",
+      "negativeCases": [
+        {
+          "condition": "Empty username",
+          "expectedOutcome": "login is prevented, the page remains at `/`, and the message `Username is required.` is displayed."
+        },
+        {
+          "condition": "Empty password",
+          "expectedOutcome": "login is prevented, the page remains at `/`, and the message `Password is required.` is displayed."
+        },
+        {
+          "condition": "Incorrect credentials",
+          "expectedOutcome": "signing in with the demo account's username and the password `wrong-password` is prevented, the page remains at `/`, and the message `Username or password is incorrect.` is displayed."
+        }
+      ],
+      "priority": "critical",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "release-demo-requirements",
+        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "section": "DEMO-002: Log in with the demo account",
+        "lineRange": {
+          "start": 17,
+          "end": 37
+        }
+      },
+      "role": "demo_user",
+      "createdAt": "2026-11-27T17:07:12.301Z",
+      "updatedAt": "2026-11-27T17:07:12.301Z"
+    },
+    "DEMO-003": {
+      "projectId": "release-demo",
+      "requirementId": "DEMO-003",
+      "title": "Display the predefined task list",
+      "description": "After a successful login, the task list page displays a small, predictable set of initial tasks.",
+      "expectedResult": "The `/tasks.html` page displays all three task titles: `Prepare release notes`, `Review test results`, and `Approve deployment`.",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "release-demo-requirements",
+        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "section": "DEMO-003: Display the predefined task list",
+        "lineRange": {
+          "start": 38,
+          "end": 52
+        }
+      },
+      "role": "demo_user",
+      "createdAt": "2026-11-27T17:07:12.301Z",
+      "updatedAt": "2026-11-27T17:07:12.301Z"
+    },
+    "DEMO-004": {
+      "projectId": "release-demo",
+      "requirementId": "DEMO-004",
+      "title": "Add a task with a required title",
+      "description": "A signed-in user can add a task by entering a non-empty title in the task form.",
+      "expectedResult": "The `/tasks.html` page shows a text field labelled `Task title` with the placeholder `Enter a task title` and a button labelled `Add task`. When the user enters `Check deployment logs` and clicks `Add task`, `Check deployment logs` appears in the task list.",
+      "negativeCases": [
+        {
+          "condition": "Empty task title",
+          "expectedOutcome": "no task is added and the message `Task title is required.` is displayed."
+        }
+      ],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "release-demo-requirements",
+        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "section": "DEMO-004: Add a task with a required title",
+        "lineRange": {
+          "start": 53,
+          "end": 70
+        }
+      },
+      "role": "demo_user",
+      "createdAt": "2026-11-27T17:07:12.301Z",
+      "updatedAt": "2026-11-27T17:07:12.301Z"
+    }
+  }
+}

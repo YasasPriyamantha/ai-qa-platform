@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAt": "2026-11-27T17:07:12.293Z",
+  "documents": {
+    "release-demo-requirements": {
+      "documentId": "release-demo-requirements",
+      "name": "release-demo-requirements",
+      "createdAt": "2026-11-27T17:07:12.293Z",
+      "updatedAt": "2026-11-27T17:07:12.293Z",
+      "versions": [
+        {
+          "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+          "snapshotPath": "sources/6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed.md",
+          "contentSize": 2249,
+          "ingestedAt": "2026-11-27T17:07:12.293Z",
+          "sourcePath": "docs/requirements.md",
+          "format": "markdown"
+        }
+      ]
+    }
+  }
+}
