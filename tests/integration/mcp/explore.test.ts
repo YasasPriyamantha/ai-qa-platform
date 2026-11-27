@@ -183,8 +183,8 @@ describe('explore (real Playwright MCP, local fixture site, fake model)', () => 
     expect(page.elements[0]).toMatchObject({ role: 'heading', name: 'Fixture Home', unsupported: false });
     expect(page.links.map((l: { unsupported: boolean }) => l.unsupported)).toEqual([false, true]);
 
-    // The MCP server's own output stays inside the exploration folder.
-    expect(existsSync(join(dir, 'mcp-output'))).toBe(true);
+    // The MCP server's own output is never scrubbed, so it is deleted when the exploration ends (Q3 fix, DEC-041 §7).
+    expect(existsSync(join(dir, 'mcp-output'))).toBe(false);
     expectNoSecrets(dir);
   }, 120_000);
 
@@ -270,7 +270,10 @@ describe('explore (real Playwright MCP, local fixture site, fake model)', () => 
       expect(body).not.toContain(PASSWORD);
       expect(body).not.toContain(USERNAME);
     }
-    // Nothing on disk (record, evidence, MCP output) holds a credential value, and process.env was not touched.
+    // The MCP server's unscrubbed output is gone, and no remaining file (record, evidence) holds a credential value;
+    // process.env was not touched.
+    expect(existsSync(join(dir, 'mcp-output'))).toBe(false);
+    expect(filesUnder(dir).length).toBeGreaterThan(1);
     for (const file of filesUnder(dir)) {
       const text = readFileSync(file, 'utf-8');
       expect(text, file).not.toContain(PASSWORD);

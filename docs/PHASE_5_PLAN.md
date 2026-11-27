@@ -136,6 +136,17 @@ Follow AGENTS.md "Scope discipline". Reuse executeRequest(), the OpenAI adapter,
 requirement registry and the P4 observation records; create no parallel types. The model never assigns scenario IDs. No live API
 calls. Size budget ~400 source lines. Verify: typecheck, build, npm run test:unit. Report the criterion table, raw Vitest lines and
 git status --short.
+Carry-over notes:
+(a) Quote check: normalise whitespace AND ignore Markdown inline-code backticks (`) when comparing an expected-result quote with requirement text.
+(b) Observation records: accept only schemaVersion 2; for an older record fail with a clear message to re-run explore. Do not migrate.
+(c) Step locators: a role+name pair is usable if it is a supported summary claim OR it appears in the raw snapshot evidence text of a
+    cited exploration (e.g. `button "Login"`, `textbox "Username"`). Record which source each locator came from. Live records showed
+    the model summarises only the last page, so evidence text must be accepted.
+(d) After implementing, run `plan` once with a fake adapter only; the user will run the live plan.
+(e) Separate Q2 fix (DEC-041 §7): files the MCP server writes itself (observations/<id>/mcp-output/) are not scrubbed and showed page
+    text containing a credential value. Delete mcp-output/ when every exploration ends (not only on domain_violation). Add a test
+    that the folder is gone after a normal run and that a credential sentinel appears in no remaining file of the exploration folder.
+    Report this fix separately in the criterion table.
 ```
 
 ---

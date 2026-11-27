@@ -9,6 +9,7 @@
  *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
  *   npm run qa -- requirements import|list --config <project-config-path> [--document <documentId>]
+ *   npm run qa -- plan --config <project-config-path> --requirements <ID>[,…] --observations <exploration-id>[,…]
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -20,6 +21,7 @@ import { executeAiCheckCommand } from './ai-check-command.js';
 import { executeMcpCheckCommand } from './mcp-check-command.js';
 import { executeExploreCommand } from './explore-command.js';
 import { executeRequirementsCommand } from './requirements-command.js';
+import { executePlanCommand } from './plan-command.js';
 
 /**
  * Main CLI entry point.
@@ -72,6 +74,10 @@ async function main(): Promise<void> {
 
     case 'requirements':
       process.exit(executeRequirementsCommand(parsed.requirementsOptions!));
+      break;
+
+    case 'plan':
+      process.exit(await executePlanCommand(parsed.planOptions!));
       break;
 
     default:

@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -51,6 +51,13 @@ export interface ParsedArgs {
     configPath: string;
     /** documentId to import (import only) */
     documentId?: string;
+  };
+
+  /** Options for the plan command */
+  planOptions?: {
+    configPath: string;
+    requirementIds: string[];
+    explorationIds: string[];
   };
 
   /** Parse errors encountered */
@@ -169,6 +176,29 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
+  // plan: --config as for run, plus required --requirements <ID>[,…] and --observations <exploration-id>[,…]
+  if (command === 'plan') {
+    const rest = args.slice(1);
+    const lists: Record<string, string[]> = {};
+    for (const flag of ['--requirements', '--observations']) {
+      const at = rest.indexOf(flag);
+      const value = at === -1 ? undefined : rest[at + 1];
+      if (at !== -1) rest.splice(at, 2);
+      const ids = (value ?? '').split(',').map((id) => id.trim()).filter((id) => id !== '');
+      if (!value || value.startsWith('-') || ids.length === 0) {
+        return { command: 'plan', errors: [`${flag} requires one or more comma-separated IDs`] };
+      }
+      lists[flag] = ids;
+    }
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command: 'plan', errors: parsed.errors };
+    return {
+      command: 'plan',
+      planOptions: { configPath: parsed.runOptions.configPath, requirementIds: lists['--requirements'], explorationIds: lists['--observations'] },
+      errors: [],
+    };
+  }
+
   // Unknown command
   return {
     command: 'help',
@@ -271,6 +301,7 @@ Usage:
   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
   npm run qa -- requirements import --config <project-config-path> --document <documentId>
   npm run qa -- requirements list --config <project-config-path>
+  npm run qa -- plan --config <project-config-path> --requirements <IDs> --observations <exploration-IDs>
   npm run qa -- help
 
 Commands:
@@ -281,6 +312,8 @@ Commands:
              sets exploration.mode "interactive") and save observations
   requirements import  Ingest a declared document and import its requirements
   requirements list    List the project's active, retired and unresolved requirements
+  plan       Plan requirement-traced test scenarios from requirements and
+             observation records; saves specs/candidates/<plan-id>.json
   help       Show this help message
 
 Run Command Options:
@@ -301,6 +334,13 @@ explore Options:
 requirements Options:
   --config, -c <path>   Path to the project configuration file (required)
   --document <id>       documentId from the config's documents list (import only)
+
+plan Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --requirements <IDs>  Comma-separated active requirement IDs (required)
+  --observations <IDs>  Comma-separated exploration IDs from observations/
+                        (required). Requires AI_ENABLED=true, the API key
+                        in .env and config/ai-budget.json.
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

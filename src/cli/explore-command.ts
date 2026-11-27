@@ -7,20 +7,22 @@
  * --requirement guides it to the pages those requirements describe (Q2). Refuses
  * before starting MCP unless AI is enabled, the API key is present and a
  * valid budget exists. The MCP server's output directory is inside the
- * exploration's own git-ignored folder.
+ * exploration's own git-ignored folder and is deleted when the exploration
+ * ends, because the server writes it without credential scrubbing (Q3 fix).
  */
 
 import { join, resolve } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 import { loadPhase2ProjectConfig, ConfigValidationError, getProjectStoragePaths } from '../projects/index.js';
 import { validateBaseUrl } from '../projects/loader.js';
-import { createSecretResolutionContext, getEnabledProviders, getEnvSecret, type SecretResolutionContext } from '../provider-secrets/index.js';
+import { getEnvSecret } from '../provider-secrets/index.js';
 import { loadRequirementRegistry, type Requirement } from '../requirements/index.js';
-import { convertProviderConfigEntry, createOpenAIAdapter, loadBudgetConfig, type ProviderAdapter } from '../model-providers/index.js';
+import { createOpenAIAdapter, type ProviderAdapter } from '../model-providers/index.js';
 import { buildPlaywrightMcpLaunch, McpConnection } from '../mcp/playwright-mcp.js';
 import { ToolGateway } from '../mcp/tool-gateway.js';
 import { runExploration } from '../exploration/loop.js';
 import { explorationDirectory, newExplorationId, saveExplorationRecord, type ExplorationContext } from '../exploration/record.js';
+import { loadAiSetup } from './ai-setup.js';
 import { displayError } from './output.js';
 import { EXIT_SUCCESS, EXIT_FAILURE } from './run-command.js';
 
@@ -76,36 +78,17 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
     return refuse('start URL is not allowed', `${startUrl}: ${(err as Error).message.replace(/^baseUrl: /, '')}`);
   }
 
-  let secretContext: SecretResolutionContext;
-  try {
-    secretContext = createSecretResolutionContext({
-      envFilePath: join(rootDir, '.env'),
-      providerConfigPath: join(rootDir, 'config', 'ai-providers.json'),
-    });
-  } catch (err) {
-    return refuse('cannot load AI provider configuration', (err as Error).message);
-  }
-  const entry = getEnabledProviders(secretContext.providerConfig)[0];
-  const converted = entry ? convertProviderConfigEntry(entry) : undefined;
-  if (!converted?.success || !converted.config) return refuse('no valid enabled provider in config/ai-providers.json');
-  const provider = converted.config;
-  const { enablement, envFile } = secretContext;
-  if (!enablement.enabled) return refuse('AI is disabled', 'Set AI_ENABLED=true in .env.');
-  if (!envFile.success || getEnvSecret(envFile.values, provider.apiKeyEnvVar) === undefined) {
-    return refuse('API key missing', `Set ${provider.apiKeyEnvVar} in .env.`);
-  }
-  const budget = loadBudgetConfig(rootDir);
-  if (!budget.success) return refuse('no valid budget', [budget.error.message, ...(budget.error.details ?? [])].join(' '));
-  if (provider.adapterType !== 'openai-responses') {
-    return refuse(`only the openai-responses adapter is supported, not ${provider.adapterType}`);
-  }
+  const ai = loadAiSetup(rootDir);
+  if (!ai.ok) return refuse(ai.title, ai.details);
+  const { secretContext, provider, budget } = ai.setup;
+  const { envFile } = secretContext;
 
   // Role credential values from the parsed root .env (never process.env); the model only sees placeholders (DEC-041 §7).
   const credentials: Record<string, Record<string, string>> = {};
   const credentialPlaceholders: string[] = [];
   for (const role of config.roles ?? []) {
     for (const [key, variable] of Object.entries(role.credentials)) {
-      const value = getEnvSecret(envFile.values, variable);
+      const value = envFile.success ? getEnvSecret(envFile.values, variable) : undefined;
       if (value === undefined) continue;
       (credentials[role.roleId] ??= {})[key] = value;
       credentialPlaceholders.push(`{{credential:${role.roleId}.${key}}}`);
@@ -113,7 +96,7 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
   }
   const mode = config.exploration?.mode ?? 'read-only';
 
-  const b = budget.config;
+  const b = budget;
   const context: ExplorationContext = {
     explorationId: newExplorationId(),
     projectId: config.projectId,
@@ -177,10 +160,10 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
   } catch (err) {
     displayError('Exploration failed', (err as Error).message);
     return EXIT_FAILURE;
+  } finally {
+    // The server's own output (page text, console logs, off-domain pages) is never scrubbed, so none of it is kept (DEC-041 §7).
+    rmSync(mcpOutputDir, { recursive: true, force: true });
   }
-
-  // The server saved the off-domain page in its own output before the gateway caught it; keep no off-domain content.
-  if (result.stopReason === 'domain_violation') rmSync(mcpOutputDir, { recursive: true, force: true });
 
   let saved;
   try {

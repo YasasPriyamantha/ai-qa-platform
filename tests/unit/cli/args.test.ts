@@ -169,6 +169,18 @@ describe('parseArgs', () => {
   });
 });
 
+describe('parseArgs plan (Task Q3)', () => {
+  it('parses --config, --requirements and --observations, and requires both lists', () => {
+    expect(parseArgs(['plan', '--config', 'p.json', '--requirements', 'REQ-001, REQ-002', '--observations', 'exp-1'])).toEqual({
+      command: 'plan',
+      planOptions: { configPath: 'p.json', requirementIds: ['REQ-001', 'REQ-002'], explorationIds: ['exp-1'] },
+      errors: [],
+    });
+    expect(parseArgs(['plan', '--config', 'p.json', '--observations', 'exp-1']).errors).toEqual(['--requirements requires one or more comma-separated IDs']);
+    expect(parseArgs(['plan', '--config', 'p.json', '--requirements', 'REQ-001']).errors).toEqual(['--observations requires one or more comma-separated IDs']);
+  });
+});
+
 describe('getHelpText', () => {
   it('should return non-empty help text', () => {
     const help = getHelpText();
