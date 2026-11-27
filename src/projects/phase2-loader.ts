@@ -28,6 +28,7 @@ import type {
   ResolvedPhase2Config,
   RoleProfile,
   DocumentReference,
+  ExplorationSettings,
 } from './phase2-config.js';
 
 /**
@@ -398,6 +399,7 @@ export interface ValidatedPhase2Fields {
   roles?: RoleProfile[];
   documents?: DocumentReference[];
   description?: string;
+  exploration?: ExplorationSettings;
 }
 
 /**
@@ -534,6 +536,8 @@ const KNOWN_CONFIG_FIELDS = new Set([
   'roles',
   'documents',
   'description',
+  // Phase 5 (Task Q2)
+  'exploration',
 ]);
 
 /**
@@ -553,8 +557,9 @@ export function validatePhase2Fields(rawConfig: Record<string, unknown>): Valida
   const roles = validateRoles(rawConfig);
   const documents = validateDocuments(rawConfig);
   const description = validateDescription(rawConfig);
+  const exploration = validateExploration(rawConfig);
 
-  return { roles, documents, description };
+  return { roles, documents, description, ...(exploration ? { exploration } : {}) };
 }
 
 /**
@@ -1077,6 +1082,28 @@ function validateDescription(raw: Record<string, unknown>): string | undefined {
   }
 
   return description.trim() === '' ? undefined : description;
+}
+
+/**
+ * Validate the optional exploration settings (Task Q2, DEC-041 §6).
+ */
+function validateExploration(raw: Record<string, unknown>): ExplorationSettings | undefined {
+  const exploration = raw.exploration;
+  if (exploration === undefined || exploration === null) {
+    return undefined;
+  }
+  if (typeof exploration !== 'object' || Array.isArray(exploration)) {
+    throw new ConfigValidationError('Must be an object', 'exploration', exploration);
+  }
+  const { mode = 'read-only', ...rest } = exploration as Record<string, unknown>;
+  const unknown = Object.keys(rest)[0];
+  if (unknown !== undefined) {
+    throw new ConfigValidationError(`Unknown property '${unknown}'`, `exploration.${unknown}`);
+  }
+  if (mode !== 'read-only' && mode !== 'interactive') {
+    throw new ConfigValidationError(`Must be "read-only" or "interactive"`, 'exploration.mode', mode);
+  }
+  return { mode };
 }
 
 /**

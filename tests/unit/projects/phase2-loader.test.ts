@@ -519,6 +519,29 @@ describe('loadPhase2ProjectConfig', () => {
     });
   });
 
+  describe('exploration.mode (Task Q2)', () => {
+    it('is absent by default and accepts read-only and interactive', () => {
+      writeConfig(validPhase1Config);
+      expect(loadPhase2ProjectConfig(configPath).exploration).toBeUndefined();
+      writeConfig({ ...validPhase1Config, exploration: { mode: 'interactive' } });
+      expect(loadPhase2ProjectConfig(configPath).exploration).toEqual({ mode: 'interactive' });
+      writeConfig({ ...validPhase1Config, exploration: { mode: 'read-only' } });
+      expect(loadPhase2ProjectConfig(configPath).exploration).toEqual({ mode: 'read-only' });
+      writeConfig({ ...validPhase1Config, exploration: {} });
+      expect(loadPhase2ProjectConfig(configPath).exploration).toEqual({ mode: 'read-only' });
+    });
+
+    it.each([
+      ['an unknown mode', { mode: 'write' }, /exploration\.mode.*"read-only" or "interactive"/],
+      ['a non-object', 'interactive', /exploration: Must be an object/],
+      ['an unknown property', { mode: 'interactive', tools: ['browser_evaluate'] }, /exploration\.tools.*Unknown property/],
+    ])('rejects %s', (_label, exploration, message) => {
+      writeConfig({ ...validPhase1Config, exploration });
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(ConfigValidationError);
+      expect(() => loadPhase2ProjectConfig(configPath)).toThrow(message);
+    });
+  });
+
   describe('secret-value rejection', () => {
     it('should reject JWT tokens in credentials', () => {
       writeConfig({

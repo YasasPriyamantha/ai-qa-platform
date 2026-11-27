@@ -6,12 +6,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { CallToolResult, Tool } from '@modelcontextprotocol/client';
 import { runExploration, type ExplorationOptions } from '../../../src/exploration/loop.js';
 import { EXPLORATION_SUMMARY_SCHEMA } from '../../../src/exploration/summary.js';
+import { saveExplorationRecord } from '../../../src/exploration/record.js';
 import { ToolGateway } from '../../../src/mcp/tool-gateway.js';
 import { createOpenAIAdapter, globalAdapterRegistry, type BudgetConfig } from '../../../src/model-providers/index.js';
 import { createSecretResolutionContext } from '../../../src/provider-secrets/index.js';
@@ -32,15 +33,23 @@ const TOOLS: Tool[] = [
   { name: 'browser_navigate_back', inputSchema: SCHEMA },
   { name: 'browser_wait_for', inputSchema: { type: 'object', properties: { time: { type: 'number' } } } },
   { name: 'browser_click', inputSchema: SCHEMA },
+  { name: 'browser_type', inputSchema: SCHEMA },
+  { name: 'browser_select_option', inputSchema: SCHEMA },
+  { name: 'browser_press_key', inputSchema: SCHEMA },
 ];
 
 /** Fake MCP server: navigation sets the page (with optional redirects); snapshots describe it. */
 function fakeMcp(redirects: Record<string, string> = {}) {
   let page = 'about:blank';
   let snapshots = 0;
+  let typed = '';
   const callTool = vi.fn(async (name: string, args: Record<string, unknown>): Promise<CallToolResult> => {
     if (name === 'browser_navigate') page = redirects[String(args.url)] ?? String(args.url);
-    const body = name === 'browser_snapshot' ? `\n- Page Snapshot:\n- heading "Page ${++snapshots}" [ref=e1]\nSECRET-OFFSITE-TEXT` : '';
+    // Like the real server: browser_type echoes the code it ran, and the snapshot shows the field's value.
+    if (name === 'browser_type') typed = String(args.text);
+    const body = name === 'browser_snapshot'
+      ? `\n- Page Snapshot:\n- heading "Page ${++snapshots}" [ref=e1]\n- textbox "Password" [ref=e2]: ${typed}\nSECRET-OFFSITE-TEXT`
+      : name === 'browser_type' ? `\nawait page.getByRole('textbox').fill('${typed}');` : '';
     return { content: [{ type: 'text', text: `- Page URL: ${page}${body}` }] };
   });
   return { listTools: async () => TOOLS, callTool, close: vi.fn(async () => undefined) };
@@ -61,6 +70,7 @@ const SUMMARY = {
     elements: [{ role: 'heading', name: 'Page 1', evidenceIds: ['ev-001'] }],
     forms: [{ name: 'Login', fields: [{ role: 'textbox', name: 'Username' }], evidenceIds: [] }],
     links: [{ name: 'About', url: 'https://example.com/about', evidenceIds: ['ev-999'] }],
+    actions: [],
   }],
   blockers: [],
 };
@@ -103,13 +113,17 @@ describe('runExploration', () => {
 
   async function explore(
     script: (Output[] | Error)[],
-    overrides: Partial<ExplorationOptions> & { maxToolCalls?: number; redirects?: Record<string, string>; delayMs?: number } = {}
+    overrides: Partial<ExplorationOptions> & {
+      maxToolCalls?: number; redirects?: Record<string, string>; delayMs?: number;
+      gatewayOptions?: Partial<Parameters<typeof ToolGateway.create>[1]>;
+    } = {}
   ) {
     const mcp = fakeMcp(overrides.redirects);
     const gateway = await ToolGateway.create(mcp, {
       allowedDomains: ['example.com'],
       maxToolCalls: overrides.maxToolCalls ?? 10,
       callTimeoutMs: 5_000,
+      ...overrides.gatewayOptions,
     });
     const { adapter, bodies } = fakeOpenAI(script, overrides.delayMs);
     const result = await runExploration({
@@ -287,6 +301,91 @@ describe('runExploration', () => {
     expect(nav).toContain('- Page URL: https://example.com/a');
     expect(snap2).toMatch(/Older snapshot omitted; it is kept as evidence ev-002/);
     expect(snap3).toMatch(/^Evidence ID: ev-003\n[\s\S]*heading "Page 3"/);
+  });
+
+  it('evidence-text check (§8): an element, form field or action is supported only if its name is in cited evidence', async () => {
+    const { result } = await explore([
+      [call('c1', 'browser_navigate', { url: 'https://example.com/' })],
+      [call('c2', 'browser_snapshot')],
+      answer({
+        pages: [{
+          ...SUMMARY.pages[0],
+          elements: [
+            { role: 'heading', name: 'Page   1', evidenceIds: ['ev-001'] }, // whitespace is normalised
+            { role: 'heading', name: 'Invented heading', evidenceIds: ['ev-001'] },
+          ],
+          forms: [{ name: 'Login', fields: [{ role: 'heading', name: 'Page 1' }, { role: 'textbox', name: 'Email' }], evidenceIds: ['ev-001'] }],
+          actions: [
+            { role: 'heading', name: 'Page 1', evidenceIds: ['ev-001'] },
+            { role: 'button', name: 'Checkout', evidenceIds: ['ev-001'] },
+            { role: 'button', name: 'Page 1', evidenceIds: [] },
+          ],
+        }],
+        blockers: [],
+      }),
+    ]);
+    const page = result.summary!.pages[0];
+    expect(page.elements.map((e) => e.unsupported)).toEqual([false, true]);
+    expect(page.forms[0].unsupported).toBe(false); // the form name is not checked against the text, only its fields
+    expect(page.forms[0].fields.map((f) => f.unsupported)).toEqual([false, true]);
+    expect(page.actions.map((a) => a.unsupported)).toEqual([false, true, true]);
+  });
+
+  it('requirement-guided: the goal lists the requirements and credential placeholders, and asks for actions', async () => {
+    const { bodies } = await explore([answer({ pages: [], blockers: [] })], {
+      requirements: [{
+        requirementId: 'REQ-001',
+        title: 'Login with valid credentials',
+        description: 'A standard user logs in from the login page.',
+        expectedResult: 'The inventory page is shown.',
+      }],
+      credentialPlaceholders: ['{{credential:standard_user.username}}', '{{credential:standard_user.password}}'],
+    });
+    const instructions = String(bodies[0].instructions);
+    expect(instructions).toMatch(/reach and observe the pages that the requirements/);
+    expect(instructions).toMatch(/type the credential placeholders/);
+    expect(instructions).toMatch(/Never submit a form or take an action that is not needed/);
+    expect(instructions).toMatch(/actions \(the buttons and links/);
+    const first = JSON.stringify(inputOf(bodies[0])[0]);
+    for (const text of ['REQ-001: Login with valid credentials', 'A standard user logs in', 'Expected result: The inventory page is shown.',
+      '{{credential:standard_user.username}}, {{credential:standard_user.password}}']) {
+      expect(first).toContain(text);
+    }
+  });
+
+  it('credential sentinel: the value reaches the browser but never the model, the result or the saved record', async () => {
+    const SENTINEL = 'CREDENTIAL-SENTINEL-q2-55e1';
+    const { result, bodies, mcp } = await explore([
+      [call('c1', 'browser_navigate', { url: 'https://example.com/' })],
+      [call('c2', 'browser_type', { target: 'e2', text: '{{credential:standard_user.password}}' })],
+      [call('c3', 'browser_snapshot')],
+      answer({ pages: [], blockers: [] }),
+    ], { gatewayOptions: { mode: 'interactive', credentials: { standard_user: { password: SENTINEL } } } });
+
+    expect(mcp.callTool).toHaveBeenCalledWith('browser_type', { target: 'e2', text: SENTINEL }, expect.anything());
+    expect(result.toolLog[1]).toMatchObject({ tool: 'browser_type', arguments: { text: '{{credential:standard_user.password}}' }, error: false });
+    expect(result.evidence[0].text).toContain('textbox "Password" [ref=e2]: [REDACTED]');
+    expect(outputs(bodies[2]).join('\n')).toContain("fill('[REDACTED]')");
+    for (const body of bodies) expect(JSON.stringify(body)).not.toContain(SENTINEL);
+    expect(JSON.stringify(result)).not.toContain(SENTINEL);
+
+    const workspace = join(root, 'workspace');
+    const limits = { maxAiRequests: 10, maxToolCalls: 10, maxDurationMs: 60_000, callTimeoutMs: 5_000, budget: BUDGET };
+    saveExplorationRecord(workspace, {
+      explorationId: 'exp-test', projectId: 'demo', startUrl: 'https://example.com/', requirementIds: ['REQ-001'],
+      providerId: 'openai', modelId: 'gpt-6-luna', startedAt: new Date().toISOString(), limits,
+    }, result);
+    const files = readdirSync(workspace, { recursive: true, withFileTypes: true }).filter((e) => e.isFile());
+    expect(files.length).toBe(2); // observations.json and evidence/ev-001.txt
+    for (const file of files) expect(readFileSync(join(file.parentPath, file.name), 'utf-8')).not.toContain(SENTINEL);
+    expect(JSON.parse(readFileSync(join(workspace, 'observations', 'exp-test', 'observations.json'), 'utf-8')))
+      .toMatchObject({ schemaVersion: 2, requirementIds: ['REQ-001'] });
+  });
+
+  it('without requirements the read-only goal is unchanged', async () => {
+    const { bodies } = await explore([answer({ pages: [], blockers: [] })]);
+    expect(String(bodies[0].instructions)).toMatch(/explore a website read-only/);
+    expect(JSON.stringify(inputOf(bodies[0])[0])).not.toMatch(/Requirements:|credential/);
   });
 
   it('the summary schema converts to JSON Schema for the provider', () => {

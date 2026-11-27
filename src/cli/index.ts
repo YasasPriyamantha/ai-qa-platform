@@ -7,7 +7,7 @@
  *   npm run qa -- run --config <project-config-path>
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
- *   npm run qa -- explore --config <project-config-path> [--start <url>]
+ *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
  *   npm run qa -- requirements import|list --config <project-config-path> [--document <documentId>]
  *   npm run qa -- help
  *

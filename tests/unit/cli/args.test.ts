@@ -76,6 +76,15 @@ describe('parseArgs', () => {
       expect(parseArgs(['explore']).errors).toContain('Missing required option: --config <project-config-path>');
       expect(parseArgs(['explore', '--config', 'p.json', '--start']).errors).toContain('--start requires a URL argument');
     });
+
+    it('parses --requirement as a comma-separated ID list (Task Q2)', () => {
+      expect(parseArgs(['explore', '-c', 'p.json', '--requirement', 'REQ-001, REQ-002'])).toEqual({
+        command: 'explore', exploreOptions: { configPath: 'p.json', requirementIds: ['REQ-001', 'REQ-002'] }, errors: [],
+      });
+      for (const bad of [['--requirement'], ['--requirement', '--start', 'x'], ['--requirement', ',']]) {
+        expect(parseArgs(['explore', '-c', 'p.json', ...bad]).errors[0]).toMatch(/--requirement requires one or more requirement IDs/);
+      }
+    });
   });
 
   describe('run command', () => {

@@ -93,6 +93,14 @@ export interface DocumentReference {
   format: 'markdown' | 'text';
 }
 
+/** Exploration permissions (DEC-041 §6): interactive adds click, type, select and key tools. */
+export type ExplorationMode = 'read-only' | 'interactive';
+
+export interface ExplorationSettings {
+  /** Default `read-only`. */
+  mode: ExplorationMode;
+}
+
 /**
  * Phase 2 project configuration.
  *
@@ -122,6 +130,9 @@ export interface Phase2ProjectConfig extends ExecutionConfig {
    * Optional project description.
    */
   description?: string;
+
+  /** Exploration settings (Task Q2); absent means read-only. */
+  exploration?: ExplorationSettings;
 }
 
 /**
@@ -137,6 +148,9 @@ export interface ResolvedPhase2Config extends ResolvedConfig {
 
   /** Project description if defined */
   description?: string;
+
+  /** Exploration settings if defined */
+  exploration?: ExplorationSettings;
 }
 
 // Re-export Phase 1 types for convenience

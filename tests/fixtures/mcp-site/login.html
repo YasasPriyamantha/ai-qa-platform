@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture Login</title></head>
+<body>
+  <h1>Fixture Login</h1>
+  <form id="login">
+    <label>Username <input id="username" autocomplete="off"></label>
+    <label>Password <input id="password" type="password" autocomplete="off"></label>
+    <button type="submit">Log in</button>
+  </form>
+  <p id="error" role="alert"></p>
+  <script>
+    // Task Q2 fixture: a test-only credential, checked in the page so the static server stays simple.
+    document.getElementById('login').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username === 'fixture-USERNAME-SENTINEL-8d2c' && password === 'fixture-PASSWORD-SENTINEL-31b7') {
+        location.href = '/members.html';
+      } else {
+        document.getElementById('error').textContent = 'Wrong username or password';
+      }
+    });
+  </script>
+</body>
+</html>

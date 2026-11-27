@@ -18,7 +18,8 @@ import type { BudgetConfig } from '../model-providers/index.js';
 import type { CheckedSummary } from './summary.js';
 import type { ExplorationResult, ExplorationStopReason, ToolCallLogEntry } from './loop.js';
 
-export const OBSERVATION_RECORD_SCHEMA_VERSION = 1;
+/** 2: `requirementIds` and summary `actions` (Task Q2). */
+export const OBSERVATION_RECORD_SCHEMA_VERSION = 2;
 
 /** Folder of one exploration inside the project workspace. */
 export function explorationDirectory(projectWorkspace: string, explorationId: string): string {
@@ -35,6 +36,8 @@ export interface ExplorationContext {
   readonly explorationId: string;
   readonly projectId: string;
   readonly startUrl: string;
+  /** Requirements that guided the exploration; empty when none. */
+  readonly requirementIds: readonly string[];
   readonly providerId: string;
   readonly modelId: string;
   readonly startedAt: string;
@@ -56,6 +59,7 @@ export interface ObservationRecord {
   readonly startedAt: string;
   readonly finishedAt: string;
   readonly startUrl: string;
+  readonly requirementIds: readonly string[];
   readonly provider: { readonly providerId: string; readonly modelId: string };
   readonly limits: ExplorationContext['limits'];
   readonly usage: {
@@ -94,7 +98,7 @@ export function saveExplorationRecord(
     return { id: item.id, toolName: item.toolName, file };
   });
 
-  const { limits, explorationId, projectId, startedAt, startUrl, providerId, modelId } = context;
+  const { limits, explorationId, projectId, startedAt, startUrl, requirementIds, providerId, modelId } = context;
   const record: ObservationRecord = {
     schemaVersion: OBSERVATION_RECORD_SCHEMA_VERSION,
     explorationId,
@@ -103,6 +107,7 @@ export function saveExplorationRecord(
     startedAt,
     finishedAt: finishedAt.toISOString(),
     startUrl,
+    requirementIds,
     provider: { providerId, modelId },
     limits,
     usage: {

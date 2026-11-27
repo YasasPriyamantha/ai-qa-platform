@@ -164,3 +164,107 @@ describe('ToolGateway results', () => {
     expect(second.result.toolCallId).toBe('c2');
   });
 });
+
+describe('ToolGateway interactive mode and credentials (Task Q2)', () => {
+  const PASSWORD = 'PASSWORD-SENTINEL-q2-7f3a';
+  const USERNAME = 'USERNAME-SENTINEL-q2-1c9d';
+  const INTERACTIVE_SERVER_TOOLS: Tool[] = [
+    ...SERVER_TOOLS,
+    { name: 'browser_type', description: 'Type', inputSchema: schema({ target: { type: 'string' }, text: { type: 'string' }, submit: { type: 'boolean' } }, ['target', 'text']) },
+    { name: 'browser_select_option', description: 'Select', inputSchema: schema({ target: { type: 'string' }, values: { type: 'array', items: { type: 'string' } } }, ['target', 'values']) },
+    { name: 'browser_press_key', description: 'Key', inputSchema: schema({ key: { type: 'string' } }, ['key']) },
+    { name: 'browser_file_upload', description: 'Upload', inputSchema: schema({ paths: { type: 'array' } }) },
+    { name: 'browser_evaluate', description: 'Evaluate', inputSchema: schema({ function: { type: 'string' } }) },
+    { name: 'browser_run_code', description: 'Run code', inputSchema: schema({ code: { type: 'string' } }) },
+    { name: 'browser_handle_dialog', description: 'Dialog', inputSchema: schema({ accept: { type: 'boolean' } }) },
+    { name: 'browser_tabs', description: 'Tabs', inputSchema: schema({ action: { type: 'string' } }) },
+  ];
+  const interactive = {
+    ...options,
+    mode: 'interactive' as const,
+    credentials: { standard_user: { username: USERNAME, password: PASSWORD } },
+  };
+  function interactiveClient(callTool: Parameters<typeof fakeClient>[0]) {
+    return { listTools: vi.fn(async () => INTERACTIVE_SERVER_TOOLS), callTool: vi.fn(callTool) };
+  }
+
+  it('read-only mode keeps refusing the interactive tools; interactive mode offers them and nothing else', async () => {
+    const readOnly = await ToolGateway.create(interactiveClient(async () => ok('')), options);
+    expect(readOnly.tools.map((t) => t.name)).not.toContain('browser_type');
+
+    const gateway = await ToolGateway.create(interactiveClient(async () => ok('')), interactive);
+    expect(gateway.tools.map((t) => t.name)).toEqual([
+      'browser_navigate', 'browser_snapshot', 'browser_navigate_back', 'browser_wait_for',
+      'browser_click', 'browser_type', 'browser_select_option', 'browser_press_key',
+    ]);
+  });
+
+  it.each(['browser_file_upload', 'browser_evaluate', 'browser_run_code', 'browser_handle_dialog', 'browser_tabs'])(
+    'interactive mode still refuses %s without calling the server', async (name) => {
+      const client = interactiveClient(async () => ok(''));
+      const gateway = await ToolGateway.create(client, interactive);
+      const outcome = await gateway.call(call(name, {}));
+      expect(textOf(outcome)).toMatch(new RegExp(`tool '${name}' is not allowed`));
+      expect(client.callTool).not.toHaveBeenCalled();
+    });
+
+  it('the domain guard is unchanged in interactive mode: off-domain navigation is refused, an off-domain click stops the session', async () => {
+    const client = interactiveClient(async () => ok(page('https://evil.example/')));
+    const gateway = await ToolGateway.create(client, interactive);
+    expect(textOf(await gateway.call(call('browser_navigate', { url: 'https://evil.example/' })))).toMatch(/navigation refused/);
+    expect(client.callTool).not.toHaveBeenCalled();
+    const click = await gateway.call(call('browser_click', { ref: 'e1' }));
+    expect(click.stopReason).toBe('domain_violation');
+    expect(textOf(click)).toMatch(/page content withheld/);
+  });
+
+  it('replaces credential placeholders in browser_type text and redacts the value in what comes back', async () => {
+    const client = interactiveClient(async (_name, args) =>
+      ok(page('https://www.saucedemo.com/', `await page.getByRole('textbox').fill('${String(args.text)}');`)));
+    const gateway = await ToolGateway.create(client, interactive);
+    const outcome = await gateway.call(call('browser_type', { target: 'e2', text: 'pw={{credential:standard_user.password}}', submit: true }));
+
+    expect(client.callTool).toHaveBeenCalledWith('browser_type', { target: 'e2', text: `pw=${PASSWORD}`, submit: true }, expect.anything());
+    expect(outcome.result.isError).toBeUndefined();
+    expect(textOf(outcome)).toContain("fill('pw=[REDACTED]')");
+    expect(textOf(outcome)).not.toContain(PASSWORD);
+  });
+
+  it.each([
+    ['an unknown role', '{{credential:admin.password}}'],
+    ['an unknown key', '{{credential:standard_user.token}}'],
+    ['an inherited property name', '{{credential:standard_user.constructor}}'],
+  ])('refuses %s without calling the server', async (_label, text) => {
+    const client = interactiveClient(async () => ok(''));
+    const gateway = await ToolGateway.create(client, interactive);
+    const outcome = await gateway.call(call('browser_type', { target: 'e2', text }));
+    expect(textOf(outcome)).toMatch(/unknown credential placeholder/);
+    expect(client.callTool).not.toHaveBeenCalled();
+  });
+
+  it('scrubs credential values from evidence, tool errors and thrown errors', async () => {
+    const results: Array<CallToolResult | Error> = [
+      ok(page('https://www.saucedemo.com/', `- textbox "Username": ${USERNAME}\n- textbox "Password": ${PASSWORD}`)),
+      { content: [{ type: 'text', text: `Error: cannot type ${PASSWORD}` }], isError: true },
+      new Error(`connection lost while typing ${USERNAME}`),
+    ];
+    const client = interactiveClient(async () => {
+      const next = results.shift()!;
+      if (next instanceof Error) throw next;
+      return next;
+    });
+    const gateway = await ToolGateway.create(client, interactive);
+    const snap = await gateway.call(call('browser_snapshot'));
+    const toolError = await gateway.call(call('browser_type', { target: 'e2', text: '{{credential:standard_user.password}}' }));
+    const thrown = await gateway.call(call('browser_type', { target: 'e1', text: '{{credential:standard_user.username}}' }));
+
+    expect(snap.evidence?.text).toContain('- textbox "Username": [REDACTED]\n- textbox "Password": [REDACTED]');
+    for (const outcome of [snap, toolError, thrown]) {
+      const all = JSON.stringify(outcome);
+      expect(all).not.toContain(PASSWORD);
+      expect(all).not.toContain(USERNAME);
+    }
+    expect(textOf(toolError)).toBe('Tool error: Error: cannot type [REDACTED]');
+    expect(textOf(thrown)).toBe('Tool error: connection lost while typing [REDACTED]');
+  });
+});

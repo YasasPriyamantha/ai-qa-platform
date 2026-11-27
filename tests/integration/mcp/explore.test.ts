@@ -1,5 +1,5 @@
 /**
- * Integration tests for the explore command and observation record (Task P4).
+ * Integration tests for the explore command and observation record (Tasks P4, Q2).
  *
  * Real Playwright MCP against the local fixture site (tests/fixtures/mcp-site/),
  * with the OpenAI adapter on a fake SDK client: no network, no live API call.
@@ -35,13 +35,21 @@ const reasoning = (id: string): Output => ({ type: 'reasoning', id, summary: [],
 const answer = (summary: unknown): Output[] =>
   [{ type: 'message', id: 'msg', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(summary), annotations: [] }] }];
 
+/** A scripted turn, or one computed from the request (to use element references from the latest snapshot). */
+type Turn = Output[] | ((body: { input: Output[] }) => Output[]);
+
+/** Every request body the fake SDK client received in the current test. */
+let requestBodies: string[] = [];
+
 /** OpenAI adapter on a fake SDK client that returns the scripted outputs in turn. */
-function fakeAdapter(script: Output[][]) {
+function fakeAdapter(script: Turn[]) {
   return createOpenAIAdapter(() => ({
     responses: {
-      create: async () => {
-        const output = script.shift();
-        if (!output) throw new Error('script exhausted');
+      create: async (body) => {
+        requestBodies.push(JSON.stringify(body));
+        const turn = script.shift();
+        if (!turn) throw new Error('script exhausted');
+        const output = typeof turn === 'function' ? turn(body as unknown as { input: Output[] }) : turn;
         return { id: 'resp', status: 'completed', output, usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 } } as never;
       },
     },
@@ -87,6 +95,7 @@ beforeEach(() => {
     testDirectory: 'tests/approved',
     artifactDirectory: 'artifacts',
   }));
+  requestBodies = [];
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -97,8 +106,8 @@ afterEach(() => {
 });
 
 /** Run explore with the scripted model and return the single exploration folder and its record. */
-async function explore(script: Output[][]) {
-  const exitCode = await executeExploreCommand({ configPath, rootDir: root, adapter: fakeAdapter(script) });
+async function explore(script: Turn[], extra: { startUrl?: string; requirementIds?: string[] } = {}) {
+  const exitCode = await executeExploreCommand({ configPath, rootDir: root, adapter: fakeAdapter(script), ...extra });
   const observations = join(root, 'project', 'observations');
   const ids = readdirSync(observations);
   expect(ids).toHaveLength(1);
@@ -130,6 +139,7 @@ describe('explore (real Playwright MCP, local fixture site, fake model)', () => 
           elements: [{ role: 'heading', name: 'Fixture Home', evidenceIds: ['ev-001'] }],
           forms: [],
           links: [{ name: 'About', url: `${base}/about.html`, evidenceIds: ['ev-001'] }, { name: 'Notice', url: `${base}/injection.html`, evidenceIds: [] }],
+          actions: [],
         }],
         blockers: [],
       }),
@@ -138,7 +148,7 @@ describe('explore (real Playwright MCP, local fixture site, fake model)', () => 
     expect(exitCode).toBe(0);
     expect(id).toMatch(/^exp-\d{8}T\d{6}Z-[0-9a-f]{6}$/);
     expect(record).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       explorationId: id,
       projectId: 'fixture-site',
       releaseId: null,
@@ -194,6 +204,79 @@ describe('explore (real Playwright MCP, local fixture site, fake model)', () => 
     expect(readFileSync(join(dir, 'observations.json'), 'utf-8')).not.toContain('127.0.0.1');
     // The MCP server writes the page it landed on to its output folder; none of it may remain.
     for (const file of filesUnder(dir)) expect(readFileSync(file, 'utf-8'), file).not.toContain('OFF-DOMAIN-CONTENT-MARKER');
+    expectNoSecrets(dir);
+  }, 120_000);
+
+  it('interactive mode logs in with credential placeholders and reaches the page behind the login; the credential is never stored or sent', async () => {
+    const USERNAME = 'fixture-USERNAME-SENTINEL-8d2c';
+    const PASSWORD = 'fixture-PASSWORD-SENTINEL-31b7'; // the fixture login page accepts only these
+    writeFileSync(join(root, '.env'), `AI_ENABLED=true\nOPENAI_API_KEY=${API_KEY_SENTINEL}\nFIXTURE_MEMBER_USER=${USERNAME}\nFIXTURE_MEMBER_PASSWORD=${PASSWORD}\n`);
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    writeFileSync(configPath, JSON.stringify({
+      ...config,
+      exploration: { mode: 'interactive' },
+      roles: [{ roleId: 'member', name: 'Member', credentials: { username: 'FIXTURE_MEMBER_USER', password: 'FIXTURE_MEMBER_PASSWORD' } }],
+    }));
+    mkdirSync(join(root, 'project', 'requirements'), { recursive: true });
+    writeFileSync(join(root, 'project', 'requirements', 'registry.json'), JSON.stringify({
+      schemaVersion: '1.0', updatedAt: new Date().toISOString(),
+      requirements: { 'REQ-001': { requirementId: 'REQ-001', status: 'active', title: 'Member login', description: 'A member logs in.', expectedResult: 'The Members Area is shown.' } },
+    }));
+
+    /** The element reference of a textbox in the latest snapshot the model was sent. */
+    const refOf = (body: { input: Output[] }, label: string) => {
+      const latest = body.input.filter((i) => i.type === 'function_call_output').map((i) => String(i.output)).reverse()
+        .find((text) => text.startsWith('Evidence ID:'));
+      const match = latest?.match(new RegExp(`textbox "${label}" \\[ref=(e\\d+)\\]`));
+      if (!match) throw new Error(`no textbox "${label}" in the latest snapshot`);
+      return match[1];
+    };
+
+    const { exitCode, dir, record } = await explore([
+      [call('c1', 'browser_navigate', { url: `${base}/login.html` })],
+      [call('c2', 'browser_snapshot')],
+      (body) => [call('c3', 'browser_type', { target: refOf(body, 'Username'), text: '{{credential:member.username}}' })],
+      (body) => [call('c4', 'browser_type', { target: refOf(body, 'Password'), text: '{{credential:member.password}}', submit: true })],
+      [call('c5', 'browser_wait_for', { text: 'Members Area' })],
+      [call('c6', 'browser_snapshot')],
+      answer({
+        pages: [{
+          url: `${base}/members.html`,
+          title: 'Fixture Members',
+          evidenceIds: ['ev-002'],
+          elements: [{ role: 'heading', name: 'Members Area', evidenceIds: ['ev-002'] }],
+          forms: [],
+          links: [],
+          actions: [{ role: 'button', name: 'Log out', evidenceIds: ['ev-002'] }, { role: 'button', name: 'Checkout', evidenceIds: ['ev-002'] }],
+        }],
+        blockers: [],
+      }),
+    ], { startUrl: `${base}/login.html`, requirementIds: ['REQ-001'] });
+
+    expect(exitCode).toBe(0);
+    expect(record).toMatchObject({ schemaVersion: 2, requirementIds: ['REQ-001'], stopReason: 'completed' });
+    expect(record.toolCalls.map((c: { error: boolean }) => c.error)).toEqual([false, false, false, false, false, false]);
+    expect(record.toolCalls[3].arguments.text).toBe('{{credential:member.password}}');
+    expect(record.pagesVisited).toContain(`${base}/members.html`);
+    expect(readFileSync(join(dir, 'evidence', 'ev-002.txt'), 'utf-8')).toContain('heading "Members Area"');
+    expect(record.summary.pages[0].actions.map((a: { unsupported: boolean }) => a.unsupported)).toEqual([false, true]);
+
+    // The model saw the requirement and the placeholders, never a credential value.
+    expect(requestBodies[0]).toContain('REQ-001: Member login');
+    expect(requestBodies[0]).toContain('{{credential:member.password}}');
+    // The real server echoes the typed value in its result; the gateway redacted it before the model saw it.
+    expect(requestBodies.at(-1)).toContain('[REDACTED]');
+    for (const body of requestBodies) {
+      expect(body).not.toContain(PASSWORD);
+      expect(body).not.toContain(USERNAME);
+    }
+    // Nothing on disk (record, evidence, MCP output) holds a credential value, and process.env was not touched.
+    for (const file of filesUnder(dir)) {
+      const text = readFileSync(file, 'utf-8');
+      expect(text, file).not.toContain(PASSWORD);
+      expect(text, file).not.toContain(USERNAME);
+    }
+    expect(process.env.FIXTURE_MEMBER_PASSWORD).toBeUndefined();
     expectNoSecrets(dir);
   }, 120_000);
 });

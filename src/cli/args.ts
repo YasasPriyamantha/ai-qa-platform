@@ -41,6 +41,8 @@ export interface ParsedArgs {
     configPath: string;
     /** Start page instead of the project's baseUrl */
     startUrl?: string;
+    /** Requirements whose pages the exploration should reach */
+    requirementIds?: string[];
   };
 
   /** Options for the requirements command */
@@ -62,7 +64,7 @@ export interface ParsedArgs {
  *   npm run qa -- run --config <project-config-path>
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
- *   npm run qa -- explore --config <project-config-path> [--start <url>]
+ *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
  *   npm run qa -- requirements import --config <project-config-path> --document <documentId>
  *   npm run qa -- requirements list --config <project-config-path>
  *   npm run qa -- help
@@ -105,9 +107,19 @@ export function parseArgs(args: string[]): ParsedArgs {
     return { command: 'mcp-check', mcpCheckOptions: parsed.runOptions, errors: parsed.errors };
   }
 
-  // explore command: --config as for run, plus an optional --start <url>
+  // explore command: --config as for run, plus optional --start <url> and --requirement <ID>[,…]
   if (command === 'explore') {
     const rest = args.slice(1);
+    const reqAt = rest.indexOf('--requirement');
+    let requirementIds: string[] | undefined;
+    if (reqAt !== -1) {
+      const value = rest[reqAt + 1];
+      rest.splice(reqAt, 2);
+      requirementIds = (value ?? '').split(',').map((id) => id.trim()).filter((id) => id !== '');
+      if (!value || value.startsWith('-') || requirementIds.length === 0) {
+        return { command: 'explore', errors: ['--requirement requires one or more requirement IDs (REQ-001[,REQ-002])'] };
+      }
+    }
     const startAt = rest.indexOf('--start');
     let startUrl: string | undefined;
     if (startAt !== -1) {
@@ -119,7 +131,11 @@ export function parseArgs(args: string[]): ParsedArgs {
     }
     const parsed = parseRunArgs(rest);
     if (!parsed.runOptions) return { command: 'explore', errors: parsed.errors };
-    return { command: 'explore', exploreOptions: { ...parsed.runOptions, ...(startUrl ? { startUrl } : {}) }, errors: [] };
+    return {
+      command: 'explore',
+      exploreOptions: { ...parsed.runOptions, ...(startUrl ? { startUrl } : {}), ...(requirementIds ? { requirementIds } : {}) },
+      errors: [],
+    };
   }
 
   // requirements import|list: --config as for run; import also needs --document <documentId>
@@ -252,7 +268,7 @@ Usage:
   npm run qa -- run --config <project-config-path>
   npm run qa -- ai-check [--live]
   npm run qa -- mcp-check --config <project-config-path>
-  npm run qa -- explore --config <project-config-path> [--start <url>]
+  npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
   npm run qa -- requirements import --config <project-config-path> --document <documentId>
   npm run qa -- requirements list --config <project-config-path>
   npm run qa -- help
@@ -261,7 +277,8 @@ Commands:
   run        Execute tests for a configured project
   ai-check   Show AI provider, key and budget status (no network call)
   mcp-check  Start the platform's Playwright MCP server, list its tools, close it
-  explore    Let the AI model explore the site read-only and save observations
+  explore    Let the AI model explore the site (read-only unless the project
+             sets exploration.mode "interactive") and save observations
   requirements import  Ingest a declared document and import its requirements
   requirements list    List the project's active, retired and unresolved requirements
   help       Show this help message
@@ -278,6 +295,8 @@ explore Options:
   --start <url>         Start page (default: the project's baseUrl); must be
                         in allowedDomains. Requires AI_ENABLED=true, the API
                         key in .env and config/ai-budget.json.
+  --requirement <IDs>   Comma-separated active requirement IDs; the model is
+                        asked to reach the pages they describe.
 
 requirements Options:
   --config, -c <path>   Path to the project configuration file (required)

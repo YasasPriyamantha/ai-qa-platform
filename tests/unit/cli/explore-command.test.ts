@@ -62,6 +62,21 @@ describe('executeExploreCommand refusals', () => {
     expectNothingStarted();
   });
 
+  it('refuses an unknown or retired --requirement before starting (Task Q2)', async () => {
+    writeFileSync(join(root, '.env'), 'AI_ENABLED=true\nOPENAI_API_KEY=sk-test-explore\n');
+    const requirement = (requirementId: string, status: string) => ({ requirementId, status, title: 't', description: 'd' });
+    mkdirSync(join(root, 'project', 'requirements'), { recursive: true });
+    writeFileSync(join(root, 'project', 'requirements', 'registry.json'), JSON.stringify({
+      schemaVersion: '1.0', updatedAt: new Date().toISOString(),
+      requirements: { 'REQ-001': requirement('REQ-001', 'active'), 'REQ-002': requirement('REQ-002', 'retired') },
+    }));
+    const run = (requirementIds: string[]) => executeExploreCommand({ configPath, rootDir: root, adapter, requirementIds });
+    expect(await run(['REQ-001', 'REQ-002', 'REQ-404'])).toBe(1);
+    expect(errors).toMatch(/Exploration refused: unknown or retired requirement.*REQ-002, REQ-404/s);
+    expect(errors).not.toMatch(/REQ-001,/);
+    expectNothingStarted();
+  });
+
   it('refuses a --start URL that fails the domain rule', async () => {
     writeFileSync(join(root, '.env'), 'AI_ENABLED=true\nOPENAI_API_KEY=sk-test-explore\n');
     expect(await explore('https://evil.example/')).toBe(1);

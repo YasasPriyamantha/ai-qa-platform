@@ -6,6 +6,10 @@
  * and the project's domain rule before calling the server, re-checks the page
  * URL after every call, limits and times out calls, and turns every outcome
  * into text-only ToolResultMessage content. It never throws for a tool call.
+ *
+ * Interactive mode (Task Q2, DEC-041 §6–7) adds click, type, select and key
+ * tools. Credential placeholders in `browser_type` text are replaced here, and
+ * every result is scrubbed of credential values before it leaves the gateway.
  */
 
 import type { CallToolResult, Tool } from '@modelcontextprotocol/client';
@@ -13,10 +17,22 @@ import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/
 import { validateBaseUrl } from '../projects/loader.js';
 import { toolResultMessage, type ToolCall, type ToolResultMessage } from '../model-providers/messages.js';
 import type { ToolDefinition } from '../model-providers/request.js';
+import type { ExplorationMode } from '../projects/index.js';
 import type { McpConnection } from './playwright-mcp.js';
 
 /** Read-only tools offered to the model (exact Playwright MCP names, §3.4). */
 const ALLOWED_TOOLS = ['browser_navigate', 'browser_snapshot', 'browser_navigate_back', 'browser_wait_for'] as const;
+
+/** Added in interactive mode only (DEC-041 §6). Upload, evaluate, run-code, dialogs and tabs stay blocked. */
+const INTERACTIVE_TOOLS = ['browser_click', 'browser_type', 'browser_select_option', 'browser_press_key'] as const;
+
+/** `{{credential:<roleId>.<key>}}` in `browser_type` text (DEC-041 §7). */
+const CREDENTIAL_PLACEHOLDER = /\{\{credential:([^.{}]+)\.([^{}]+)\}\}/g;
+
+const REDACTED = '[REDACTED]';
+
+/** Credential values by role ID and key. */
+type CredentialValues = Readonly<Record<string, Readonly<Record<string, string>>>>;
 
 /** Arguments refused even though the schema allows them: no file access (Architecture §3.6). */
 const FORBIDDEN_ARGUMENTS: Readonly<Record<string, readonly string[]>> = {
@@ -49,6 +65,10 @@ export interface ToolGatewayOptions {
   readonly allowedDomains: readonly string[];
   readonly maxToolCalls: number;
   readonly callTimeoutMs: number;
+  /** Default `read-only`. */
+  readonly mode?: ExplorationMode;
+  /** Role credential values read from the root .env; never sent to the model. */
+  readonly credentials?: CredentialValues;
 }
 
 /** The part of the P1 connection the gateway uses. */
@@ -71,10 +91,20 @@ function domainError(url: string, allowedDomains: readonly string[]): string | n
   }
 }
 
+/** Replace each credential placeholder with its value, or name the first unknown placeholder. */
+function fillCredentials(text: string, credentials: CredentialValues): { text: string } | { unknown: string } {
+  for (const [placeholder, roleId, key] of text.matchAll(CREDENTIAL_PLACEHOLDER)) {
+    if (!Object.hasOwn(credentials, roleId) || !Object.hasOwn(credentials[roleId], key)) return { unknown: placeholder };
+  }
+  return { text: text.replace(CREDENTIAL_PLACEHOLDER, (_m, roleId: string, key: string) => credentials[roleId][key]) };
+}
+
 export class ToolGateway {
   private callCount = 0;
   private evidenceCount = 0;
   private stopped?: GatewayStopReason;
+  /** Credential values, longest first so a value containing another is fully redacted. */
+  private readonly secrets: readonly string[];
 
   private constructor(
     private readonly client: McpToolClient,
@@ -82,7 +112,17 @@ export class ToolGateway {
     /** Tool definitions offered to the model (§3.6: external schema, unchanged). */
     readonly tools: readonly ToolDefinition[],
     private readonly checks: ReadonlyMap<string, ArgumentCheck>
-  ) {}
+  ) {
+    this.secrets = Object.values(options.credentials ?? {})
+      .flatMap((values) => Object.values(values))
+      .filter((value) => value !== '')
+      .sort((a, b) => b.length - a.length);
+  }
+
+  /** Replace every credential value in `text` with [REDACTED] (DEC-041 §7). */
+  private scrub(text: string): string {
+    return this.secrets.reduce((out, secret) => out.split(secret).join(REDACTED), text);
+  }
 
   /** List the server's tools and keep the allowlist. Throws if an allowlisted tool is missing. */
   static async create(client: McpToolClient, options: ToolGatewayOptions): Promise<ToolGateway> {
@@ -90,7 +130,8 @@ export class ToolGateway {
     const validator = new AjvJsonSchemaValidator();
     const tools: ToolDefinition[] = [];
     const checks = new Map<string, ArgumentCheck>();
-    for (const name of ALLOWED_TOOLS) {
+    const allowed = options.mode === 'interactive' ? [...ALLOWED_TOOLS, ...INTERACTIVE_TOOLS] : ALLOWED_TOOLS;
+    for (const name of allowed) {
       const tool: Tool | undefined = listed.find((t) => t.name === name);
       if (!tool) throw new Error(`Playwright MCP server does not offer the required tool '${name}'`);
       tools.push({
@@ -111,13 +152,13 @@ export class ToolGateway {
   /** Run one model tool call. Never throws; failures come back as `Tool error: …` text. */
   async call(toolCall: ToolCall, signal?: AbortSignal): Promise<GatewayCallOutcome> {
     const fail = (message: string, stopReason?: GatewayStopReason): GatewayCallOutcome => ({
-      result: toolResultMessage(toolCall.id, toolCall.name, `Tool error: ${message}`, true),
+      result: toolResultMessage(toolCall.id, toolCall.name, `Tool error: ${this.scrub(message)}`, true),
       ...(stopReason ? { stopReason } : {}),
     });
 
     if (this.stopped) return fail(`the browser session has stopped (${this.stopped})`);
     const check = this.checks.get(toolCall.name);
-    if (!check) return fail(`tool '${toolCall.name}' is not allowed; allowed tools: ${ALLOWED_TOOLS.join(', ')}`);
+    if (!check) return fail(`tool '${toolCall.name}' is not allowed; allowed tools: ${this.tools.map((t) => t.name).join(', ')}`);
 
     let args: unknown;
     try {
@@ -130,7 +171,12 @@ export class ToolGateway {
     if (!checked.valid) return fail(`invalid arguments: ${checked.errorMessage ?? 'schema validation failed'}`);
     const forbidden = (FORBIDDEN_ARGUMENTS[toolCall.name] ?? []).filter((key) => key in args);
     if (forbidden.length > 0) return fail(`argument '${forbidden[0]}' is not allowed`);
-    const record = args as Record<string, unknown>;
+    let record = args as Record<string, unknown>;
+    if (toolCall.name === 'browser_type') {
+      const filled = fillCredentials(String(record.text), this.options.credentials ?? {});
+      if ('unknown' in filled) return fail(`unknown credential placeholder ${filled.unknown}: no such role or key, or its value is not set in .env`);
+      record = { ...record, text: filled.text };
+    }
     if (toolCall.name === 'browser_navigate') {
       const error = domainError(String(record.url), this.options.allowedDomains);
       if (error) return fail(`navigation refused: ${error}`);
@@ -159,9 +205,9 @@ export class ToolGateway {
     }
 
     // Text only (§3.6): non-text items are dropped and replaced by a note.
-    const text = response.content
+    const text = this.scrub(response.content
       .map((item) => (item.type === 'text' ? item.text : `[${item.type} content omitted: text-only results]`))
-      .join('\n');
+      .join('\n'));
 
     // Re-check the page the browser is on (§3.5b); off-domain content is withheld.
     for (const url of pageUrls(text)) {

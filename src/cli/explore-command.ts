@@ -1,8 +1,10 @@
 /**
  * explore command (Task P4, DEC-040)
  *
- * Runs one read-only AI exploration (P3 loop, P2 gateway, P1 connection) of a
- * project's baseUrl or --start URL and saves the observation record. Refuses
+ * Runs one AI exploration (P3 loop, P2 gateway, P1 connection) of a project's
+ * baseUrl or --start URL and saves the observation record. The project's
+ * exploration.mode decides whether it is read-only or interactive, and
+ * --requirement guides it to the pages those requirements describe (Q2). Refuses
  * before starting MCP unless AI is enabled, the API key is present and a
  * valid budget exists. The MCP server's output directory is inside the
  * exploration's own git-ignored folder.
@@ -10,9 +12,10 @@
 
 import { join, resolve } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
-import { loadPhase2ProjectConfig, ConfigValidationError } from '../projects/index.js';
+import { loadPhase2ProjectConfig, ConfigValidationError, getProjectStoragePaths } from '../projects/index.js';
 import { validateBaseUrl } from '../projects/loader.js';
 import { createSecretResolutionContext, getEnabledProviders, getEnvSecret, type SecretResolutionContext } from '../provider-secrets/index.js';
+import { loadRequirementRegistry, type Requirement } from '../requirements/index.js';
 import { convertProviderConfigEntry, createOpenAIAdapter, loadBudgetConfig, type ProviderAdapter } from '../model-providers/index.js';
 import { buildPlaywrightMcpLaunch, McpConnection } from '../mcp/playwright-mcp.js';
 import { ToolGateway } from '../mcp/tool-gateway.js';
@@ -32,6 +35,8 @@ export interface ExploreOptions {
   readonly startUrl?: string;
   /** Directory holding .env and config/ (default: current working directory). */
   readonly rootDir?: string;
+  /** Requirement IDs whose pages the exploration should reach. */
+  readonly requirementIds?: readonly string[];
   /** Adapter override; tests inject a fake. Default: the OpenAI adapter. */
   readonly adapter?: ProviderAdapter;
 }
@@ -50,6 +55,19 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
     const title = err instanceof ConfigValidationError ? 'Invalid project configuration' : 'Cannot load project configuration';
     displayError(title, (err as Error).message);
     return EXIT_FAILURE;
+  }
+  const requirementIds = options.requirementIds ?? [];
+  let requirements: Requirement[] = [];
+  if (requirementIds.length > 0) {
+    let stored;
+    try {
+      stored = loadRequirementRegistry(getProjectStoragePaths(config.projectWorkspace).requirementsRegistryPath).requirements;
+    } catch (err) {
+      return refuse('cannot read the requirement registry', (err as Error).message);
+    }
+    const unknown = requirementIds.filter((id) => stored[id]?.status !== 'active');
+    if (unknown.length > 0) return refuse('unknown or retired requirement', unknown.join(', '));
+    requirements = requirementIds.map((id) => stored[id]);
   }
   const startUrl = options.startUrl ?? config.baseUrl;
   try {
@@ -82,11 +100,25 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
     return refuse(`only the openai-responses adapter is supported, not ${provider.adapterType}`);
   }
 
+  // Role credential values from the parsed root .env (never process.env); the model only sees placeholders (DEC-041 §7).
+  const credentials: Record<string, Record<string, string>> = {};
+  const credentialPlaceholders: string[] = [];
+  for (const role of config.roles ?? []) {
+    for (const [key, variable] of Object.entries(role.credentials)) {
+      const value = getEnvSecret(envFile.values, variable);
+      if (value === undefined) continue;
+      (credentials[role.roleId] ??= {})[key] = value;
+      credentialPlaceholders.push(`{{credential:${role.roleId}.${key}}}`);
+    }
+  }
+  const mode = config.exploration?.mode ?? 'read-only';
+
   const b = budget.config;
   const context: ExplorationContext = {
     explorationId: newExplorationId(),
     projectId: config.projectId,
     startUrl,
+    requirementIds,
     providerId: provider.providerId,
     modelId: provider.defaultModelId,
     startedAt: new Date().toISOString(),
@@ -109,7 +141,7 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
   mkdirSync(mcpOutputDir, { recursive: true });
 
   console.log('');
-  console.log(`  Exploring ${startUrl} (${config.projectId}, ${provider.providerId} ${provider.defaultModelId})...`);
+  console.log(`  Exploring ${startUrl} (${config.projectId}, ${mode}, ${provider.providerId} ${provider.defaultModelId})...`);
   let result;
   try {
     const connection = await McpConnection.connect(
@@ -121,6 +153,8 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
         allowedDomains: config.allowedDomains,
         maxToolCalls: MAX_TOOL_CALLS,
         callTimeoutMs: CALL_TIMEOUT_MS,
+        mode,
+        credentials,
       });
     } catch (err) {
       await connection.close();
@@ -137,6 +171,8 @@ export async function executeExploreCommand(options: ExploreOptions): Promise<nu
       mcp: connection,
       maxAiRequests: context.limits.maxAiRequests,
       maxDurationMs: MAX_DURATION_MS,
+      requirements,
+      credentialPlaceholders,
     });
   } catch (err) {
     displayError('Exploration failed', (err as Error).message);

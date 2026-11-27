@@ -51,6 +51,7 @@ export type {
   ResolvedPhase2Config,
   RoleProfile,
   DocumentReference,
+  ExplorationMode,
 } from './phase2-config.js';
 
 // Phase 2 loading and validation
