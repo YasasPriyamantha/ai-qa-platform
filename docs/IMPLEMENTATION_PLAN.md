@@ -728,7 +728,7 @@ Live demonstration (figures read from `observations.json` and the plan files; mo
 | `plan-20261127T102111Z-8b4e28` | REQ-001–003 | 6 (SCN-0001–0006) | 0 | 0 | 1 (REQ-002 placeholders not observed) | 3,116 / 3,363 |
 | `plan-20261127T103359Z-4c3780` | REQ-003 | 1 (SCN-0007) | 0 | 0 | 0 | 1,959 / 1,029 |
 
-Generate: 6 written (SCN-0001–0005, SCN-0007). SCN-0006 skipped: its only check is `visible` on button "Cart, 1 items", which is not in the REQ-003 expected-result quote (reason derived from the plan file and the generator rule; the generate console output was not saved). REQ-003 was re-planned after the Q4 follow-up as SCN-0007, which checks the quoted badge text `1`. No candidate checks the REQ-002 placeholders.
+Generate: 6 written (SCN-0001–0005, SCN-0007). SCN-0006 skipped: its only check is `visible` on button "Cart, 1 items", which is not in the REQ-003 expected-result quote. Skip reason observed in the live generate output: `step 7: expected "Cart, 1 items" is not in an expected-result quote`. REQ-003 was re-planned after the Q4 follow-up as SCN-0007, which checks the quoted badge text `1`. No candidate checks the REQ-002 placeholders.
 
 *Release Demo (local app V1).* Requirements: DEMO-001–004 imported from `docs/requirements.md`.
 
@@ -854,9 +854,7 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Run Tasks N1 to N4 from `docs/PHASE_3_PLAN.md`, in order, following `docs/REVIEW_RULES.md`.
-2. After N4, plan a minimal Phase 4: the platform connects to Playwright MCP and the OpenAI model explores one SauceDemo page.
-3. Task 2.11 (local V1/V2 demo app) is still required before Phase 7.
+1. Write the Phase 6 plan: candidate validation runs, the three-run stability check, human approval and promotion to `tests/approved/`, and role credentials and `storageState` in the runner.
 
 ## References
 

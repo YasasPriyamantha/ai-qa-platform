@@ -7,7 +7,7 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 **Phase 5, Requirements, Test Planning and Generation**: complete (requirement import, requirement-guided exploration, traced scenario plans and template-generated candidate tests, shown on SauceDemo and the local demo app). **Next:** Phase 6, candidate validation, human approval and promotion, and credentials and `storageState` in the runner.
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
-- Next: approved-test CI pipeline, the OpenAI adapter, and a CLI AI check. See [`docs/PHASE_3_PLAN.md`](docs/PHASE_3_PLAN.md).
+- Phase 5 is complete. Next: Phase 6 (candidate validation, human approval and promotion). The Phase 6 plan file does not exist yet.
 - Detailed progress: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ### Two operating modes
@@ -23,7 +23,7 @@ Complete project specifications and architecture are maintained in the `docs/` d
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design and component responsibilities
 - **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** — Phased task breakdown with acceptance criteria
 - **[DECISIONS.md](docs/DECISIONS.md)** — Architecture and implementation decision record
-- **[PHASE_3_PLAN.md](docs/PHASE_3_PLAN.md)** — Current phase task list
+- **[PHASE_5_PLAN.md](docs/PHASE_5_PLAN.md)** — Phase 5 task list (complete); the Phase 6 plan has not been written yet
 - **[REVIEW_RULES.md](docs/REVIEW_RULES.md)** — Rules for writing and reviewing coding tasks
 - `docs/archive/` — Historical phase breakdowns (not current instructions)
 
