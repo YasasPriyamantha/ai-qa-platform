@@ -12,7 +12,7 @@ A registered standard user can log in to SauceDemo using the valid username and 
 
 ### Expected result
 
-After logging in with the standard user's credentials, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the heading `Products`.
+After logging in with the standard user's credentials, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the title `Products`.
 
 ### Negative cases
 

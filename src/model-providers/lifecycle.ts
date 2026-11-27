@@ -37,7 +37,7 @@ export interface LifecycleConfig {
 
   /**
    * Default request timeout in milliseconds.
-   * Default: 60000 (60 seconds)
+   * Default: 180000 (180 seconds)
    */
   readonly defaultTimeoutMs: number;
 
@@ -65,7 +65,7 @@ export interface LifecycleConfig {
  */
 export const DEFAULT_LIFECYCLE_CONFIG: LifecycleConfig = {
   maxAttempts: 3,
-  defaultTimeoutMs: 60000,
+  defaultTimeoutMs: 180000,
   maxRetryDelayMs: 60000,
   baseRetryDelayMs: 1000,
   estimationConfig: DEFAULT_ESTIMATION_CONFIG,

@@ -1,7 +1,7 @@
 {
   "maxTotalRequests": 20,
   "maxInputTokensPerRequest": 30000,
-  "maxOutputTokensPerRequest": 4000,
+  "maxOutputTokensPerRequest": 12000,
   "maxCumulativeInputTokens": 300000,
   "maxCumulativeOutputTokens": 40000,
   "window": {

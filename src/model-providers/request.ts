@@ -602,6 +602,6 @@ function validateMessageOrder(messages: readonly ConversationMessage[]): string[
  * Default request options.
  */
 export const DEFAULT_REQUEST_OPTIONS: RequestOptions = {
-  timeoutMs: 60000, // 1 minute
+  timeoutMs: 180000, // 3 minutes
   store: false, // Privacy default per DEC-028
 };

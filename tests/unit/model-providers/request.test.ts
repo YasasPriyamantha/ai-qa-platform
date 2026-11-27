@@ -359,7 +359,7 @@ describe('DEFAULT_REQUEST_OPTIONS', () => {
   });
 
   it('has reasonable timeout default', () => {
-    expect(DEFAULT_REQUEST_OPTIONS.timeoutMs).toBe(60000);
+    expect(DEFAULT_REQUEST_OPTIONS.timeoutMs).toBe(180000);
   });
 });
 
