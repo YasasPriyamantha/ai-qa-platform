@@ -26,7 +26,7 @@ jobs:
       - run: npm run test:unit
 
   approved-tests:
-    name: Approved tests (SauceDemo)
+    name: Approved tests (SauceDemo, Release Demo)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,5 +46,23 @@ jobs:
         with:
           name: saucedemo-run-artifacts
           path: project-data/saucedemo/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Start Release Demo V1
+        run: |
+          npm run demo:v1 > release-demo-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4310/ > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Release Demo did not answer on port 4310"; cat release-demo-server.log; exit 1
+      - name: Run approved Release Demo tests
+        run: npm run qa -- run --config project-data/release-demo/project.config.json
+      - name: Upload Release Demo run reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-demo-run-artifacts
+          path: project-data/release-demo/artifacts/
           if-no-files-found: ignore
           retention-days: 14

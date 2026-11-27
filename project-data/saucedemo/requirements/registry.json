@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T11:32:58.120Z",
+  "updatedAt": "2026-11-27T13:13:28.187Z",
   "requirements": {
     "REQ-001": {
       "projectId": "saucedemo",
@@ -265,8 +265,31 @@
           "end": 10
         }
       },
+      "unresolved": {
+        "reason": "The notes say the total includes tax, but nobody agreed on how it is shown."
+      },
       "createdAt": "2026-11-27T11:32:58.120Z",
-      "updatedAt": "2026-11-27T11:32:58.120Z"
+      "updatedAt": "2026-11-27T13:13:28.186Z",
+      "history": [
+        {
+          "title": "Include tax in the total",
+          "description": "The order total should include tax.",
+          "expectedResult": "The total should include tax.",
+          "negativeCases": [],
+          "priority": "medium",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "saucedemo-checkout-notes",
+            "contentHash": "e5ce3573d9dd8936f8c790d15bd05b176c17ca9137dea8716eecc37b8270a577",
+            "lineRange": {
+              "start": 10,
+              "end": 10
+            }
+          },
+          "supersededAt": "2026-11-27T13:13:28.187Z",
+          "reason": "Marked unresolved: tax display not agreed"
+        }
+      ]
     }
   }
 }

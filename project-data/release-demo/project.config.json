@@ -1,0 +1,24 @@
+{
+  "projectId": "release-demo",
+  "name": "Release Demo",
+  "baseUrl": "http://localhost:4310",
+  "environment": "local",
+  "allowedDomains": ["localhost"],
+  "testDirectory": "tests/approved",
+  "artifactDirectory": "artifacts",
+  "documents": [
+    { "documentId": "release-demo-requirements", "sourcePath": "docs/requirements.md", "format": "markdown" }
+  ],
+  "roles": [
+    {
+      "roleId": "demo_user",
+      "name": "Demo User",
+      "credentials": {
+        "username": "RELEASE_DEMO_USERNAME",
+        "password": "RELEASE_DEMO_PASSWORD"
+      },
+      "storageStatePath": ".auth/demo_user.json"
+    }
+  ],
+  "exploration": { "mode": "interactive" }
+}

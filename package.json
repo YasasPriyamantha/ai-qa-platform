@@ -13,7 +13,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
-    "qa": "node dist/cli/index.js"
+    "qa": "node dist/cli/index.js",
+    "demo:v1": "node demo-apps/release-demo/server.mjs v1"
   },
   "keywords": [
     "qa",
