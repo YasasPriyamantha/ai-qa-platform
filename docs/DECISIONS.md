@@ -1115,3 +1115,29 @@ Diagnostics never contain:
 - The platform's MCP server is independent of any IDE MCP configuration.
 - Two Chromium builds are installed side by side until `@playwright/test` and `@playwright/mcp` use the same Playwright version.
 - `@playwright/mcp` is pre-1.0 and pinned exactly; upgrading it is a deliberate change that re-checks tool names and CLI flags.
+
+## DEC-041 — Requirement-Traced Planning and Template-Based Candidate Generation (Phase 5)
+
+**Status:** Accepted
+
+**Date:** 2026-11-26
+
+**Context:** Phase 5 turns requirements and Phase 4 observations into candidate test scenarios and files. The main risks are invented expected behaviour, unstable locators, leaked credentials and unreviewable model-written code. These decisions are fixed for the phase (`docs/PHASE_5_PLAN.md` §3) so that Tasks Q1–Q6 and Phases 6–7 stay compatible.
+
+**Decision:**
+
+1. **Requirements are the only source of expected behaviour.** Every expected result in a scenario quotes requirement text (expected result or negative case), checked deterministically by substring after normalising whitespace. Observations only supply pages, roles and accessible names. Unresolved requirements are excluded from planning, with the reason shown.
+2. **The AI plans; the platform writes code.** The planner returns structured scenarios (Zod, DEC-037) with a fixed action set (`goto`, `fill`, `click`, `select`, `press`, `expect` for visible, text and URL). The generator renders Playwright code from deterministic templates. No model-written code is saved.
+3. **Stable locators only:** `getByRole`, `getByLabel`, `getByPlaceholder` and `getByText`, built from supported observation claims. CSS or XPath selectors, `nth()` and MCP references are rejected.
+4. **Scenario IDs** (`SCN-0001`, …) are allocated by the platform, unique within a project and never reused. Each scenario records the content versions of its requirements.
+5. **Storage (extends DEC-029):** scenario sets go in `<workspace>/specs/candidates/<plan-id>.json` with lifecycle status (`draft`, `generated`; Phase 6 adds the rest). Candidate tests go in `<workspace>/tests/candidates/<scenario-id>.spec.ts` with a header naming the scenario, requirement, plan and exploration IDs. Candidates are written only after validation, because `npm run typecheck` type-checks `project-data/**/*.ts`. `tests/approved/` is never written in Phase 5.
+6. **Interactive exploration is explicit:** optional project config `exploration.mode` is `"read-only"` (default) or `"interactive"`. Interactive adds click, type, select-option and press-key to the gateway allowlist. Everything else stays blocked, and the DEC-040 domain guard applies unchanged.
+7. **Credentials never reach the model** (Phase 5 part of DEC-024). The model types placeholders (`{{credential:<roleId>.<key>}}`). The gateway substitutes values from the role's variables, read from the root `.env` through the existing parser, never into `process.env`, and scrubs those values from every tool result, evidence file and log. Generated tests read `process.env.<VARIABLE>`. Passing role credentials to the runner and `storageState` are Phase 6.
+8. **Evidence must contain the claim:** an observation claim is supported only if its accessible name occurs in the text of a cited evidence file.
+9. **The second demonstration application is Task 2.11's local demo app, V1** (`demo-apps/release-demo/`, no framework, served on `localhost`). V2 follows in Phase 7.
+
+**Consequences:**
+
+- Candidate tests are reproducible from their scenario files and are reviewable as plain Playwright code.
+- Some scenarios will be skipped (`needs-observation`) or rejected (quote check) instead of being guessed. That is intended.
+- CI stays AI-free. It type-checks candidates but runs only approved tests.

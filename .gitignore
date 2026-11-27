@@ -60,3 +60,4 @@ test-output.txt
 # - Fixture source files and configs
 # - TypeScript configs
 # - package.json
+*.patch

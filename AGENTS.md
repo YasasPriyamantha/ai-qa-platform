@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 3 in progress, MVP-first scope (DEC-039). The current task list is in `docs/PHASE_3_PLAN.md`; progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
+**Current status:** Phase 5 in progress (Phases 3–4 complete, MVP-first per DEC-039). The current task list is in `docs/PHASE_5_PLAN.md`; progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -16,7 +16,7 @@ This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that
    - `IMPLEMENTATION_PLAN.md` — Phased task breakdown and acceptance criteria
    - `DECISIONS.md` — Architecture and implementation decision record
 
-2. Review the current task definition and its acceptance criteria in `docs/PHASE_3_PLAN.md` (current phase) or `IMPLEMENTATION_PLAN.md`.
+2. Review the current task definition and its acceptance criteria in `docs/PHASE_5_PLAN.md` (current phase) or `IMPLEMENTATION_PLAN.md`.
 
 3. Files in `docs/archive/` are historical records. Do not treat them as instructions.
 
@@ -99,10 +99,13 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 ## Phase boundaries
 
 - **Phases 1–2 (complete):** Playwright execution engine; project and requirement management.
-- **Phase 3 (in progress, DEC-039):** OpenAI adapter only, plus a CLI AI check. Anthropic, Gemini and OpenAI-compatible adapters, and the persistent usage ledger, are deferred. Don't extend them.
+- **Phase 3 (complete, MVP, DEC-039):** OpenAI adapter only, plus a CLI AI check. Anthropic, Gemini and OpenAI-compatible adapters, and the persistent usage ledger, are deferred. Don't extend them.
 - **CI mode:** CI runs only approved Playwright tests. It never calls AI providers, MCP or the usage ledger.
 
-Later phases add MCP exploration (Phase 4), test generation (Phase 5), candidate validation (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
+- **Phase 4 (complete):** Playwright MCP read-only exploration; observations saved with evidence (DEC-040).
+- **Phase 5 (current):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Never write to `tests/approved/`.
+
+Later phases add candidate validation and approval (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
 
 ## Decision record
 

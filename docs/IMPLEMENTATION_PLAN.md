@@ -701,6 +701,8 @@ Known limitations: on Windows, Chromium can take more than 5 s to exit after clo
 
 **Goal:** Turn requirements and observations into candidate test cases and code.
 
+**Task breakdown:** `docs/PHASE_5_PLAN.md` (Tasks Q1–Q6; design decisions DEC-041). Every item below is mapped to a task there.
+
 Tasks:
 
 1. Implement structured requirement ingestion using the Phase 2 schema and stable author-assigned IDs.
