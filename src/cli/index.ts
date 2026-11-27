@@ -8,6 +8,7 @@
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- explore --config <project-config-path> [--start <url>]
+ *   npm run qa -- requirements import|list --config <project-config-path> [--document <documentId>]
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -18,6 +19,7 @@ import { executeRunCommand, EXIT_SUCCESS, EXIT_FAILURE } from './run-command.js'
 import { executeAiCheckCommand } from './ai-check-command.js';
 import { executeMcpCheckCommand } from './mcp-check-command.js';
 import { executeExploreCommand } from './explore-command.js';
+import { executeRequirementsCommand } from './requirements-command.js';
 
 /**
  * Main CLI entry point.
@@ -66,6 +68,10 @@ async function main(): Promise<void> {
 
     case 'explore':
       process.exit(await executeExploreCommand(parsed.exploreOptions!));
+      break;
+
+    case 'requirements':
+      process.exit(executeRequirementsCommand(parsed.requirementsOptions!));
       break;
 
     default:

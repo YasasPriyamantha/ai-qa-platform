@@ -5,5 +5,19 @@
   "environment": "demo",
   "allowedDomains": ["www.saucedemo.com"],
   "testDirectory": "tests/approved",
-  "artifactDirectory": "artifacts"
+  "artifactDirectory": "artifacts",
+  "documents": [
+    { "documentId": "saucedemo-requirements", "sourcePath": "docs/requirements.md", "format": "markdown" }
+  ],
+  "roles": [
+    {
+      "roleId": "standard_user",
+      "name": "Standard User",
+      "credentials": {
+        "username": "SAUCEDEMO_STANDARD_USER_USERNAME",
+        "password": "SAUCEDEMO_STANDARD_USER_PASSWORD"
+      },
+      "storageStatePath": ".auth/standard_user.json"
+    }
+  ]
 }

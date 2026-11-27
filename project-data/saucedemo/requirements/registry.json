@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAt": "2026-11-27T07:07:28.138Z",
+  "requirements": {
+    "REQ-001": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-001",
+      "title": "Login with valid credentials",
+      "description": "A registered standard user can log in to SauceDemo using the valid username and password published on the login page.",
+      "expectedResult": "After logging in with `standard_user` and `secret_sauce`, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the heading `Products`.",
+      "negativeCases": [
+        {
+          "condition": "Empty username",
+          "expectedOutcome": "login is prevented and the message `Epic sadface: Username is required` is shown."
+        },
+        {
+          "condition": "Wrong password",
+          "expectedOutcome": "login is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
+        },
+        {
+          "condition": "Locked-out user",
+          "expectedOutcome": "login is prevented and the message `Epic sadface: Sorry, this user has been locked out.` is shown."
+        }
+      ],
+      "priority": "critical",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-requirements",
+        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "section": "REQ-001: Login with valid credentials",
+        "lineRange": {
+          "start": 3,
+          "end": 23
+        }
+      },
+      "role": "standard_user",
+      "createdAt": "2026-11-27T07:07:27.148Z",
+      "updatedAt": "2026-11-27T07:07:27.148Z"
+    },
+    "REQ-002": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-002",
+      "title": "Login page controls",
+      "description": "The login page provides a username input, a password input and a control that submits the login form.",
+      "expectedResult": "The page at `/` shows a username input with the placeholder `Username`, a password input with the placeholder `Password`, and a button with the accessible name `Login`.",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-requirements",
+        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "section": "REQ-002: Login page controls",
+        "lineRange": {
+          "start": 24,
+          "end": 37
+        }
+      },
+      "createdAt": "2026-11-27T07:07:27.148Z",
+      "updatedAt": "2026-11-27T07:07:27.148Z"
+    },
+    "REQ-003": {
+      "projectId": "saucedemo",
+      "requirementId": "REQ-003",
+      "title": "Add a product to the cart",
+      "description": "An authenticated standard user can add a product from the products page to the shopping cart.",
+      "expectedResult": "After the user clicks `Add to cart` for the `Sauce Labs Backpack` product once, the cart badge displays `1`.",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "saucedemo-requirements",
+        "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+        "section": "REQ-003: Add a product to the cart",
+        "lineRange": {
+          "start": 38,
+          "end": 51
+        }
+      },
+      "role": "standard_user",
+      "createdAt": "2026-11-27T07:07:27.148Z",
+      "updatedAt": "2026-11-27T07:07:27.148Z"
+    }
+  }
+}

@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -43,6 +43,14 @@ export interface ParsedArgs {
     startUrl?: string;
   };
 
+  /** Options for the requirements command */
+  requirementsOptions?: {
+    action: 'import' | 'list';
+    configPath: string;
+    /** documentId to import (import only) */
+    documentId?: string;
+  };
+
   /** Parse errors encountered */
   errors: string[];
 }
@@ -55,6 +63,8 @@ export interface ParsedArgs {
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- explore --config <project-config-path> [--start <url>]
+ *   npm run qa -- requirements import --config <project-config-path> --document <documentId>
+ *   npm run qa -- requirements list --config <project-config-path>
  *   npm run qa -- help
  *
  * @param args - Command line arguments (typically process.argv.slice(2))
@@ -110,6 +120,37 @@ export function parseArgs(args: string[]): ParsedArgs {
     const parsed = parseRunArgs(rest);
     if (!parsed.runOptions) return { command: 'explore', errors: parsed.errors };
     return { command: 'explore', exploreOptions: { ...parsed.runOptions, ...(startUrl ? { startUrl } : {}) }, errors: [] };
+  }
+
+  // requirements import|list: --config as for run; import also needs --document <documentId>
+  if (command === 'requirements') {
+    const action = args[1];
+    if (action !== 'import' && action !== 'list') {
+      return { command: 'requirements', errors: ['requirements needs an action: import or list'] };
+    }
+    const rest = args.slice(2);
+    let documentId: string | undefined;
+    const docAt = rest.indexOf('--document');
+    if (docAt !== -1) {
+      documentId = rest[docAt + 1];
+      rest.splice(docAt, 2);
+      if (!documentId || documentId.startsWith('-')) {
+        return { command: 'requirements', errors: ['--document requires a documentId argument'] };
+      }
+    }
+    if (action === 'import' && !documentId) {
+      return { command: 'requirements', errors: ['Missing required option: --document <documentId>'] };
+    }
+    if (action === 'list' && documentId) {
+      return { command: 'requirements', errors: ['--document is only valid for requirements import'] };
+    }
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command: 'requirements', errors: parsed.errors };
+    return {
+      command: 'requirements',
+      requirementsOptions: { action, configPath: parsed.runOptions.configPath, ...(documentId ? { documentId } : {}) },
+      errors: [],
+    };
   }
 
   // Unknown command
@@ -212,6 +253,8 @@ Usage:
   npm run qa -- ai-check [--live]
   npm run qa -- mcp-check --config <project-config-path>
   npm run qa -- explore --config <project-config-path> [--start <url>]
+  npm run qa -- requirements import --config <project-config-path> --document <documentId>
+  npm run qa -- requirements list --config <project-config-path>
   npm run qa -- help
 
 Commands:
@@ -219,6 +262,8 @@ Commands:
   ai-check   Show AI provider, key and budget status (no network call)
   mcp-check  Start the platform's Playwright MCP server, list its tools, close it
   explore    Let the AI model explore the site read-only and save observations
+  requirements import  Ingest a declared document and import its requirements
+  requirements list    List the project's active, retired and unresolved requirements
   help       Show this help message
 
 Run Command Options:
@@ -233,6 +278,10 @@ explore Options:
   --start <url>         Start page (default: the project's baseUrl); must be
                         in allowedDomains. Requires AI_ENABLED=true, the API
                         key in .env and config/ai-budget.json.
+
+requirements Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --document <id>       documentId from the config's documents list (import only)
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

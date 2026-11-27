@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAt": "2026-11-27T07:07:28.127Z",
+  "documents": {
+    "saucedemo-requirements": {
+      "documentId": "saucedemo-requirements",
+      "name": "saucedemo-requirements",
+      "createdAt": "2026-11-27T07:07:27.138Z",
+      "updatedAt": "2026-11-27T07:07:28.127Z",
+      "versions": [
+        {
+          "contentHash": "01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536",
+          "snapshotPath": "sources/01f028b8c7c6818cb3670a625d1764bf4df4f2441a0ee2635a03803cf132e536.md",
+          "contentSize": 1533,
+          "ingestedAt": "2026-11-27T07:07:27.138Z",
+          "sourcePath": "docs/requirements.md",
+          "format": "markdown"
+        }
+      ]
+    }
+  }
+}
