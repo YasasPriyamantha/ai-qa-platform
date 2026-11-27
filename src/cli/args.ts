@@ -46,12 +46,15 @@ export interface ParsedArgs {
   };
 
   /** Options for the requirements command */
-  requirementsOptions?: {
-    action: 'import' | 'list';
-    configPath: string;
-    /** documentId to import (import only) */
-    documentId?: string;
-  };
+  requirementsOptions?:
+    | {
+      action: 'import' | 'list';
+      configPath: string;
+      /** documentId to import (import only) */
+      documentId?: string;
+    }
+    | { action: 'propose'; configPath: string; documentId: string }
+    | { action: 'review'; configPath: string; proposalId: string; accept: string[]; reject: string[] };
 
   /** Options for the plan command */
   planOptions?: {
@@ -81,6 +84,8 @@ export interface ParsedArgs {
  *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
  *   npm run qa -- requirements import --config <project-config-path> --document <documentId>
  *   npm run qa -- requirements list --config <project-config-path>
+ *   npm run qa -- requirements propose --config <project-config-path> --document <documentId>
+ *   npm run qa -- requirements review --config <project-config-path> --proposal <id> [--accept <IDs>] [--reject <IDs>]
  *   npm run qa -- help
  *
  * @param args - Command line arguments (typically process.argv.slice(2))
@@ -152,13 +157,39 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
-  // requirements import|list: --config as for run; import also needs --document <documentId>
+  // requirements import|list|propose|review: --config as for run; import and propose also need --document <documentId>
   if (command === 'requirements') {
     const action = args[1];
-    if (action !== 'import' && action !== 'list') {
-      return { command: 'requirements', errors: ['requirements needs an action: import or list'] };
+    if (action !== 'import' && action !== 'list' && action !== 'propose' && action !== 'review') {
+      return { command: 'requirements', errors: ['requirements needs an action: import, list, propose or review'] };
     }
     const rest = args.slice(2);
+    if (action === 'review') {
+      const values: Record<string, string | undefined> = {};
+      for (const flag of ['--proposal', '--accept', '--reject']) {
+        const at = rest.indexOf(flag);
+        if (at === -1) continue;
+        const value = rest[at + 1];
+        rest.splice(at, 2);
+        if (!value || value.startsWith('-')) return { command: 'requirements', errors: [`${flag} requires a value`] };
+        values[flag] = value;
+      }
+      const list = (v?: string) => (v ?? '').split(',').map((id) => id.trim()).filter((id) => id !== '');
+      const accept = list(values['--accept']);
+      const reject = list(values['--reject']);
+      const proposalId = values['--proposal'];
+      if (!proposalId) return { command: 'requirements', errors: ['Missing required option: --proposal <id>'] };
+      if (accept.length + reject.length === 0) return { command: 'requirements', errors: ['requirements review needs --accept or --reject IDs'] };
+      const both = accept.filter((id) => reject.includes(id));
+      if (both.length > 0) return { command: 'requirements', errors: [`Cannot both accept and reject: ${both.join(', ')}`] };
+      const parsed = parseRunArgs(rest);
+      if (!parsed.runOptions) return { command: 'requirements', errors: parsed.errors };
+      return {
+        command: 'requirements',
+        requirementsOptions: { action, configPath: parsed.runOptions.configPath, proposalId, accept, reject },
+        errors: [],
+      };
+    }
     let documentId: string | undefined;
     const docAt = rest.indexOf('--document');
     if (docAt !== -1) {
@@ -168,14 +199,17 @@ export function parseArgs(args: string[]): ParsedArgs {
         return { command: 'requirements', errors: ['--document requires a documentId argument'] };
       }
     }
-    if (action === 'import' && !documentId) {
+    if (action !== 'list' && !documentId) {
       return { command: 'requirements', errors: ['Missing required option: --document <documentId>'] };
     }
     if (action === 'list' && documentId) {
-      return { command: 'requirements', errors: ['--document is only valid for requirements import'] };
+      return { command: 'requirements', errors: ['--document is only valid for requirements import and propose'] };
     }
     const parsed = parseRunArgs(rest);
     if (!parsed.runOptions) return { command: 'requirements', errors: parsed.errors };
+    if (action === 'propose') {
+      return { command: 'requirements', requirementsOptions: { action, configPath: parsed.runOptions.configPath, documentId: documentId! }, errors: [] };
+    }
     return {
       command: 'requirements',
       requirementsOptions: { action, configPath: parsed.runOptions.configPath, ...(documentId ? { documentId } : {}) },
@@ -322,6 +356,8 @@ Usage:
   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
   npm run qa -- requirements import --config <project-config-path> --document <documentId>
   npm run qa -- requirements list --config <project-config-path>
+  npm run qa -- requirements propose --config <project-config-path> --document <documentId>
+  npm run qa -- requirements review --config <project-config-path> --proposal <id> [--accept <IDs>] [--reject <IDs>]
   npm run qa -- plan --config <project-config-path> --requirements <IDs> --observations <exploration-IDs>
   npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
   npm run qa -- help
@@ -334,6 +370,10 @@ Commands:
              sets exploration.mode "interactive") and save observations
   requirements import  Ingest a declared document and import its requirements
   requirements list    List the project's active, retired and unresolved requirements
+  requirements propose Ask the AI model to propose requirements from an
+                       unstructured document; saved as a pending proposal
+  requirements review  Accept or reject proposed requirements; only accepted
+                       ones reach the registry
   plan       Plan requirement-traced test scenarios from requirements and
              observation records; saves specs/candidates/<plan-id>.json
   generate   Write type-checked candidate tests to tests/candidates/ from a
@@ -357,7 +397,12 @@ explore Options:
 
 requirements Options:
   --config, -c <path>   Path to the project configuration file (required)
-  --document <id>       documentId from the config's documents list (import only)
+  --document <id>       documentId from the config's documents list (import and
+                        propose). propose requires AI_ENABLED=true, the API key
+                        in .env and config/ai-budget.json.
+  --proposal <id>       Proposal ID from requirements/proposals/ (review only)
+  --accept <IDs>        Comma-separated proposed IDs to accept (review only)
+  --reject <IDs>        Comma-separated proposed IDs to reject (review only)
 
 plan Options:
   --config, -c <path>   Path to the project configuration file (required)

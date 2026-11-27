@@ -9,6 +9,8 @@
  *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
  *   npm run qa -- requirements import|list --config <project-config-path> [--document <documentId>]
+ *   npm run qa -- requirements propose --config <project-config-path> --document <documentId>
+ *   npm run qa -- requirements review --config <project-config-path> --proposal <id> [--accept <IDs>] [--reject <IDs>]
  *   npm run qa -- plan --config <project-config-path> --requirements <ID>[,…] --observations <exploration-id>[,…]
  *   npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
  *   npm run qa -- help
@@ -22,6 +24,7 @@ import { executeAiCheckCommand } from './ai-check-command.js';
 import { executeMcpCheckCommand } from './mcp-check-command.js';
 import { executeExploreCommand } from './explore-command.js';
 import { executeRequirementsCommand } from './requirements-command.js';
+import { executeProposeCommand, executeReviewCommand } from './proposal-command.js';
 import { executePlanCommand } from './plan-command.js';
 import { executeGenerateCommand } from './generate-command.js';
 
@@ -74,9 +77,13 @@ async function main(): Promise<void> {
       process.exit(await executeExploreCommand(parsed.exploreOptions!));
       break;
 
-    case 'requirements':
-      process.exit(executeRequirementsCommand(parsed.requirementsOptions!));
+    case 'requirements': {
+      const options = parsed.requirementsOptions!;
+      if (options.action === 'propose') process.exit(await executeProposeCommand(options));
+      else if (options.action === 'review') process.exit(executeReviewCommand(options));
+      else process.exit(executeRequirementsCommand(options));
       break;
+    }
 
     case 'plan':
       process.exit(await executePlanCommand(parsed.planOptions!));

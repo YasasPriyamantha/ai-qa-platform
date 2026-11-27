@@ -132,7 +132,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-describe('generate', () => {
+// The TypeScript check starts tsc as a separate process, which can exceed the 5 s default when the full suite runs in parallel.
+describe('generate', { timeout: 30_000 }, () => {
   it('renders every action and assertion type with the fixed templates, and the same input gives identical output', () => {
     writePlan([EVERY_STEP]);
     expect(generate()).toBe(0);

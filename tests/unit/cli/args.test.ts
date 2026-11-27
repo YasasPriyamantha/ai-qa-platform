@@ -181,6 +181,19 @@ describe('parseArgs plan (Task Q3)', () => {
   });
 });
 
+describe('parseArgs requirements propose and review (Task Q5)', () => {
+  it('parses propose with --document and review with --proposal, --accept and --reject', () => {
+    expect(parseArgs(['requirements', 'propose', '--config', 'p.json', '--document', 'notes']).requirementsOptions)
+      .toEqual({ action: 'propose', configPath: 'p.json', documentId: 'notes' });
+    expect(parseArgs(['requirements', 'propose', '--config', 'p.json']).errors).toEqual(['Missing required option: --document <documentId>']);
+    expect(parseArgs(['requirements', 'review', '--config', 'p.json', '--proposal', 'prop-1', '--accept', 'REQ-1, REQ-2', '--reject', 'REQ-3']).requirementsOptions)
+      .toEqual({ action: 'review', configPath: 'p.json', proposalId: 'prop-1', accept: ['REQ-1', 'REQ-2'], reject: ['REQ-3'] });
+    expect(parseArgs(['requirements', 'review', '--config', 'p.json', '--proposal', 'prop-1']).errors).toEqual(['requirements review needs --accept or --reject IDs']);
+    expect(parseArgs(['requirements', 'review', '--config', 'p.json', '--accept', 'REQ-1']).errors).toEqual(['Missing required option: --proposal <id>']);
+    expect(parseArgs(['requirements', 'review', '--config', 'p.json', '--proposal', 'p', '--accept', 'REQ-1', '--reject', 'REQ-1']).errors).toEqual(['Cannot both accept and reject: REQ-1']);
+  });
+});
+
 describe('getHelpText', () => {
   it('should return non-empty help text', () => {
     const help = getHelpText();

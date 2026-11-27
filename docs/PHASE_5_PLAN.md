@@ -214,6 +214,27 @@ Follow AGENTS.md "Scope discipline". This is a thin layer over the existing docu
 (createProposal, acceptProposedRequirement, rejectProposedRequirement); add no parallel proposal storage. No live API calls.
 Size budget ~350 source lines. Verify: typecheck, build, npm run test:unit. Report the criterion table, raw Vitest lines and
 git status --short.
+Carry-over notes:
+(a) Reuse src/cli/ai-setup.ts for the provider, key and budget checks, as plan and explore do. One AI request per propose run.
+(b) Send the document text to the model with line numbers (e.g. "12: text"), so it can cite real line ranges. The line-range check
+    in criterion 2 stays deterministic against the snapshot.
+(c) Add a sample unstructured document for the user's live run: project-data/saucedemo/docs/checkout-notes.md with exactly the
+    text below, and register it in project-data/saucedemo/project.config.json "documents" as
+    { "documentId": "saucedemo-checkout-notes", "sourcePath": "docs/checkout-notes.md", "format": "markdown" }.
+    Do not import it as structured requirements.
+    ---
+    # Checkout notes (from the product meeting)
+
+    Once a shopper has something in the cart they open the cart and press Checkout. The next page asks for their first name,
+    last name and postal code, and nothing happens until all three are filled in. If the first name is missing the page
+    shows "Error: First Name is required".
+
+    After Continue the shopper sees an overview of the order. Pressing Finish completes the order and the page shows
+    "Thank you for your order!".
+
+    We also talked about tax. The total should include tax, but nobody agreed on how it is shown.
+    ---
+(d) Run propose once with a fake adapter only. Do not run any live AI command; the user runs propose and review live.
 ```
 
 ---

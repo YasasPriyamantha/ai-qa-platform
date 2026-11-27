@@ -7,7 +7,8 @@
   "testDirectory": "tests/approved",
   "artifactDirectory": "artifacts",
   "documents": [
-    { "documentId": "saucedemo-requirements", "sourcePath": "docs/requirements.md", "format": "markdown" }
+    { "documentId": "saucedemo-requirements", "sourcePath": "docs/requirements.md", "format": "markdown" },
+    { "documentId": "saucedemo-checkout-notes", "sourcePath": "docs/checkout-notes.md", "format": "markdown" }
   ],
   "roles": [
     {
