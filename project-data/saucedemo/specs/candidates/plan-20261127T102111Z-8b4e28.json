@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 1,
+  "planId": "plan-20261127T102111Z-8b4e28",
+  "projectId": "saucedemo",
+  "status": "generated",
+  "createdAt": "2026-11-27T10:21:11.985Z",
+  "requirementIds": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003"
+  ],
+  "excluded": [],
+  "explorationIds": [
+    "exp-20261127T093524Z-2d9873",
+    "exp-20261127T101141Z-d50936"
+  ],
+  "provider": {
+    "providerId": "openai",
+    "modelId": "gpt-6-luna"
+  },
+  "limits": {
+    "maxScenarios": 20,
+    "maxAiRequests": 1
+  },
+  "usage": {
+    "aiRequests": 1,
+    "inputTokens": 3116,
+    "outputTokens": 3363
+  },
+  "stopReason": "completed",
+  "error": null,
+  "scenarios": [
+    {
+      "title": "Log in with valid standard-user credentials",
+      "requirementIds": [
+        "REQ-001"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "critical",
+      "risk": "high",
+      "role": "standard_user",
+      "preconditions": [
+        "The user is logged out."
+      ],
+      "testData": [
+        "Username: {{credential:standard_user.username}}",
+        "Password: {{credential:standard_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:standard_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:standard_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "https://www.saucedemo.com/inventory.html",
+          "assertion": "url",
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Products",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-001",
+          "quote": "After logging in with the standard user's credentials, the user is taken to `https://www.saucedemo.com/inventory.html` and the page shows the title `Products`."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0001",
+      "requirementVersions": {
+        "REQ-001": 4
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0001.spec.ts"
+    },
+    {
+      "title": "Prevent login when the username is empty",
+      "requirementIds": [
+        "REQ-001"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "critical",
+      "risk": "high",
+      "role": "standard_user",
+      "preconditions": [
+        "The user is logged out."
+      ],
+      "testData": [
+        "Username: empty",
+        "Password: {{credential:standard_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:standard_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Epic sadface: Username is required",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-001",
+          "quote": "Empty username: login is prevented and the message `Epic sadface: Username is required` is shown."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0002",
+      "requirementVersions": {
+        "REQ-001": 4
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0002.spec.ts"
+    },
+    {
+      "title": "Prevent login with the standard username and a wrong password",
+      "requirementIds": [
+        "REQ-001"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "critical",
+      "risk": "high",
+      "role": "standard_user",
+      "preconditions": [
+        "The user is logged out."
+      ],
+      "testData": [
+        "Username: {{credential:standard_user.username}}",
+        "Password: wrong_password"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:standard_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "wrong_password",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Epic sadface: Username and password do not match any user in this service",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-001",
+          "quote": "Wrong password: logging in with the standard user's username and the password `wrong_password` is prevented and the message `Epic sadface: Username and password do not match any user in this service` is shown."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0003",
+      "requirementVersions": {
+        "REQ-001": 4
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0003.spec.ts"
+    },
+    {
+      "title": "Prevent login for a locked-out user",
+      "requirementIds": [
+        "REQ-001"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "critical",
+      "risk": "high",
+      "role": "standard_user",
+      "preconditions": [
+        "The user is logged out."
+      ],
+      "testData": [
+        "Username: {{credential:locked_out_user.username}}",
+        "Password: {{credential:locked_out_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:locked_out_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:locked_out_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Epic sadface: Sorry, this user has been locked out.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-001",
+          "quote": "Locked-out user: login is prevented and the message `Epic sadface: Sorry, this user has been locked out.` is shown."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0004",
+      "requirementVersions": {
+        "REQ-001": 4
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0004.spec.ts"
+    },
+    {
+      "title": "Verify login page controls",
+      "requirementIds": [
+        "REQ-002"
+      ],
+      "categories": [
+        "functional",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": null,
+      "preconditions": [],
+      "testData": [],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-002",
+          "quote": "The page at `/` shows a username input with the placeholder `Username`, a password input with the placeholder `Password`, and a button with the accessible name `Login`."
+        }
+      ],
+      "questions": [
+        "The observations identify the textboxes by accessible names but do not establish their placeholder attributes. Can an observation or browser locator that verifies the exact Username and Password placeholders be provided?"
+      ],
+      "scenarioId": "SCN-0005",
+      "requirementVersions": {
+        "REQ-002": 1
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0005.spec.ts"
+    },
+    {
+      "title": "Add the Sauce Labs Backpack to the cart from its product page",
+      "requirementIds": [
+        "REQ-003"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "standard_user",
+      "preconditions": [
+        "The user is logged out and can log in with standard-user credentials."
+      ],
+      "testData": [
+        "Username: {{credential:standard_user.username}}",
+        "Password: {{credential:standard_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:standard_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:standard_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/inventory-item.html?id=4",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add to cart"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "button",
+            "name": "Cart, 1 items"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-003",
+          "quote": "After the standard user opens `/inventory-item.html?id=4`, the product page for `Sauce Labs Backpack`, and clicks `Add to cart` once, the cart badge displays `1`."
+        }
+      ],
+      "questions": [],
+      "scenarioId": "SCN-0006",
+      "requirementVersions": {
+        "REQ-003": 2
+      },
+      "status": "draft"
+    }
+  ],
+  "rejected": [],
+  "notCovered": [],
+  "conflicts": [],
+  "questions": [
+    "For REQ-002, the observations show textboxes named Username and Password but do not confirm their placeholder attributes. Can an observation or browser locator that verifies those exact placeholders be provided?"
+  ]
+}

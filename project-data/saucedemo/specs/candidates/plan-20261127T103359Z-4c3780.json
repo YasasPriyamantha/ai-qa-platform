@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "planId": "plan-20261127T103359Z-4c3780",
+  "projectId": "saucedemo",
+  "status": "generated",
+  "createdAt": "2026-11-27T10:33:59.341Z",
+  "requirementIds": [
+    "REQ-003"
+  ],
+  "excluded": [],
+  "explorationIds": [
+    "exp-20261127T101141Z-d50936"
+  ],
+  "provider": {
+    "providerId": "openai",
+    "modelId": "gpt-6-luna"
+  },
+  "limits": {
+    "maxScenarios": 20,
+    "maxAiRequests": 1
+  },
+  "usage": {
+    "aiRequests": 1,
+    "inputTokens": 1959,
+    "outputTokens": 1029
+  },
+  "stopReason": "completed",
+  "error": null,
+  "scenarios": [
+    {
+      "title": "Add Sauce Labs Backpack to the cart from its product page",
+      "requirementIds": [
+        "REQ-003"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "standard_user",
+      "preconditions": [],
+      "testData": [
+        "Username: {{credential:standard_user.username}}",
+        "Password: {{credential:standard_user.password}}"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:standard_user.username}}",
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:standard_user.password}}",
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Login"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "View details for Sauce Labs Backpack"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add to cart"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "evidence"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "1",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "REQ-003",
+          "quote": "After the standard user opens `/inventory-item.html?id=4`, the product page for `Sauce Labs Backpack`, and clicks `Add to cart` once, the cart badge displays `1`."
+        }
+      ],
+      "questions": [
+        "What setup ensures the cart is empty before this scenario, so the result of adding the product once can be verified as 1?"
+      ],
+      "scenarioId": "SCN-0007",
+      "requirementVersions": {
+        "REQ-003": 2
+      },
+      "status": "draft",
+      "candidateFile": "tests/candidates/SCN-0007.spec.ts"
+    }
+  ],
+  "rejected": [],
+  "notCovered": [],
+  "conflicts": [],
+  "questions": []
+}
