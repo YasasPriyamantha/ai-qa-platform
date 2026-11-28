@@ -1,6 +1,6 @@
 # Phase 7 Plan: Release Comparison and Regression Memory
 
-**Status:** Ready to start (Phase 6 complete, 2026-11-28; planner fix F1 done, 14 approved AI-planned tests).
+**Status:** Complete (2026-11-28).
 **Rules:** `AGENTS.md` → *Scope discipline* and `docs/REVIEW_RULES.md` apply to every task. One task at a time, one correction round at most. Every task prompt starts by having the agent read and understand the repository before changing anything. Design decisions are recorded as **DEC-043**.
 
 ## 1. Goal and exit criteria

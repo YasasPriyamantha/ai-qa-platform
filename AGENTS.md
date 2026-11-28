@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 6 complete (2026-11-28; Phases 3–6 complete, MVP-first per DEC-039): candidate validation, human approval and CI with approved AI-planned tests (`docs/PHASE_6_PLAN.md`, DEC-042). Planner fix F1 done. Phase 7 in progress: release records, deterministic requirement comparison, review of affected tests and regression reports. The current task list is in `docs/PHASE_7_PLAN.md` (DEC-043). Progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
+**Current status:** Phase 7 complete (2026-11-28; Phases 3–7 complete, MVP-first per DEC-039): release records, deterministic requirement comparison, review of affected tests and regression reports; CI runs the Release Demo's active suite against demo app V2 (`docs/PHASE_7_PLAN.md`, DEC-043). Next: decide the scope of Phase 8 (local UI and release triggers) before writing its plan. Progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -105,7 +105,7 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 - **Phase 4 (complete):** Playwright MCP read-only exploration; observations saved with evidence (DEC-040).
 - **Phase 5 (complete, 2026-11-27):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Phase 5 code never wrote to `tests/approved/` (the current rule is in the Phase 6 line).
 - **Phase 6 (complete, 2026-11-28):** role credentials in runs, three-run candidate validation, human approval into `tests/approved/`, and CI running approved AI-planned tests (DEC-042, `docs/PHASE_6_PLAN.md`). `storageState` is deferred. Only `approve` writes to `tests/approved/`; never edit candidate or approved files by hand.
-- **Phase 7 (current):** release records, deterministic requirement comparison, review of affected tests (keep or retire into `tests/retired/`), release runs and regression reports, and demo app V2 (DEC-043, `docs/PHASE_7_PLAN.md`). Only `approve` and `release review` change `tests/approved/`; never edit candidate, approved or retired test files by hand.
+- **Phase 7 (complete, 2026-11-28):** release records, deterministic requirement comparison, review of affected tests (keep or retire into `tests/retired/`), release runs and regression reports, and demo app V2 (DEC-043, `docs/PHASE_7_PLAN.md`). Only `approve` and `release review` change `tests/approved/`; never edit candidate, approved or retired test files by hand.
 
 Phase 6 added candidate validation and approval. Phase 7 adds release comparison; Phase 8 adds a local UI.
 

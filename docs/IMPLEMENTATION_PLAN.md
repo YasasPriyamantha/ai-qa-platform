@@ -1,6 +1,6 @@
 # Implementation Plan — AI-Powered QA Automation Platform
 
-**Document status:** Phase 6 complete; Phase 7 in progress
+**Document status:** Phase 7 complete (2026-11-28); Phase 8 scope to be decided
 **Planning style:** Small, verifiable increments
 **Estimated focused effort:** Approximately 113–196 hours, including the separate hosted-provider/MCP feasibility spike; re-estimate after each phase
 **Actual Phase 1 effort:** To be filled in by the user
@@ -860,6 +860,65 @@ Tasks:
 
 **Task breakdown:** `docs/PHASE_7_PLAN.md` (Tasks R1–R5 and a live walkthrough; design decisions DEC-043). Every item below is mapped to a task there. Item 4 (AI semantic-change suggestions) is deferred (DEC-043 §2).
 
+**Status: Phase 7 complete (2026-11-28).**
+
+Tasks (plan `a594ba7`):
+- R1 `76fd86b`: `release create` snapshots requirements into `releases/<id>.json`, classifies them against the previous release, and lists affected tests and "needs tests". Release Demo `v1` created.
+- R2 `37ab4ec`: `release review` confirms requirement changes and keeps or retires affected tests with reviewer and reason; retiring moves the file to `tests/retired/`, undone if a record write fails.
+- R3 `c427b9e` (+ `858c97f`, v1 baseline): `run --release` appends a run summary to the release; `release report` compares it with the previous release's latest run and flags regressions.
+- R4 `2a6e5c5`: demo app V2 (`npm run demo:v2`) with the planted regression and `requirements-v2.md`; shared reachability pre-flight: with no HTTP response from the base URL within 10 s, `run --release` refuses and `validate` marks candidates blocked.
+- R5 `f4aa580` (with the V2 walkthrough files): regression fixed; CI starts `demo:v2`; `release report` recomputes "needs tests" from the current plan files (shared `findNeedsTests`, `src/releases/release.ts:198`) instead of printing the list stored at creation.
+
+Walkthrough (read from `project-data/release-demo/releases/` and the plan files; reviewer `Yasas`; times UTC, 2026-11-28):
+
+*V1 baseline.* Release `v1` (no previous release): DEMO-001–004 all `new`, no affected tests, needs tests none. Run `2026-11-28T15-51-44-387Z` failed 9/9 because the demo app was not running (`net::ERR_CONNECTION_REFUSED`; the reason for the R4 pre-flight). Run `2026-11-28T16-04-22-757Z` passed 9/9; `v1-report.md`: PASS, no baseline.
+
+*V2 import and release `v2`* (previous `v1`): DEMO-001 and DEMO-002 unchanged; DEMO-003 retired; DEMO-004 changed (content version 1→2); DEMO-005 new. Affected: SCN-0009 (DEMO-003), SCN-0010 and SCN-0011 (DEMO-004). Needs tests at creation: DEMO-004, DEMO-005. Review decisions (`v2.json` `reviews`):
+
+| Item | Action | Reason |
+|---|---|---|
+| DEMO-003, DEMO-004 | confirm | V2 removes the predefined task list (DEMO-003) and changes the empty-title message (DEMO-004). |
+| SCN-0009 | retire | DEMO-003 is retired in V2: the predefined task list is gone. |
+| SCN-0011 | retire | DEMO-004 changed the empty-title message; this test checks the old one. |
+| SCN-0010 | keep | DEMO-004's change only affects the empty-title message; adding a task is unchanged. |
+
+SCN-0009 and SCN-0011 are in `tests/retired/`, status `retired` with a `retirement` record (release `v2`).
+
+*New tests on V2:*
+
+| Plan | Scenario | Requirement | Outcome |
+|---|---|---|---|
+| `plan-20261128T162937Z-a472e0` | SCN-0012 add a task | DEMO-004 v2 | validated 3/3; rejected: duplicate of the kept SCN-0010 |
+| | SCN-0013 empty title | DEMO-004 v2 | `draft`: skipped by generate, its step 5 asserts URL `/tasks.html`, which is not in its quote |
+| | SCN-0014 sign out | DEMO-005 v1 | validated 3/3; approved |
+| `plan-20261128T163845Z-9fad10` (re-plan of DEMO-004) | SCN-0015 add a task | DEMO-004 v2 | validation `blocked` by the pre-flight ("Target http://localhost:4310 is not reachable…"); rejected: duplicate of SCN-0010 |
+| | SCN-0016 empty title | DEMO-004 v2 | first validation (16:53, with SCN-0015) blocked because the app was not running; only SCN-0015's record still shows it. Validated 3/3 (`2026-11-28T17-14-47-283Z`, `…17-14-49-736Z`, `…17-14-52-034Z`); approved |
+
+*Regression.* v2 run `2026-11-28T16-41-21-292Z` (before SCN-0016): only SCN-0004 failed (V2 showed `Password is required` without the period); 7 others passed. `release report` classified it as a **regression** because its only requirement, DEMO-002, is `unchanged` (`src/releases/report.ts:93`). That report file was overwritten by the later report; the evidence is the failed run stored in `v2.json`.
+
+*After R5.* Run `2026-11-28T17-15-49-590Z` passed 9/9. `v2-report.md`: PASS, 0 regressions, 0 pending reviews; 7 still passing (SCN-0001–0005, SCN-0010, smoke), 2 retired (SCN-0009, SCN-0011), 2 new (SCN-0014, SCN-0016); needs tests: none (`v2.json` still stores DEMO-004, DEMO-005, by design).
+
+CI: green on `f4aa580` against demo V2 (`.github/workflows/ci.yml:62` starts `npm run demo:v2`; user-confirmed). Release Demo active suite: SCN-0001–0005, SCN-0010, SCN-0014, SCN-0016 and the smoke test.
+
+Exit criteria (`docs/PHASE_7_PLAN.md` §1):
+1. *Valid V1 coverage stays active without re-approval:* met. DEMO-001/002 unchanged; SCN-0001–0005 and the smoke test kept their Phase 6 approvals, needed no review and are `still passing` in `v2-report.md`. Test `release-command.test.ts` "flags approved scenarios linked to flagged requirements through the plan files".
+2. *Approved tests for new behaviour through the pipeline:* met. SCN-0014 (DEMO-005, new) and SCN-0016 (DEMO-004 version 2, changed): explored, planned, generated, validated 3/3, approved; report needs tests: none.
+3. *Flagged, confirmed by a named reviewer with a reason, never deleted:* met. `v2.json`: DEMO-003/004 and SCN-0009/0010/0011 all `reviewed`, five `reviews` by Yasas with reasons; retired files moved, not deleted (`src/cli/release-command.ts:139-166`); tests in `release-review.test.ts` (retire moves the file unchanged; rollback when a write fails).
+4. *Report against the V1 baseline flags the regression; clean after the fix; CI on V2:* met. Regression run and classification above (report file since overwritten); clean `v2-report.md` against baseline run `2026-11-28T16-04-22-757Z`; CI green on `f4aa580`. Test `release-report.test.ts` "classifies each test and separates regressions from requirement-change failures".
+
+Known limitations / LATER:
+- The release report file is overwritten on each call; keep one per run.
+- `release create` should warn when a newer document version has not been imported.
+- A failure inside a rollback is not handled (`approve`, `release review`).
+- The same ID given twice gives an unclear message.
+- A run that fails to start under `--release` has no test.
+- The planner still sometimes asserts text that is not in the quote (SCN-0013); consider rejecting it at plan time.
+- Re-planning a changed requirement produces duplicates of kept tests (SCN-0012, SCN-0015).
+- SCN-0010 stays linked to DEMO-004 version 1 by review decision.
+- AI semantic comparison deferred (DEC-043 §2); one base URL per project (§3.7).
+- `readPlanFiles` lives in `approve-command.ts`.
+- Earlier phases' LATER items that are still open stay listed in §9 and §10.
+
 Tasks:
 
 1. Define release records and stable project/test/requirement IDs.
@@ -909,7 +968,7 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Phase 7: follow `docs/PHASE_7_PLAN.md`, starting with Task R1 (release records and requirement comparison).
+1. Phase 8: decide the scope of Phase 8 (local UI and release triggers) before writing its plan.
 
 ## References
 

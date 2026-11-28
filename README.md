@@ -4,10 +4,10 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 6, Validation, Approval and CI**: complete (2026-11-28): three-run candidate validation, human approval into `tests/approved/`, and CI running 10 approved AI-planned tests for SauceDemo and the local demo app with credentials from GitHub secrets. **Next:** Phase 7 (in progress), release comparison and regression reports. See [`docs/PHASE_7_PLAN.md`](docs/PHASE_7_PLAN.md).
+**Phase 7, Release Comparison and Regression Memory**: complete (2026-11-28): release records, deterministic requirement comparison, human review that keeps or retires affected tests, release runs and regression reports. The planted V2 regression was caught and fixed, and CI runs the active suite against demo app V2. **Next:** decide the scope of Phase 8 (local UI and release triggers) before writing its plan. See [`docs/PHASE_7_PLAN.md`](docs/PHASE_7_PLAN.md).
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
-- Phase 6 is complete (see [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md)). Phase 7 (release comparison) is in progress: see [`docs/PHASE_7_PLAN.md`](docs/PHASE_7_PLAN.md).
+- Phase 7 is complete (see [`docs/PHASE_7_PLAN.md`](docs/PHASE_7_PLAN.md)). Phase 8 (local UI and release triggers) is not planned yet.
 - Detailed progress: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ### Two operating modes
@@ -23,7 +23,7 @@ Complete project specifications and architecture are maintained in the `docs/` d
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design and component responsibilities
 - **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** — Phased task breakdown with acceptance criteria
 - **[DECISIONS.md](docs/DECISIONS.md)** — Architecture and implementation decision record
-- **[PHASE_7_PLAN.md](docs/PHASE_7_PLAN.md)** — Current phase task list (Phase 7)
+- **[PHASE_7_PLAN.md](docs/PHASE_7_PLAN.md)** — Phase 7 task list (complete)
 - **[PHASE_6_PLAN.md](docs/PHASE_6_PLAN.md)** — Phase 6 task list (complete)
 - **[PHASE_5_PLAN.md](docs/PHASE_5_PLAN.md)** — Phase 5 task list (complete)
 - **[REVIEW_RULES.md](docs/REVIEW_RULES.md)** — Rules for writing and reviewing coding tasks
