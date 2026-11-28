@@ -163,6 +163,11 @@ Task R3 (docs/PHASE_7_PLAN.md). Implement exactly acceptance criteria 1–5 of R
 Follow AGENTS.md "Scope discipline". Reuse reconcileRunResult and the parsed report; do not parse Playwright JSON again.
 run without --release must behave exactly as today. No AI calls. Size budget ~300 source lines. Verify: typecheck, build,
 npm run test:unit. Report the criterion table, raw Vitest lines and git status --short.
+Carry-over note:
+(a) The CLI help text is out of date: the header says "AI QA Automation Platform - Phase 1 CLI", and the Exit Codes section says
+    "PROVISIONAL until report parsing is implemented" plus a note about Task 1.7. Report parsing exists since Phase 1. Change the
+    header to "AI QA Automation Platform - CLI", remove the PROVISIONAL wording and the Task 1.7 note, and add the new run --release
+    option and release report usage. Change no other help text.
 ```
 
 ---

@@ -4,7 +4,7 @@
  * CLI entry point for the AI QA Automation Platform
  *
  * Supports the following commands:
- *   npm run qa -- run --config <project-config-path>
+ *   npm run qa -- run --config <project-config-path> [--release <id>]
  *   npm run qa -- ai-check [--live]
  *   npm run qa -- mcp-check --config <project-config-path>
  *   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
@@ -18,6 +18,7 @@
  *   npm run qa -- reject --config <project-config-path> --scenario <SCN-…>[,…] --reviewer <name> --reason <text>
  *   npm run qa -- release create --config <project-config-path> --release <id>
  *   npm run qa -- release review --config <project-config-path> --release <id> --reviewer <name> --reason <text> (--requirement <IDs> --confirm | --scenario <IDs> --keep|--retire)
+ *   npm run qa -- release report --config <project-config-path> --release <id>
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -34,7 +35,7 @@ import { executePlanCommand } from './plan-command.js';
 import { executeGenerateCommand } from './generate-command.js';
 import { executeValidateCommand } from './validate-command.js';
 import { executeApproveCommand, executeRejectCommand } from './approve-command.js';
-import { executeReleaseCreateCommand, executeReleaseReviewCommand } from './release-command.js';
+import { executeReleaseCreateCommand, executeReleaseReviewCommand, executeReleaseReportCommand } from './release-command.js';
 
 /**
  * Main CLI entry point.
@@ -69,7 +70,7 @@ async function main(): Promise<void> {
         return;
       }
 
-      const exitCode = await executeRunCommand(parsed.runOptions.configPath);
+      const exitCode = await executeRunCommand(parsed.runOptions.configPath, process.cwd(), parsed.runOptions.releaseId);
       process.exit(exitCode);
       break;
 
@@ -113,9 +114,12 @@ async function main(): Promise<void> {
       process.exit(executeRejectCommand(parsed.decisionOptions!));
       break;
 
-    case 'release':
-      process.exit(parsed.releaseOptions!.action === 'review' ? executeReleaseReviewCommand(parsed.releaseOptions!) : executeReleaseCreateCommand(parsed.releaseOptions!));
+    case 'release': {
+      const options = parsed.releaseOptions!;
+      if (options.action === 'review') process.exit(executeReleaseReviewCommand(options));
+      else process.exit(options.action === 'report' ? executeReleaseReportCommand(options) : executeReleaseCreateCommand(options));
       break;
+    }
 
     default:
       // Should not reach here due to parseArgs validation

@@ -6,13 +6,14 @@
  * No AI calls.
  */
 
-import { existsSync, mkdirSync, renameSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { basename, join, relative, resolve } from 'node:path';
 import { atomicWriteRegistry } from '../documents/atomic-fs.js';
 import { loadDocumentRegistry } from '../documents/index.js';
 import { loadPhase2ProjectConfig, ConfigValidationError, getProjectStoragePaths } from '../projects/index.js';
 import { loadRequirementRegistry } from '../requirements/index.js';
 import { RELEASE_ID_PATTERN, RELEASE_RECORD, buildReleaseRecord, loadReleases, releasePath } from '../releases/release.js';
+import { buildReleaseReport, renderReleaseReport, runState } from '../releases/report.js';
 import type { TestScenario } from '../planning/scenario.js';
 import { readPlanFiles, savePlans } from './approve-command.js';
 import { displayError } from './output.js';
@@ -184,4 +185,59 @@ export function executeReleaseReviewCommand(options: ReleaseReviewOptions): numb
   console.log(`  Still pending in release ${updated.releaseId}: ${pending}`);
   console.log('');
   return EXIT_SUCCESS;
+}
+
+/**
+ * release report (Task R3, DEC-043 §3.6): compares the release's latest run with its previous
+ * release's latest run, writes `releases/<id>-report.md` and exits 0 only with no regression,
+ * no pending review and a passing latest run.
+ */
+export function executeReleaseReportCommand(options: ReleaseCreateOptions): number {
+  if (!RELEASE_ID_PATTERN.test(options.releaseId)) return refuse(`Report refused: invalid release ID "${options.releaseId}"`);
+  let config;
+  try {
+    config = loadPhase2ProjectConfig(resolve(process.cwd(), options.configPath));
+  } catch (err) {
+    return refuse(`Report refused: ${err instanceof ConfigValidationError ? 'invalid' : 'cannot load'} project configuration`, (err as Error).message);
+  }
+  const workspace = config.projectWorkspace;
+  let releases, plans;
+  try {
+    releases = loadReleases(workspace);
+    plans = readPlanFiles(workspace);
+  } catch (err) {
+    return refuse('Report refused: cannot read the project records', (err as Error).message);
+  }
+  const release = releases.find((r) => r.releaseId === options.releaseId);
+  if (!release) return refuse(`Report refused: release ${options.releaseId} does not exist`);
+  const previous = releases.find((r) => r.releaseId === release.previousReleaseId) ?? null;
+
+  const report = buildReleaseReport({
+    release,
+    previous,
+    plans: plans.values(),
+    isRetired: (file) => existsSync(join(workspace, 'tests', 'retired', basename(file))),
+  });
+  const target = join(workspace, 'releases', `${release.releaseId}-report.md`);
+  try {
+    writeFileSync(target, renderReleaseReport(report, previous, new Date().toISOString()), 'utf-8');
+  } catch (err) {
+    return refuse(`Report failed: cannot write ${target}`, (err as Error).message);
+  }
+
+  console.log('');
+  console.log(`  Release ${release.releaseId} report: ${target}`);
+  console.log(`  Latest run: ${report.latest ? `${report.latest.runId} (${runState(report.latest)})` : 'none'}`);
+  console.log(`  Baseline: ${report.baseline ? `${previous!.releaseId} run ${report.baseline.runId}` : 'no baseline'}`);
+  if (report.notCompared) console.log(`  ${report.notCompared}`);
+  if (report.tests) {
+    const counts = new Map<string, number>();
+    for (const t of report.tests) counts.set(t.classification, (counts.get(t.classification) ?? 0) + 1);
+    console.log(`  Tests: ${[...counts].map(([c, n]) => `${n} ${c}`).join(', ') || 'none'}`);
+    for (const t of report.tests.filter((x) => x.regression)) console.log(`  REGRESSION: ${t.title}`);
+  }
+  console.log(`  Pending reviews: ${report.pending.length}; needs tests: ${release.needsTests.length === 0 ? 'none' : release.needsTests.join(', ')}`);
+  console.log(`  Result: ${report.passed ? 'PASS' : 'FAIL'} (${report.regressions} regression(s))`);
+  console.log('');
+  return report.passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

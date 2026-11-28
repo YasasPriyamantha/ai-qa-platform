@@ -8,8 +8,9 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { z } from '../model-providers/index.js';
+import type { RunResult } from '../reporting/index.js';
 import type { DocumentRegistry } from '../documents/index.js';
 import { getCurrentVersion } from '../documents/index.js';
 import type { RequirementWithHistory } from '../requirements/index.js';
@@ -67,11 +68,40 @@ export const RELEASE_RECORD = z.object({
     decidedAt: z.string(),
     reason: z.string(),
   }).strict()),
-  /** Filled by `run --release` (Task R3). */
-  runs: z.array(z.never()),
+  /** One summary per `run --release` (Task R3, §3.5); the Playwright artifacts stay git-ignored. */
+  runs: z.array(z.object({
+    runId: z.string(),
+    finishedAt: z.string(),
+    runStatus: z.enum(['passed', 'failed', 'timed_out', 'infrastructure_error']),
+    reportStatus: z.enum(['complete', 'partial', 'failed']),
+    tests: z.array(z.object({
+      /** Relative to the project's test folder, as in the Playwright report. */
+      file: z.string(),
+      title: z.string(),
+      scenarioId: z.string().nullable(),
+      status: z.enum(['passed', 'failed', 'skipped', 'interrupted']),
+    }).strict()),
+  }).strict()),
 }).strict();
 
 export type ReleaseRecord = z.infer<typeof RELEASE_RECORD>;
+export type ReleaseRun = ReleaseRecord['runs'][number];
+
+/** The release summary of a reconciled run (§3.5): statuses and per-test results from the parsed report. */
+export function summarizeRun(runId: string, finishedAt: string, result: RunResult): ReleaseRun {
+  const scenarioOf = (file: string) => /^(SCN-\d{4,})\.spec\.ts$/.exec(basename(file))?.[1] ?? null;
+  const report = result.parsedReport;
+  return {
+    runId,
+    finishedAt,
+    runStatus: result.runStatus,
+    reportStatus: result.reportStatus,
+    tests: [
+      ...(report?.tests ?? []).map((t) => ({ file: t.file, title: t.title, scenarioId: scenarioOf(t.file), status: t.status })),
+      ...(report?.interruptedTests ?? []).map((t) => ({ file: t.file, title: t.title, scenarioId: scenarioOf(t.file), status: 'interrupted' as const })),
+    ],
+  };
+}
 
 const releasesDir = (workspace: string) => join(workspace, 'releases');
 export const releasePath = (workspace: string, releaseId: string) => join(releasesDir(workspace), `${releaseId}.json`);

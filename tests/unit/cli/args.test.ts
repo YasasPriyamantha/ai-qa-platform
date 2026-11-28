@@ -217,9 +217,13 @@ describe('getHelpText', () => {
     expect(help).toContain('help');
   });
 
-  it('should mention provisional results', () => {
+  it('has the current header, no provisional wording, and the release run and report usage', () => {
     const help = getHelpText();
-    expect(help).toContain('PROVISIONAL');
+    expect(help.startsWith('AI QA Automation Platform - CLI\n')).toBe(true);
+    expect(help).not.toContain('PROVISIONAL');
+    expect(help).not.toContain('Task 1.7');
+    expect(help).toContain('run --config <project-config-path> [--release <id>]');
+    expect(help).toContain('release report --config <project-config-path> --release <id>');
   });
 
   it('should include exit code information', () => {

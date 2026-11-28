@@ -36,6 +36,8 @@ import {
   displayError,
   displaySpawnFailure,
 } from './output.js';
+import { atomicWriteRegistry } from '../documents/atomic-fs.js';
+import { RELEASE_ID_PATTERN, RELEASE_RECORD, loadReleases, releasePath, summarizeRun, type ReleaseRun } from '../releases/release.js';
 
 /**
  * Default runner timeout: 30 minutes.
@@ -66,13 +68,41 @@ export function roleCredentialEnv(roles: ReadonlyArray<{ credentials: Record<str
 }
 
 /**
+ * Append a run summary to an existing release record (DEC-043 §3.5); prints the outcome.
+ * Re-reads the record so decisions recorded while the run was going are kept.
+ */
+function recordReleaseRun(workspace: string, releaseId: string, summary: ReleaseRun): boolean {
+  let release;
+  try {
+    release = loadReleases(workspace).find((r) => r.releaseId === releaseId);
+  } catch (err) {
+    displayError(`Run not recorded in release ${releaseId}`, (err as Error).message);
+    return false;
+  }
+  if (!release) {
+    displayError(`Run not recorded: release ${releaseId} no longer exists`);
+    return false;
+  }
+  const target = releasePath(workspace, releaseId);
+  const written = atomicWriteRegistry(target, RELEASE_RECORD.parse({ ...release, runs: [...release.runs, summary] }));
+  if (!written.success) {
+    displayError(`Run not recorded: cannot write ${target}`, written.error?.message);
+    return false;
+  }
+  console.log(`  Run ${summary.runId} recorded in release ${releaseId} (${summary.runStatus}, ${summary.tests.length} tests): ${target}`);
+  console.log('');
+  return true;
+}
+
+/**
  * Execute the run command.
  *
  * @param configPath - Path to the project configuration file
  * @param rootDir - Directory holding the root .env (default: current directory)
+ * @param releaseId - Release to record the run in (`run --release`, DEC-043 §3.5); the release must exist
  * @returns Exit code (0 for success, non-zero for failure)
  */
-export async function executeRunCommand(configPath: string, rootDir: string = process.cwd()): Promise<number> {
+export async function executeRunCommand(configPath: string, rootDir: string = process.cwd(), releaseId?: string): Promise<number> {
   // Resolve config path to absolute
   const absoluteConfigPath = isAbsolute(configPath)
     ? configPath
@@ -91,6 +121,21 @@ export async function executeRunCommand(configPath: string, rootDir: string = pr
       displayStartupError(err as Error);
     }
     return EXIT_FAILURE;
+  }
+
+  // run --release: the release must exist before anything runs.
+  if (releaseId !== undefined) {
+    let exists = false;
+    try {
+      exists = RELEASE_ID_PATTERN.test(releaseId) && loadReleases(config.projectWorkspace).some((r) => r.releaseId === releaseId);
+    } catch (err) {
+      displayError('Run refused: cannot read the release records', (err as Error).message);
+      return EXIT_FAILURE;
+    }
+    if (!exists) {
+      displayError(`Run refused: release ${releaseId} does not exist`, 'Create it first with release create.');
+      return EXIT_FAILURE;
+    }
   }
 
   // Role credentials: .env value wins, otherwise the inherited value (CI secrets). Only role variables.
@@ -128,6 +173,10 @@ export async function executeRunCommand(configPath: string, rootDir: string = pr
         runDirectory,
         err
       );
+      // A run that never started is still recorded, as blocked, so an older run cannot stand in for it.
+      if (releaseId !== undefined) {
+        recordReleaseRun(config.projectWorkspace, releaseId, { runId, finishedAt: new Date().toISOString(), runStatus: 'infrastructure_error', reportStatus: 'failed', tests: [] });
+      }
       return EXIT_FAILURE;
     }
     displayStartupError(err as Error);
@@ -142,6 +191,10 @@ export async function executeRunCommand(configPath: string, rootDir: string = pr
 
   // Display completion information with final status
   displayRunComplete(metadata, result);
+
+  if (releaseId !== undefined && !recordReleaseRun(config.projectWorkspace, releaseId, summarizeRun(metadata.runId, metadata.processResult.endTime, result))) {
+    return EXIT_FAILURE;
+  }
 
   // Determine exit code
   if (shouldExitNonZero(result, metadata.processResult)) {

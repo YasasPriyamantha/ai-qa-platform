@@ -21,6 +21,8 @@ export interface ParsedArgs {
   runOptions?: {
     /** Path to the project configuration file */
     configPath: string;
+    /** run --release: the release to record the run in (absent without --release) */
+    releaseId?: string;
   };
 
   /** Options for the ai-check command */
@@ -85,9 +87,9 @@ export interface ParsedArgs {
     reason?: string;
   };
 
-  /** Options for release create and release review */
+  /** Options for release create, review and report */
   releaseOptions?:
-    | { action: 'create'; configPath: string; releaseId: string }
+    | { action: 'create' | 'report'; configPath: string; releaseId: string }
     | { action: 'review'; configPath: string; releaseId: string; reviewer: string; reason: string; decision: 'confirm' | 'keep' | 'retire'; ids: string[] };
 
   /** Parse errors encountered */
@@ -130,9 +132,16 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
-  // Run command
+  // Run command: --config, plus optional --release <id> that records the run in that release (DEC-043 §3.5)
   if (command === 'run') {
-    return parseRunArgs(args.slice(1));
+    const rest = args.slice(1);
+    const at = rest.indexOf('--release');
+    if (at === -1) return parseRunArgs(rest);
+    const releaseId = rest[at + 1];
+    rest.splice(at, 2);
+    if (!releaseId || releaseId.startsWith('-')) return { command, errors: ['--release requires a release ID'] };
+    const parsed = parseRunArgs(rest);
+    return parsed.runOptions ? { command, runOptions: { ...parsed.runOptions, releaseId }, errors: [] } : parsed;
   }
 
   // ai-check command
@@ -316,14 +325,14 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
-  // release create | review: --config as for run, plus required --release <id> (validated by the command).
+  // release create | review | report: --config as for run, plus required --release <id> (validated by the command).
   // review also takes --reviewer, --reason and exactly one of --requirement <IDs> --confirm, --scenario <IDs> --keep|--retire.
   if (command === 'release') {
     const action = args[1];
-    if (action !== 'create' && action !== 'review') return { command, errors: ['release needs an action: create or review'] };
+    if (action !== 'create' && action !== 'review' && action !== 'report') return { command, errors: ['release needs an action: create, review or report'] };
     const rest = args.slice(2);
     const values: Record<string, string | undefined> = {};
-    for (const flag of action === 'create' ? ['--release'] : ['--release', '--reviewer', '--reason', '--requirement', '--scenario']) {
+    for (const flag of action !== 'review' ? ['--release'] : ['--release', '--reviewer', '--reason', '--requirement', '--scenario']) {
       const at = rest.indexOf(flag);
       if (at === -1) continue;
       values[flag] = rest[at + 1];
@@ -348,7 +357,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     const parsed = parseRunArgs(rest);
     if (!parsed.runOptions) return { command, errors: parsed.errors };
     const base = { configPath: parsed.runOptions.configPath, releaseId: values['--release'] };
-    return { command, releaseOptions: review ? { action: 'review', ...base, ...review } : { action: 'create', ...base }, errors: [] };
+    return { command, releaseOptions: action === 'review' ? { action, ...base, ...review! } : { action, ...base }, errors: [] };
   }
 
   // Unknown command
@@ -444,10 +453,10 @@ function parseAiCheckArgs(args: string[]): ParsedArgs {
  */
 export function getHelpText(): string {
   return `
-AI QA Automation Platform - Phase 1 CLI
+AI QA Automation Platform - CLI
 
 Usage:
-  npm run qa -- run --config <project-config-path>
+  npm run qa -- run --config <project-config-path> [--release <id>]
   npm run qa -- ai-check [--live]
   npm run qa -- mcp-check --config <project-config-path>
   npm run qa -- explore --config <project-config-path> [--start <url>] [--requirement <ID>[,…]]
@@ -463,6 +472,7 @@ Usage:
   npm run qa -- release create --config <project-config-path> --release <id>
   npm run qa -- release review --config <project-config-path> --release <id> --reviewer <name> --reason <text>
                  (--requirement <IDs> --confirm | --scenario <IDs> --keep | --scenario <IDs> --retire)
+  npm run qa -- release report --config <project-config-path> --release <id>
   npm run qa -- help
 
 Commands:
@@ -490,11 +500,15 @@ Commands:
                   with the previous release and list affected tests (no AI)
   release review  Confirm pending requirement changes, or keep or retire pending
                   affected tests (retired files move to tests/retired/)
+  release report  Compare the release's latest run with the previous release's
+                  latest run and write releases/<id>-report.md (no AI)
   help       Show this help message
 
 Run Command Options:
   --config, -c <path>   Path to the project configuration file (required)
                         Example: project-data/saucedemo/project.config.json
+  --release <id>        Existing release ID; the run's per-test summary is
+                        appended to releases/<id>.json
 
 mcp-check Options:
   --config, -c <path>   Path to the project configuration file (required)
@@ -554,6 +568,11 @@ release review Options:
   --scenario <IDs> --keep         Keep pending affected tests active
   --scenario <IDs> --retire       Move pending affected tests to tests/retired/
 
+release report Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --release <id>        Existing release ID (required). Exits 0 only with no
+                        regression, no pending review and a passing latest run.
+
 ai-check Options:
   --live                Send one bounded request to the configured provider.
                         Requires AI_ENABLED=true, the API key in .env and
@@ -564,9 +583,7 @@ Examples:
   npm run qa -- run -c ./tests/fixtures/runner-projects/passing/project.config.json
 
 Exit Codes:
-  0   All tests passed (PROVISIONAL until report parsing is implemented)
+  0   All tests passed
   1   Tests failed, configuration error, or execution error
-
-Note: Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
 `.trim();
 }
