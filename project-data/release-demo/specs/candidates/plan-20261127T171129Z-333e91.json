@@ -105,7 +105,7 @@
       "requirementVersions": {
         "DEMO-001": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0001.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -129,6 +129,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:23.563Z",
+        "approvedFile": "tests/approved/SCN-0001.spec.ts",
+        "approvedSha256": "8d22607b41721385b73028fa2ddde06921f9a014ba5dd4e0b2fcb05e3e1ffbd8"
       }
     },
     {
@@ -218,7 +224,7 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0002.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -242,6 +248,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:23.563Z",
+        "approvedFile": "tests/approved/SCN-0002.spec.ts",
+        "approvedSha256": "0a48b78be279f25ec6b0bb833afc5900c4310a6924470d8349911fe438c6bf41"
       }
     },
     {
@@ -318,7 +330,7 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0003.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -342,6 +354,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:23.563Z",
+        "approvedFile": "tests/approved/SCN-0003.spec.ts",
+        "approvedSha256": "6bb3d474d43d8e48971852df11163f892af532138019819e5e6e492ab2d6400b"
       }
     },
     {
@@ -418,7 +436,7 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0004.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -442,6 +460,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:23.563Z",
+        "approvedFile": "tests/approved/SCN-0004.spec.ts",
+        "approvedSha256": "08e22fb4fb20685db4ccc9b60bae78bbc08a09810cc8c11fed7a6d68dae91dbd"
       }
     },
     {
@@ -528,7 +552,7 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0005.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -552,6 +576,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:23.563Z",
+        "approvedFile": "tests/approved/SCN-0005.spec.ts",
+        "approvedSha256": "fa8b837bdbffe5007dc22396e8eed8f61d2c6a6b997b75125c5e2a591c5c8fdf"
       }
     },
     {
@@ -656,7 +686,7 @@
         "DEMO-002": 1,
         "DEMO-003": 1
       },
-      "status": "needs-revision",
+      "status": "rejected",
       "candidateFile": "tests/candidates/SCN-0006.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -680,6 +710,11 @@
             "testStatus": "failed"
           }
         ]
+      },
+      "rejection": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:36.705Z",
+        "reason": "Checks list items by accessible name, but a list item's text is not its accessible name, so getByRole('listitem', { name }) never matches. Needs a planner fix, then re-plan."
       }
     },
     {
@@ -777,7 +812,7 @@
       "requirementVersions": {
         "DEMO-004": 1
       },
-      "status": "needs-revision",
+      "status": "rejected",
       "candidateFile": "tests/candidates/SCN-0007.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -801,6 +836,11 @@
             "testStatus": "failed"
           }
         ]
+      },
+      "rejection": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:59.641Z",
+        "reason": "Opens /tasks.html without signing in first, so the app redirects to the sign-in page. Needs a planner fix, then re-plan."
       }
     },
     {
@@ -861,7 +901,7 @@
       "requirementVersions": {
         "DEMO-004": 1
       },
-      "status": "needs-revision",
+      "status": "rejected",
       "candidateFile": "tests/candidates/SCN-0008.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:41:13.854Z",
@@ -885,6 +925,11 @@
             "testStatus": "failed"
           }
         ]
+      },
+      "rejection": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:59.641Z",
+        "reason": "Opens /tasks.html without signing in first, so the app redirects to the sign-in page. Needs a planner fix, then re-plan."
       }
     }
   ],

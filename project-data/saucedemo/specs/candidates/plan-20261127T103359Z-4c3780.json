@@ -124,7 +124,7 @@
       "requirementVersions": {
         "REQ-003": 2
       },
-      "status": "needs-revision",
+      "status": "rejected",
       "candidateFile": "tests/candidates/SCN-0007.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:31:09.342Z",
@@ -148,6 +148,11 @@
             "testStatus": "failed"
           }
         ]
+      },
+      "rejection": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:20:05.548Z",
+        "reason": "Clicks 'View details for Sauce Labs Backpack', which matches two buttons (strict mode violation); REQ-003 says to open /inventory-item.html?id=4 directly. Needs a planner fix, then re-plan."
       }
     }
   ],

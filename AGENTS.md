@@ -104,7 +104,7 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 
 - **Phase 4 (complete):** Playwright MCP read-only exploration; observations saved with evidence (DEC-040).
 - **Phase 5 (complete, 2026-11-27):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Never write to `tests/approved/`.
-- **Phase 6 (current):** role credentials in runs, three-run candidate validation, human approval into `tests/approved/`, and CI running approved AI-planned tests (DEC-042, `docs/PHASE_6_PLAN.md`). `storageState` is deferred. Never edit candidate files by hand; until V3, nothing writes to `tests/approved/`.
+- **Phase 6 (current):** role credentials in runs, three-run candidate validation, human approval into `tests/approved/`, and CI running approved AI-planned tests (DEC-042, `docs/PHASE_6_PLAN.md`). `storageState` is deferred. Only `approve` writes to `tests/approved/`; never edit candidate or approved files by hand.
 
 Later phases add candidate validation and approval (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
 

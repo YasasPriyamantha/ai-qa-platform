@@ -1,0 +1,23 @@
+// Approved test (DEC-042): approved by Yasas on 2026-11-28 after validation runs 2026-11-28T08-22-08-771Z, 2026-11-28T08-22-19-812Z, 2026-11-28T08-22-28-619Z. Do not edit; re-plan instead.
+// Scenario: SCN-0001
+// Requirements: REQ-001 (version 4)
+// Plan: plan-20261127T102111Z-8b4e28
+// Explorations: exp-20261127T093524Z-2d9873, exp-20261127T101141Z-d50936
+
+import { test, expect } from '@playwright/test';
+
+/** A role credential from the environment; fails clearly when it is not set. */
+function credential(name: string, value: string | undefined): string {
+  if (!value) throw new Error(`Environment variable ${name} is not set`);
+  return value;
+}
+
+test('SCN-0001: Log in with valid standard-user credentials', async ({ page }) => {
+  // Expected (REQ-001): After logging in with the standard user's credentials, the user is taken to https://www.saucedemo.com/inventory.html and the page shows the title Products.
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Username', exact: true }).fill(credential('SAUCEDEMO_STANDARD_USER_USERNAME', process.env.SAUCEDEMO_STANDARD_USER_USERNAME));
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill(credential('SAUCEDEMO_STANDARD_USER_PASSWORD', process.env.SAUCEDEMO_STANDARD_USER_PASSWORD));
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await expect(page).toHaveURL('https://www.saucedemo.com/inventory.html');
+  await expect(page.getByText('Products', { exact: true })).toBeVisible();
+});

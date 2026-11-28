@@ -114,7 +114,7 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0001.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:22:08.760Z",
@@ -138,6 +138,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:19:37.909Z",
+        "approvedFile": "tests/approved/SCN-0001.spec.ts",
+        "approvedSha256": "5d44e75d3f6d5b55ba4abc36d4261f3e7cd98304726cc02e32d21fe6aa2aa7b9"
       }
     },
     {
@@ -207,7 +213,7 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0002.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:22:08.760Z",
@@ -231,6 +237,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:19:37.909Z",
+        "approvedFile": "tests/approved/SCN-0002.spec.ts",
+        "approvedSha256": "046ea2db441503e31d8b73b479b776b6ff4342a76fbdb9b3b5819443f16660c9"
       }
     },
     {
@@ -310,7 +322,7 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0003.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:22:08.760Z",
@@ -334,6 +346,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:19:37.909Z",
+        "approvedFile": "tests/approved/SCN-0003.spec.ts",
+        "approvedSha256": "00516a991ca930f67985cb0ea097b36a36ee7eb9ac9b4c00b17abd960e061285"
       }
     },
     {
@@ -413,7 +431,7 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0004.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:22:08.760Z",
@@ -437,6 +455,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:19:37.909Z",
+        "approvedFile": "tests/approved/SCN-0004.spec.ts",
+        "approvedSha256": "6446a47bf1bc20246c5893f8a562c7b71eb0bb80cfc02653706f45d27d9f43eb"
       }
     },
     {
@@ -506,7 +530,7 @@
       "requirementVersions": {
         "REQ-002": 1
       },
-      "status": "validated",
+      "status": "approved",
       "candidateFile": "tests/candidates/SCN-0005.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T08:22:08.760Z",
@@ -530,6 +554,12 @@
             "testStatus": "passed"
           }
         ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T10:19:37.909Z",
+        "approvedFile": "tests/approved/SCN-0005.spec.ts",
+        "approvedSha256": "687ec66a69f50b7a3d6d62be279dc48a0d6ecb01f35e17e34a3ce2b048db9d7f"
       }
     },
     {

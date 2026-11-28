@@ -1,6 +1,8 @@
 # Task N2 (docs/PHASE_3_PLAN.md): approved-test CI pipeline.
 # Copy to .github/workflows/ci.yml AFTER Task N1 (N1 makes the unit tests pass on Linux).
-# CI mode: runs approved Playwright tests only. No AI provider, MCP, or usage ledger (DEC-039).
+# CI mode: runs approved Playwright tests only (never candidates); role credentials come from
+# GitHub Actions secrets (DEC-042 §3.9). A missing secret makes the tests that need it fail, never pass.
+# No AI provider, MCP, or usage ledger (DEC-039).
 name: CI
 
 on:
@@ -40,6 +42,14 @@ jobs:
       - run: npm run build
       - name: Run approved SauceDemo tests
         run: npm run qa -- run --config project-data/saucedemo/project.config.json
+        env:
+          SAUCEDEMO_STANDARD_USER_USERNAME: ${{ secrets.SAUCEDEMO_STANDARD_USER_USERNAME }}
+          SAUCEDEMO_STANDARD_USER_PASSWORD: ${{ secrets.SAUCEDEMO_STANDARD_USER_PASSWORD }}
+          SAUCEDEMO_LOCKED_OUT_USERNAME: ${{ secrets.SAUCEDEMO_LOCKED_OUT_USERNAME }}
+          SAUCEDEMO_LOCKED_OUT_PASSWORD: ${{ secrets.SAUCEDEMO_LOCKED_OUT_PASSWORD }}
+      # Trace gate (DEC-042 §3.2): Playwright traces and HTML reports of a failed test can contain typed
+      # credential values. They are uploaded only because both current apps use public demo credentials.
+      # Before a project with non-public credentials runs in CI, stop uploading traces and HTML reports.
       - name: Upload run reports
         if: always()
         uses: actions/upload-artifact@v6
@@ -58,6 +68,12 @@ jobs:
           echo "Release Demo did not answer on port 4310"; cat release-demo-server.log; exit 1
       - name: Run approved Release Demo tests
         run: npm run qa -- run --config project-data/release-demo/project.config.json
+        env:
+          RELEASE_DEMO_USERNAME: ${{ secrets.RELEASE_DEMO_USERNAME }}
+          RELEASE_DEMO_PASSWORD: ${{ secrets.RELEASE_DEMO_PASSWORD }}
+      # Trace gate (DEC-042 §3.2): Playwright traces and HTML reports of a failed test can contain typed
+      # credential values. They are uploaded only because both current apps use public demo credentials.
+      # Before a project with non-public credentials runs in CI, stop uploading traces and HTML reports.
       - name: Upload Release Demo run reports
         if: always()
         uses: actions/upload-artifact@v6

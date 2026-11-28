@@ -72,6 +72,26 @@ node node_modules/@playwright/mcp/cli.js install-browser --no-remove chromium
 
 `--no-remove` keeps the runner's Chromium build; without it, Playwright may delete browser builds it thinks are unused. `mcp-check` does not need the browser (it starts no browser); exploration does.
 
+## Validating and approving tests
+
+AI-planned tests reach CI in five steps (DEC-042, `docs/PHASE_6_PLAN.md`):
+
+1. **Generate** candidates from a plan: `npm run qa -- generate --config <config> --plan <plan-id>`.
+2. **Validate** them in three separate runs: `npm run qa -- validate --config <config> --plan <plan-id>`. Each scenario becomes `validated`, `needs-revision` or `blocked`.
+3. **Read** each `validated` candidate file in `tests/candidates/` and check that its assertions match the documented requirements.
+4. **Approve or reject**: `npm run qa -- approve --config <config> --scenario <SCN-…> --reviewer "<name>"` copies it into `tests/approved/`; `npm run qa -- reject --config <config> --scenario <SCN-…> --reviewer "<name>" --reason "<text>"` records why not.
+5. **Commit** the approved files and the updated plan, then push. CI runs the approved tests of both apps.
+
+Candidates are never edited by hand. `validate` refuses a changed candidate file and `approve` refuses one changed since validation. Fix a bad candidate by re-planning, not by editing it.
+
+CI gets role credentials from these GitHub Actions repository secrets (Settings → Secrets and variables → Actions), with the same values as your `.env`:
+
+- `SAUCEDEMO_STANDARD_USER_USERNAME`, `SAUCEDEMO_STANDARD_USER_PASSWORD`
+- `SAUCEDEMO_LOCKED_OUT_USERNAME`, `SAUCEDEMO_LOCKED_OUT_PASSWORD`
+- `RELEASE_DEMO_USERNAME`, `RELEASE_DEMO_PASSWORD`
+
+A missing secret makes the tests that need it fail with "Environment variable … is not set".
+
 ## Project Structure
 
 ```
