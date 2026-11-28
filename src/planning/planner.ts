@@ -93,6 +93,9 @@ const casesOf = (r: RequirementWithHistory) => [
   ...r.negativeCases.map((n) => ({ case: `negative case: ${n.condition}`, text: normalise(`${n.condition}: ${n.expectedOutcome}`) })),
 ];
 
+/** Roles whose accessible name is reliable enough for a step target (F1). */
+const RELIABLE_ROLES = new Set(['button', 'link', 'textbox', 'searchbox', 'combobox', 'checkbox', 'radio', 'switch', 'heading', 'tab', 'menuitem', 'option', 'spinbutton', 'slider', 'img']);
+
 const INSTRUCTIONS = [
   'You plan browser test scenarios for a QA team from requirements and browser observations.',
   'Requirements are the only source of expected behaviour. Each expected result must name a listed requirement ID and quote text copied exactly from that requirement\'s expected result or one of its negative case outcomes. Never invent or paraphrase expected behaviour.',
@@ -102,6 +105,9 @@ const INSTRUCTIONS = [
   'Every expect value (the text of a "text" assertion, the URL of a "url" assertion, and the accessible name of a "visible" target) must be text copied exactly from one of that scenario\'s expected-result quotes; if the page shows the expected result differently, still assert the quoted text and add a question.',
   'A target is a role and accessible name exactly as observed. Never use CSS or XPath selectors, positions or element references such as ref=e12.',
   'For credentials, use the listed placeholders exactly as written, never real values.',
+  'If a requirement has a role, the scenario first signs in through the observed login form with the credential placeholders, then continues.',
+  `A target uses only one of these roles: ${[...RELIABLE_ROLES].join(', ')}. To check text shown on the page, use a "text" assertion, not a "visible" target.`,
+  'If a requirement says the user opens a URL path, use a goto step to that exact path instead of navigating by clicking.',
   'Report conflicts between requirements and open questions; never resolve them by guessing.',
   `Plan at most ${MAX_SCENARIOS} scenarios.`,
 ].join('\n');
@@ -158,6 +164,13 @@ function checkScenario(
     const quote = normalise(e.quote);
     if (!r || !s.requirementIds.includes(e.requirementId)) reasons.push(`expected result cites ${e.requirementId}, which is not a requirement of this scenario`);
     else if (quote === '' || !casesOf(r).some((c) => c.text.includes(quote))) reasons.push(`expected result "${e.quote}" is not quoted from ${e.requirementId}`);
+  }
+  for (const id of s.requirementIds) {
+    const role = planned.get(id)?.role;
+    if (role && !s.steps.some((st) => st.action === 'fill' && st.value?.startsWith('{{credential:'))) reasons.push(`requirement ${id} has role ${role}, but the scenario never signs in`);
+  }
+  for (const role of new Set(s.steps.flatMap((st) => (st.target ? [st.target.role] : [])))) {
+    if (!RELIABLE_ROLES.has(role)) reasons.push(`role ${role} has no reliable accessible name; use a text assertion`);
   }
   if (reasons.length > 0) return { reasons };
   const steps = s.steps.map((step) => {

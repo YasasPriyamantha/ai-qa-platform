@@ -233,4 +233,34 @@ describe('plan', () => {
     expect(limited.set).toMatchObject({ stopReason: 'budget_limit', scenarios: [], usage: { aiRequests: 0 } });
     expect(requestBodies).toEqual([]);
   });
+
+  it('rejects a role scenario that never signs in and a target role without a reliable name (Phase 6 defects, F1)', async () => {
+    writeRegistry({ 'REQ-001': requirement('REQ-001', {
+      role: 'standard_user', expectedResult: 'The task Prepare release notes is listed.', negativeCases: [],
+    }) });
+    const quote = [{ requirementId: 'REQ-001', quote: 'Prepare release notes' }];
+    const signIn = [
+      { action: 'goto', target: null, value: '/', assertion: null },
+      { action: 'fill', target: { role: 'textbox', name: 'Username' }, value: '{{credential:standard_user.username}}', assertion: null },
+      { action: 'fill', target: { role: 'textbox', name: 'Password' }, value: '{{credential:standard_user.password}}', assertion: null },
+      { action: 'click', target: { role: 'button', name: 'Login' }, value: null, assertion: null },
+      { action: 'goto', target: null, value: '/tasks.html', assertion: null },
+    ];
+    const valid = scenario({ title: 'Signed in', expectedResults: quote, steps: [...signIn, { action: 'expect', target: null, value: 'Prepare release notes', assertion: 'text' }] });
+    const noSignIn = scenario({ title: 'No sign-in', expectedResults: quote, steps: [
+      { action: 'goto', target: null, value: '/tasks.html', assertion: null },
+      { action: 'expect', target: null, value: 'Prepare release notes', assertion: 'text' },
+    ] });
+    const listitem = scenario({ title: 'Listitem', expectedResults: quote, steps: [...signIn, { action: 'expect', target: { role: 'listitem', name: 'Prepare release notes' }, value: null, assertion: 'visible' }] });
+    const { set } = await plan(output([valid, noSignIn, listitem]));
+
+    expect(set.scenarios.map((s: { title: string }) => s.title)).toEqual(['Signed in']);
+    expect(set.rejected).toEqual([
+      { title: 'No sign-in', reasons: ['requirement REQ-001 has role standard_user, but the scenario never signs in'] },
+      { title: 'Listitem', reasons: ['role listitem has no reliable accessible name; use a text assertion'] },
+    ]);
+    expect(requestBodies[0]).toContain('the scenario first signs in through the observed login form');
+    expect(requestBodies[0]).toContain('use a \\"text\\" assertion, not a \\"visible\\" target');
+    expect(requestBodies[0]).toContain('use a goto step to that exact path instead of navigating by clicking');
+  });
 });
