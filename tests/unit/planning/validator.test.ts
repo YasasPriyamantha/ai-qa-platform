@@ -30,6 +30,12 @@ describe('decideVerdict', () => {
     expect(v.runs.map((r) => r.testStatus)).toEqual(['failed', 'failed', 'failed']);
   });
 
+  it('strips ANSI colour codes from the error before using its first line', () => {
+    const coloured = '\x1b[31mError: \x1b[2mexpect(\x1b[22m\x1b[31mlocator\x1b[39m\x1b[2m).toBeVisible() failed\x1b[22m\n  at x';
+    const v = decideVerdict(FILE, [1, 2, 3].map((n) => exec(n, 'failed', [result('failed', FILE, coloured)])));
+    expect(v.reason).toBe('failed in 3 of 3 executions: Error: expect(locator).toBeVisible() failed');
+  });
+
   it('unstable when the results are mixed', () => {
     const v = decideVerdict(FILE, [exec(1, 'passed', [result('passed')]), exec(2, 'failed', [result('failed')]), exec(3, 'passed', [result('passed')])]);
     expect(v.verdict).toBe('unstable');

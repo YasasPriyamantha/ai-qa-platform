@@ -28,6 +28,9 @@ export interface Execution {
 
 export type Verdict = Pick<ScenarioValidation, 'verdict' | 'reason' | 'runs'>;
 
+/** Playwright colours its error text; the ANSI escape sequences are removed before storing or printing it. */
+const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '');
+
 /** A candidate's result in one execution, matched by file name. */
 function testStatus(file: string, execution: Execution): ScenarioValidation['runs'][number]['testStatus'] {
   const results = execution.tests.filter((t) => basename(t.file.replace(/\\/g, '/')) === file);
@@ -47,7 +50,7 @@ export function decideVerdict(file: string, executions: readonly Execution[]): V
     if (!untrusted) return { verdict: 'blocked', reason: `${runs.length} of ${VALIDATION_RUNS} executions ran`, runs };
     const execution = executions[runs.indexOf(untrusted)];
     const why = untrusted.runStatus !== 'passed' && untrusted.runStatus !== 'failed'
-      ? `${untrusted.runStatus}${execution.message ? `: ${execution.message}` : ''}`
+      ? `${untrusted.runStatus}${execution.message ? `: ${stripAnsi(execution.message)}` : ''}`
       : untrusted.testStatus === 'skipped' ? 'test skipped' : `no result for ${file}`;
     return { verdict: 'blocked', reason: `run ${untrusted.runId}: ${why}`, runs };
   }
@@ -55,9 +58,10 @@ export function decideVerdict(file: string, executions: readonly Execution[]): V
   if (passed === VALIDATION_RUNS) return { verdict: 'validated', reason: null, runs };
   const error = executions
     .flatMap((e) => e.tests.filter((t) => basename(t.file.replace(/\\/g, '/')) === file && t.status === 'failed'))
-    .find((t) => t.error)?.error?.split(/\r?\n/).find((l) => l.trim() !== '')?.trim().slice(0, 300);
+    .find((t) => t.error)?.error;
+  const firstLine = error && stripAnsi(error).split(/\r?\n/).find((l) => l.trim() !== '')?.trim().slice(0, 300);
   const counts = `failed in ${VALIDATION_RUNS - passed} of ${VALIDATION_RUNS} executions`;
-  return { verdict: passed === 0 ? 'failing' : 'unstable', reason: error ? `${counts}: ${error}` : counts, runs };
+  return { verdict: passed === 0 ? 'failing' : 'unstable', reason: firstLine ? `${counts}: ${firstLine}` : counts, runs };
 }
 
 /** Result of the checks before running (§3.5, criterion 2). */

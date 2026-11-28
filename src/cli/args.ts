@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'validate' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'validate' | 'approve' | 'reject' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -75,6 +75,14 @@ export interface ParsedArgs {
     configPath: string;
     planId: string;
     scenarioIds?: string[];
+  };
+
+  /** Options for the approve and reject commands (reason: reject only) */
+  decisionOptions?: {
+    configPath: string;
+    scenarioIds: string[];
+    reviewer: string;
+    reason?: string;
   };
 
   /** Parse errors encountered */
@@ -280,6 +288,29 @@ export function parseArgs(args: string[]): ParsedArgs {
     return { command: 'validate', validateOptions: { configPath: parsed.runOptions.configPath, planId: values['--plan'], ...(scenarioIds ? { scenarioIds } : {}) }, errors: [] };
   }
 
+  // approve | reject: --config as for run, plus required --scenario <SCN-…>[,…] and --reviewer <name>; reject also --reason <text>
+  if (command === 'approve' || command === 'reject') {
+    const rest = args.slice(1);
+    const values: Record<string, string | undefined> = {};
+    for (const flag of ['--scenario', '--reviewer', ...(command === 'reject' ? ['--reason'] : [])]) {
+      const at = rest.indexOf(flag);
+      if (at !== -1) {
+        values[flag] = rest[at + 1];
+        rest.splice(at, 2);
+      }
+      if (!values[flag] || values[flag]!.startsWith('-')) return { command, errors: [`${flag} requires a value`] };
+    }
+    const scenarioIds = values['--scenario']!.split(',').map((id) => id.trim()).filter((id) => id !== '');
+    if (scenarioIds.length === 0) return { command, errors: ['--scenario requires one or more scenario IDs'] };
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command, errors: parsed.errors };
+    return {
+      command,
+      decisionOptions: { configPath: parsed.runOptions.configPath, scenarioIds, reviewer: values['--reviewer']!, ...(values['--reason'] ? { reason: values['--reason'] } : {}) },
+      errors: [],
+    };
+  }
+
   // Unknown command
   return {
     command: 'help',
@@ -387,6 +418,8 @@ Usage:
   npm run qa -- plan --config <project-config-path> --requirements <IDs> --observations <exploration-IDs>
   npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
   npm run qa -- validate --config <project-config-path> --plan <plan-id> [--scenario <IDs>]
+  npm run qa -- approve --config <project-config-path> --scenario <IDs> --reviewer <name>
+  npm run qa -- reject --config <project-config-path> --scenario <IDs> --reviewer <name> --reason <text>
   npm run qa -- help
 
 Commands:
@@ -407,6 +440,9 @@ Commands:
              plan with fixed templates (no AI)
   validate   Run a plan's candidate tests in three separate executions and
              record validated, needs-revision or blocked per scenario (no AI)
+  approve    Show validated scenarios' requirement quotes and checks, then copy
+             them into the approved test folder (named reviewer, no AI)
+  reject     Record a reviewer's rejection with a reason; keeps the candidate
   help       Show this help message
 
 Run Command Options:
@@ -450,6 +486,12 @@ validate Options:
   --plan <plan-id>      Plan from specs/candidates/ (required)
   --scenario <IDs>      Comma-separated scenario IDs (default: all generated,
                         not approved or rejected)
+
+approve / reject Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --scenario <IDs>      Comma-separated scenario IDs (required)
+  --reviewer <name>     Name of the person deciding (required)
+  --reason <text>       Why the scenarios are rejected (reject only, required)
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

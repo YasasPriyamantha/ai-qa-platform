@@ -86,6 +86,10 @@ export const TEST_SCENARIO = plannedScenario.extend({
   candidateFile: z.string().optional(),
   /** Set by `validate` (Task V2). */
   validation: validation.optional(),
+  /** Set by `approve` (Task V3, DEC-042 §3.7); `approvedFile` is workspace-relative. */
+  approval: z.object({ reviewer: z.string(), decidedAt: z.string(), approvedFile: z.string(), approvedSha256: z.string() }).strict().optional(),
+  /** Set by `reject` (Task V3); the candidate file is kept. */
+  rejection: z.object({ reviewer: z.string(), decidedAt: z.string(), reason: z.string() }).strict().optional(),
 }).strict();
 
 export type TestScenario = z.infer<typeof TEST_SCENARIO>;

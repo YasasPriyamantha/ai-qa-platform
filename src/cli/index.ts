@@ -14,6 +14,8 @@
  *   npm run qa -- plan --config <project-config-path> --requirements <ID>[,…] --observations <exploration-id>[,…]
  *   npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
  *   npm run qa -- validate --config <project-config-path> --plan <plan-id> [--scenario <SCN-…>[,…]]
+ *   npm run qa -- approve --config <project-config-path> --scenario <SCN-…>[,…] --reviewer <name>
+ *   npm run qa -- reject --config <project-config-path> --scenario <SCN-…>[,…] --reviewer <name> --reason <text>
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -29,6 +31,7 @@ import { executeProposeCommand, executeReviewCommand } from './proposal-command.
 import { executePlanCommand } from './plan-command.js';
 import { executeGenerateCommand } from './generate-command.js';
 import { executeValidateCommand } from './validate-command.js';
+import { executeApproveCommand, executeRejectCommand } from './approve-command.js';
 
 /**
  * Main CLI entry point.
@@ -97,6 +100,14 @@ async function main(): Promise<void> {
 
     case 'validate':
       process.exit(await executeValidateCommand(parsed.validateOptions!));
+      break;
+
+    case 'approve':
+      process.exit(executeApproveCommand(parsed.decisionOptions!));
+      break;
+
+    case 'reject':
+      process.exit(executeRejectCommand(parsed.decisionOptions!));
       break;
 
     default:
