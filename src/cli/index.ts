@@ -17,6 +17,7 @@
  *   npm run qa -- approve --config <project-config-path> --scenario <SCN-…>[,…] --reviewer <name>
  *   npm run qa -- reject --config <project-config-path> --scenario <SCN-…>[,…] --reviewer <name> --reason <text>
  *   npm run qa -- release create --config <project-config-path> --release <id>
+ *   npm run qa -- release review --config <project-config-path> --release <id> --reviewer <name> --reason <text> (--requirement <IDs> --confirm | --scenario <IDs> --keep|--retire)
  *   npm run qa -- help
  *
  * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
@@ -33,7 +34,7 @@ import { executePlanCommand } from './plan-command.js';
 import { executeGenerateCommand } from './generate-command.js';
 import { executeValidateCommand } from './validate-command.js';
 import { executeApproveCommand, executeRejectCommand } from './approve-command.js';
-import { executeReleaseCreateCommand } from './release-command.js';
+import { executeReleaseCreateCommand, executeReleaseReviewCommand } from './release-command.js';
 
 /**
  * Main CLI entry point.
@@ -113,7 +114,7 @@ async function main(): Promise<void> {
       break;
 
     case 'release':
-      process.exit(executeReleaseCreateCommand(parsed.releaseOptions!));
+      process.exit(parsed.releaseOptions!.action === 'review' ? executeReleaseReviewCommand(parsed.releaseOptions!) : executeReleaseCreateCommand(parsed.releaseOptions!));
       break;
 
     default:

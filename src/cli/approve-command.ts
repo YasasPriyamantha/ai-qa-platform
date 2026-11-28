@@ -63,13 +63,13 @@ function loadPlans(options: DecisionCommandOptions, verb: string) {
   for (const [planPath, set] of plans) for (const s of set.scenarios) if (options.scenarioIds.includes(s.scenarioId)) found.set(s.scenarioId, { planPath, scenario: s });
   const unknown = options.scenarioIds.filter((id) => !found.has(id));
   if (unknown.length > 0) return `${verb} refused: not in any plan of ${config.projectId}: ${unknown.join(', ')}`;
-  const decided = [...found.values()].filter(({ scenario: s }) => s.status === 'approved' || s.status === 'rejected');
-  if (decided.length > 0) return `${verb} refused: already decided (approved and rejected scenarios are final): ${decided.map(({ scenario: s }) => `${s.scenarioId} (${s.status})`).join(', ')}`;
+  const decided = [...found.values()].filter(({ scenario: s }) => s.status === 'approved' || s.status === 'rejected' || s.status === 'retired');
+  if (decided.length > 0) return `${verb} refused: already decided (approved, rejected and retired scenarios are final): ${decided.map(({ scenario: s }) => `${s.scenarioId} (${s.status})`).join(', ')}`;
   return { config, plans, found };
 }
 
 /** Write each changed plan atomically; returns the error message of the first failure. */
-function savePlans(plans: Map<string, ScenarioSet>, updates: Map<string, TestScenario>): string | null {
+export function savePlans(plans: Map<string, ScenarioSet>, updates: Map<string, TestScenario>): string | null {
   for (const [planPath, set] of plans) {
     if (!set.scenarios.some((s) => updates.has(s.scenarioId))) continue;
     const updated = { ...set, scenarios: set.scenarios.map((s) => updates.get(s.scenarioId) ?? s) };

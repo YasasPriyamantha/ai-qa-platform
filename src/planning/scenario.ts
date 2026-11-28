@@ -56,8 +56,8 @@ export const SCENARIO_PLAN_SCHEMA = createCanonicalSchema({
 /** Where a step's locator was observed; `needs-observation` when it was not (§3). */
 const LOCATOR_SOURCES = ['summary', 'evidence', 'needs-observation'] as const;
 
-/** Scenario lifecycle (DEC-042 §3.6); "awaiting approval" is `validated`. */
-export const SCENARIO_STATUSES = ['draft', 'validated', 'needs-revision', 'blocked', 'approved', 'rejected'] as const;
+/** Scenario lifecycle (DEC-042 §3.6, DEC-043 §4); "awaiting approval" is `validated`; `retired` is set by `release review`. */
+export const SCENARIO_STATUSES = ['draft', 'validated', 'needs-revision', 'blocked', 'approved', 'rejected', 'retired'] as const;
 
 /** The last `validate` result (DEC-042 §3.4): `failing` and `unstable` are the two kinds of needs-revision. */
 const validation = z.object({
@@ -90,6 +90,8 @@ export const TEST_SCENARIO = plannedScenario.extend({
   approval: z.object({ reviewer: z.string(), decidedAt: z.string(), approvedFile: z.string(), approvedSha256: z.string() }).strict().optional(),
   /** Set by `reject` (Task V3); the candidate file is kept. */
   rejection: z.object({ reviewer: z.string(), decidedAt: z.string(), reason: z.string() }).strict().optional(),
+  /** Set by `release review --retire` (Task R2); the approved file moved to `tests/retired/`. */
+  retirement: z.object({ reviewer: z.string(), decidedAt: z.string(), reason: z.string(), releaseId: z.string() }).strict().optional(),
 }).strict();
 
 export type TestScenario = z.infer<typeof TEST_SCENARIO>;

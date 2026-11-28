@@ -48,19 +48,25 @@ export const RELEASE_RECORD = z.object({
     classification: z.enum(CLASSIFICATIONS),
     previousContentVersion: z.number().int().positive().nullable(),
     currentContentVersion: z.number().int().positive(),
-    /** `pending` for flagged changes awaiting confirmation; null otherwise. */
-    review: z.literal('pending').nullable(),
+    /** `pending` for flagged changes awaiting confirmation, `reviewed` once confirmed; null otherwise. */
+    review: z.enum(['pending', 'reviewed']).nullable(),
   }).strict()),
   affectedTests: z.array(z.object({
     scenarioId: z.string(),
     approvedFile: z.string(),
     requirements: z.array(z.object({ requirementId: z.string(), classification: z.enum(CLASSIFICATIONS) }).strict()),
-    review: z.literal('pending'),
+    review: z.enum(['pending', 'reviewed']),
   }).strict()),
   /** Active, resolved `new` or `changed` requirements without an approved test for their current content version. */
   needsTests: z.array(z.string()),
-  /** Filled by `release review` (Task R2). */
-  reviews: z.array(z.never()),
+  /** One entry per decision of `release review` (Task R2): `confirm` for a requirement, `keep` or `retire` for a scenario. */
+  reviews: z.array(z.object({
+    itemId: z.string(),
+    action: z.enum(['confirm', 'keep', 'retire']),
+    reviewer: z.string(),
+    decidedAt: z.string(),
+    reason: z.string(),
+  }).strict()),
   /** Filled by `run --release` (Task R3). */
   runs: z.array(z.never()),
 }).strict();

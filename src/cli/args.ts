@@ -85,12 +85,10 @@ export interface ParsedArgs {
     reason?: string;
   };
 
-  /** Options for release create */
-  releaseOptions?: {
-    action: 'create';
-    configPath: string;
-    releaseId: string;
-  };
+  /** Options for release create and release review */
+  releaseOptions?:
+    | { action: 'create'; configPath: string; releaseId: string }
+    | { action: 'review'; configPath: string; releaseId: string; reviewer: string; reason: string; decision: 'confirm' | 'keep' | 'retire'; ids: string[] };
 
   /** Parse errors encountered */
   errors: string[];
@@ -318,17 +316,39 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
-  // release create: --config as for run, plus required --release <id> (validated by the command)
+  // release create | review: --config as for run, plus required --release <id> (validated by the command).
+  // review also takes --reviewer, --reason and exactly one of --requirement <IDs> --confirm, --scenario <IDs> --keep|--retire.
   if (command === 'release') {
-    if (args[1] !== 'create') return { command, errors: ['release needs an action: create'] };
+    const action = args[1];
+    if (action !== 'create' && action !== 'review') return { command, errors: ['release needs an action: create or review'] };
     const rest = args.slice(2);
-    const at = rest.indexOf('--release');
-    const releaseId = at === -1 ? undefined : rest[at + 1];
-    if (at !== -1) rest.splice(at, 2);
-    if (!releaseId || releaseId.startsWith('-')) return { command, errors: ['--release requires a release ID'] };
+    const values: Record<string, string | undefined> = {};
+    for (const flag of action === 'create' ? ['--release'] : ['--release', '--reviewer', '--reason', '--requirement', '--scenario']) {
+      const at = rest.indexOf(flag);
+      if (at === -1) continue;
+      values[flag] = rest[at + 1];
+      rest.splice(at, 2);
+      if (!values[flag] || values[flag]!.startsWith('-')) return { command, errors: [flag === '--release' ? '--release requires a release ID' : `${flag} requires a value`] };
+    }
+    if (!values['--release']) return { command, errors: ['--release requires a release ID'] };
+    let review;
+    if (action === 'review') {
+      const decisions = (['--confirm', '--keep', '--retire'] as const).filter((d) => rest.includes(d));
+      for (const d of decisions) rest.splice(rest.indexOf(d), 1);
+      const missing = ['--reviewer', '--reason'].filter((f) => !values[f]);
+      if (missing.length > 0) return { command, errors: missing.map((f) => `${f} requires a value`) };
+      if (decisions.length !== 1) return { command, errors: ['release review needs exactly one of --confirm, --keep or --retire'] };
+      const decision = decisions[0]!.slice(2) as 'confirm' | 'keep' | 'retire';
+      const [idFlag, otherFlag] = decision === 'confirm' ? ['--requirement', '--scenario'] : ['--scenario', '--requirement'];
+      if (values[otherFlag]) return { command, errors: [`--${decision} takes ${idFlag}, not ${otherFlag}`] };
+      const ids = (values[idFlag] ?? '').split(',').map((id) => id.trim()).filter((id) => id !== '');
+      if (ids.length === 0) return { command, errors: [`--${decision} requires ${idFlag} with one or more IDs`] };
+      review = { reviewer: values['--reviewer']!, reason: values['--reason']!, decision, ids };
+    }
     const parsed = parseRunArgs(rest);
     if (!parsed.runOptions) return { command, errors: parsed.errors };
-    return { command, releaseOptions: { action: 'create', configPath: parsed.runOptions.configPath, releaseId }, errors: [] };
+    const base = { configPath: parsed.runOptions.configPath, releaseId: values['--release'] };
+    return { command, releaseOptions: review ? { action: 'review', ...base, ...review } : { action: 'create', ...base }, errors: [] };
   }
 
   // Unknown command
@@ -441,6 +461,8 @@ Usage:
   npm run qa -- approve --config <project-config-path> --scenario <IDs> --reviewer <name>
   npm run qa -- reject --config <project-config-path> --scenario <IDs> --reviewer <name> --reason <text>
   npm run qa -- release create --config <project-config-path> --release <id>
+  npm run qa -- release review --config <project-config-path> --release <id> --reviewer <name> --reason <text>
+                 (--requirement <IDs> --confirm | --scenario <IDs> --keep | --scenario <IDs> --retire)
   npm run qa -- help
 
 Commands:
@@ -466,6 +488,8 @@ Commands:
   reject     Record a reviewer's rejection with a reason; keeps the candidate
   release create  Snapshot the requirements as releases/<id>.json, compare them
                   with the previous release and list affected tests (no AI)
+  release review  Confirm pending requirement changes, or keep or retire pending
+                  affected tests (retired files move to tests/retired/)
   help       Show this help message
 
 Run Command Options:
@@ -520,6 +544,15 @@ release create Options:
   --config, -c <path>   Path to the project configuration file (required)
   --release <id>        New release ID: 1–32 lowercase letters, digits, "."
                         and "-", starting with a letter or digit (required)
+
+release review Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --release <id>        Existing release ID (required)
+  --reviewer <name>     Name of the person deciding (required)
+  --reason <text>       Why (required)
+  --requirement <IDs> --confirm   Confirm pending requirement changes
+  --scenario <IDs> --keep         Keep pending affected tests active
+  --scenario <IDs> --retire       Move pending affected tests to tests/retired/
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

@@ -179,6 +179,6 @@ describe('release create: arguments', () => {
       command: 'release', releaseOptions: { action: 'create', configPath: 'p.json', releaseId: 'v1' }, errors: [],
     });
     expect(parseArgs(['release', 'create', '--config', 'p.json']).errors).toEqual(['--release requires a release ID']);
-    expect(parseArgs(['release', 'delete']).errors).toEqual(['release needs an action: create']);
+    expect(parseArgs(['release', 'delete']).errors).toEqual(['release needs an action: create or review']);
   });
 });

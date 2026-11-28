@@ -55,8 +55,8 @@ export async function executeValidateCommand(options: ValidateCommandOptions): P
   }
   const unknown = (options.scenarioIds ?? []).filter((id) => !set.scenarios.some((s) => s.scenarioId === id));
   if (unknown.length > 0) return refuse(`not in plan ${set.planId}: ${unknown.join(', ')}`);
-  const final = set.scenarios.filter((s) => options.scenarioIds?.includes(s.scenarioId) && (s.status === 'approved' || s.status === 'rejected'));
-  if (final.length > 0) return refuse(`already decided (approved and rejected scenarios are final): ${final.map((s) => `${s.scenarioId} (${s.status})`).join(', ')}`);
+  const final = set.scenarios.filter((s) => options.scenarioIds?.includes(s.scenarioId) && (s.status === 'approved' || s.status === 'rejected' || s.status === 'retired'));
+  if (final.length > 0) return refuse(`already decided (approved, rejected and retired scenarios are final): ${final.map((s) => `${s.scenarioId} (${s.status})`).join(', ')}`);
 
   const credentials = roleCredentialEnv(config.roles, options.rootDir ?? process.cwd());
   const ctx = { config, requirements, credentialValues: new Map<string, string>() };
@@ -66,7 +66,7 @@ export async function executeValidateCommand(options: ValidateCommandOptions): P
   console.log('');
   for (const s of set.scenarios) {
     if (options.scenarioIds && !options.scenarioIds.includes(s.scenarioId)) continue;
-    if (s.status === 'approved' || s.status === 'rejected') { console.log(`  Ignored:    ${s.scenarioId} (${s.status})`); continue; }
+    if (s.status === 'approved' || s.status === 'rejected' || s.status === 'retired') { console.log(`  Ignored:    ${s.scenarioId} (${s.status})`); continue; }
     if (!s.candidateFile) { console.log(`  Ignored:    ${s.scenarioId} (not generated)`); continue; }
     const check = preCheck(s, set, ctx, credentials);
     if (check.ok) runnable.set(s.scenarioId, check);
