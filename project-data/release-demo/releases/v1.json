@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "v1",
+  "projectId": "release-demo",
+  "createdAt": "2026-11-28T15:19:42.444Z",
+  "previousReleaseId": null,
+  "target": {
+    "baseUrl": "http://localhost:4310",
+    "environment": "local"
+  },
+  "documents": [
+    {
+      "documentId": "release-demo-requirements",
+      "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed"
+    }
+  ],
+  "requirements": [
+    {
+      "requirementId": "DEMO-001",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed"
+    },
+    {
+      "requirementId": "DEMO-002",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed"
+    },
+    {
+      "requirementId": "DEMO-003",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed"
+    },
+    {
+      "requirementId": "DEMO-004",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed"
+    }
+  ],
+  "comparison": [
+    {
+      "requirementId": "DEMO-001",
+      "classification": "new",
+      "previousContentVersion": null,
+      "currentContentVersion": 1,
+      "review": null
+    },
+    {
+      "requirementId": "DEMO-002",
+      "classification": "new",
+      "previousContentVersion": null,
+      "currentContentVersion": 1,
+      "review": null
+    },
+    {
+      "requirementId": "DEMO-003",
+      "classification": "new",
+      "previousContentVersion": null,
+      "currentContentVersion": 1,
+      "review": null
+    },
+    {
+      "requirementId": "DEMO-004",
+      "classification": "new",
+      "previousContentVersion": null,
+      "currentContentVersion": 1,
+      "review": null
+    }
+  ],
+  "affectedTests": [],
+  "needsTests": [],
+  "reviews": [],
+  "runs": []
+}

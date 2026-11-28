@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'validate' | 'approve' | 'reject' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'validate' | 'approve' | 'reject' | 'release' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -83,6 +83,13 @@ export interface ParsedArgs {
     scenarioIds: string[];
     reviewer: string;
     reason?: string;
+  };
+
+  /** Options for release create */
+  releaseOptions?: {
+    action: 'create';
+    configPath: string;
+    releaseId: string;
   };
 
   /** Parse errors encountered */
@@ -311,6 +318,19 @@ export function parseArgs(args: string[]): ParsedArgs {
     };
   }
 
+  // release create: --config as for run, plus required --release <id> (validated by the command)
+  if (command === 'release') {
+    if (args[1] !== 'create') return { command, errors: ['release needs an action: create'] };
+    const rest = args.slice(2);
+    const at = rest.indexOf('--release');
+    const releaseId = at === -1 ? undefined : rest[at + 1];
+    if (at !== -1) rest.splice(at, 2);
+    if (!releaseId || releaseId.startsWith('-')) return { command, errors: ['--release requires a release ID'] };
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command, errors: parsed.errors };
+    return { command, releaseOptions: { action: 'create', configPath: parsed.runOptions.configPath, releaseId }, errors: [] };
+  }
+
   // Unknown command
   return {
     command: 'help',
@@ -420,6 +440,7 @@ Usage:
   npm run qa -- validate --config <project-config-path> --plan <plan-id> [--scenario <IDs>]
   npm run qa -- approve --config <project-config-path> --scenario <IDs> --reviewer <name>
   npm run qa -- reject --config <project-config-path> --scenario <IDs> --reviewer <name> --reason <text>
+  npm run qa -- release create --config <project-config-path> --release <id>
   npm run qa -- help
 
 Commands:
@@ -443,6 +464,8 @@ Commands:
   approve    Show validated scenarios' requirement quotes and checks, then copy
              them into the approved test folder (named reviewer, no AI)
   reject     Record a reviewer's rejection with a reason; keeps the candidate
+  release create  Snapshot the requirements as releases/<id>.json, compare them
+                  with the previous release and list affected tests (no AI)
   help       Show this help message
 
 Run Command Options:
@@ -492,6 +515,11 @@ approve / reject Options:
   --scenario <IDs>      Comma-separated scenario IDs (required)
   --reviewer <name>     Name of the person deciding (required)
   --reason <text>       Why the scenarios are rejected (reject only, required)
+
+release create Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --release <id>        New release ID: 1–32 lowercase letters, digits, "."
+                        and "-", starting with a letter or digit (required)
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

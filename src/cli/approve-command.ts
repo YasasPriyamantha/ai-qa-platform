@@ -30,6 +30,20 @@ const refuse = (title: string, details?: string) => {
   return EXIT_FAILURE;
 };
 
+/** Every plan file of a workspace, by absolute path; throws when one cannot be read or parsed. */
+export function readPlanFiles(workspace: string): Map<string, ScenarioSet> {
+  const dir = join(workspace, 'specs', 'candidates');
+  const plans = new Map<string, ScenarioSet>();
+  for (const file of existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')) : []) {
+    try {
+      plans.set(join(dir, file), SCENARIO_SET.parse(JSON.parse(readFileSync(join(dir, file), 'utf-8'))));
+    } catch (err) {
+      throw new Error(`cannot read a plan file in ${dir}: ${(err as Error).message}`);
+    }
+  }
+  return plans;
+}
+
 /** Load the project and the plans holding the requested scenarios, or the refusal message. */
 function loadPlans(options: DecisionCommandOptions, verb: string) {
   if (!/\S/.test(options.reviewer) || /[\x00-\x1f\x7f]/.test(options.reviewer)) return `${verb} refused: --reviewer must be a name on one line`;
@@ -39,14 +53,11 @@ function loadPlans(options: DecisionCommandOptions, verb: string) {
   } catch (err) {
     return `${verb} refused: ${err instanceof ConfigValidationError ? 'invalid' : 'cannot load'} project configuration: ${(err as Error).message}`;
   }
-  const dir = join(config.projectWorkspace, 'specs', 'candidates');
-  const plans = new Map<string, ScenarioSet>();
+  let plans;
   try {
-    for (const file of existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')) : []) {
-      plans.set(join(dir, file), SCENARIO_SET.parse(JSON.parse(readFileSync(join(dir, file), 'utf-8'))));
-    }
+    plans = readPlanFiles(config.projectWorkspace);
   } catch (err) {
-    return `${verb} refused: cannot read a plan file in ${dir}: ${(err as Error).message}`;
+    return `${verb} refused: ${(err as Error).message}`;
   }
   const found = new Map<string, { planPath: string; scenario: TestScenario }>();
   for (const [planPath, set] of plans) for (const s of set.scenarios) if (options.scenarioIds.includes(s.scenarioId)) found.set(s.scenarioId, { planPath, scenario: s });
