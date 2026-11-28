@@ -12,10 +12,11 @@ import { tmpdir } from 'node:os';
 
 vi.mock('../../../src/test-execution/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/test-execution/index.js')>();
-  return { ...actual, runPlaywrightTests: vi.fn() };
+  // The pre-flight check is reachable unless a test says otherwise (it is tested against real sockets in reachability.test.ts).
+  return { ...actual, runPlaywrightTests: vi.fn(), checkTargetReachable: vi.fn(async () => null) };
 });
 
-const { runPlaywrightTests } = await import('../../../src/test-execution/index.js');
+const { runPlaywrightTests, checkTargetReachable } = await import('../../../src/test-execution/index.js');
 const { executeRunCommand } = await import('../../../src/cli/run-command.js');
 const { executeReleaseReportCommand } = await import('../../../src/cli/release-command.js');
 const { parseArgs } = await import('../../../src/cli/args.js');
@@ -84,6 +85,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(runPlaywrightTests).mockReset();
+  vi.mocked(checkTargetReachable).mockClear();
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -209,6 +211,18 @@ describe('run --release (criterion 1)', () => {
     expect(logs).toContain('Run refused: release v9 does not exist');
   });
 
+  it('refuses an unreachable target before running anything and records nothing in the release (pre-flight)', async () => {
+    writeRelease('v2', null, []);
+    const before = readFileSync(releaseFile('v2'), 'utf-8');
+    const reason = 'Target http://localhost:4310 is not reachable; start the application and try again';
+    vi.mocked(checkTargetReachable).mockResolvedValueOnce(reason);
+    expect(await executeRunCommand(configPath, root, 'v2')).toBe(1);
+    expect(checkTargetReachable).toHaveBeenCalledWith('http://localhost:4310');
+    expect(runPlaywrightTests).not.toHaveBeenCalled();
+    expect(logs).toContain(`Run refused: ${reason}`);
+    expect(readFileSync(releaseFile('v2'), 'utf-8')).toBe(before);
+  });
+
   it('without --release: parses as before, runs, and writes no release record', async () => {
     expect(parseArgs(['run', '--config', 'p.json'])).toEqual({ command: 'run', runOptions: { configPath: 'p.json' }, errors: [] });
     expect(parseArgs(['run', '--config', 'p.json', '--release', 'v2']).runOptions).toEqual({ configPath: 'p.json', releaseId: 'v2' });
@@ -219,6 +233,7 @@ describe('run --release (criterion 1)', () => {
     mockRun([suite('SCN-0001.spec.ts', 'expected')], 0);
     expect(await executeRunCommand(configPath, root)).toBe(0);
     expect(runPlaywrightTests).toHaveBeenCalledTimes(1);
+    expect(checkTargetReachable).not.toHaveBeenCalled();
     expect(readFileSync(releaseFile('v2'), 'utf-8')).toBe(before);
     expect(logs).not.toContain('recorded in release');
     expect(existsSync(reportFile('v2'))).toBe(false);

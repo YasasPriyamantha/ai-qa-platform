@@ -94,6 +94,90 @@ describe('Release Demo V1 server', () => {
     expect(emptyHtml).toContain('Task title is required.');
     expect(emptyHtml.match(/<li>/g)).toHaveLength(4);
   });
+
+  it('has no sign-out button or route (V2 only)', async () => {
+    const cookie = await signIn();
+    expect(await (await fetch(base + '/tasks.html', { headers: { cookie } })).text()).not.toContain('Sign out');
+    expect((await post('/signout', {}, cookie)).status).toBe(404);
+  });
+});
+
+describe('Release Demo V2 server (Task R4)', () => {
+  let server: Server;
+  let base: string;
+
+  beforeAll(async () => {
+    const { createDemoHandler } = (await import(serverModuleUrl)) as {
+      createDemoHandler: (version: string) => RequestListener;
+    };
+    server = createServer(createDemoHandler('v2'));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  const post = (path: string, form: Record<string, string>, cookie = '') =>
+    fetch(base + path, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', cookie },
+      body: new URLSearchParams(form).toString(),
+    });
+  const tasksPage = async (cookie: string) => (await fetch(base + '/tasks.html', { headers: { cookie } })).text();
+  const signIn = async () => {
+    const res = await post('/', { username: 'release_tester', password: 'rt-pass-2026' });
+    expect(res.status).toBe(303);
+    expect(res.headers.get('location')).toBe('/tasks.html');
+    return (res.headers.get('set-cookie') ?? '').split(';')[0];
+  };
+
+  it('keeps the V1 login page and its messages, except the planted empty-password regression (§3.8)', async () => {
+    const html = await (await fetch(base + '/')).text();
+    expect(html).toContain('<h1>Sign in to Release Demo</h1>');
+    expect(html).toContain('<label for="username">Username</label>');
+    expect(html).toContain('<label for="password">Password</label>');
+    expect(html).toContain('<button type="submit">Sign in</button>');
+    const message = async (form: Record<string, string>) => (await (await post('/', form)).text()).match(/<p role="alert">(.*)<\/p>/)?.[1];
+    expect(await message({ username: '', password: '' })).toBe('Username is required.');
+    expect(await message({ username: 'release_tester', password: '' })).toBe('Password is required');
+    expect(await message({ username: 'release_tester', password: 'wrong-password' })).toBe('Username or password is incorrect.');
+  });
+
+  it('starts with an empty task list, adds a task, and shows the new empty-title message', async () => {
+    const cookie = await signIn();
+    const page = await tasksPage(cookie);
+    expect(page).toContain('<h1>My Tasks</h1>');
+    expect(page).not.toContain('<li>');
+    expect(page).toContain('<label for="title">Task title</label>');
+    expect(page).toContain('placeholder="Enter a task title"');
+    expect(page).toContain('<button type="submit">Add task</button>');
+
+    expect((await post('/tasks.html', { title: 'Check deployment logs' }, cookie)).status).toBe(303);
+    expect(await tasksPage(cookie)).toContain('<li>Check deployment logs</li>');
+
+    const emptyHtml = await (await post('/tasks.html', { title: '  ' }, cookie)).text();
+    expect(emptyHtml).toContain('<p role="alert">Please enter a task title.</p>');
+    expect(emptyHtml).not.toContain('Task title is required.');
+    expect(emptyHtml.match(/<li>/g)).toHaveLength(1);
+  });
+
+  it('signs out from /tasks.html: ends the session and goes to /', async () => {
+    const cookie = await signIn();
+    const page = await tasksPage(cookie);
+    expect(page).toContain('<form method="post" action="/signout">');
+    expect(page).toContain('<button type="submit">Sign out</button>');
+    const res = await post('/signout', {}, cookie);
+    expect(res.status).toBe(303);
+    expect(res.headers.get('location')).toBe('/');
+    expect(res.headers.get('set-cookie')).toContain('Max-Age=0');
+    expect(await (await fetch(base + '/', { headers: { cookie } })).text()).toContain('<h1>Sign in to Release Demo</h1>');
+    const after = await fetch(base + '/tasks.html', { redirect: 'manual', headers: { cookie } });
+    expect(after.status).toBe(303);
+    expect(after.headers.get('location')).toBe('/');
+  });
 });
 
 describe('Release Demo project config', () => {

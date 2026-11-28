@@ -21,7 +21,8 @@
  *   npm run qa -- release report --config <project-config-path> --release <id>
  *   npm run qa -- help
  *
- * Results are labeled PROVISIONAL until Task 1.7 implements report parsing.
+ * Run results reconcile the Playwright process outcome with its parsed JSON report (Task 1.7);
+ * the exit code is 0 only for a passed run with a complete report.
  */
 
 import { parseArgs, getHelpText } from './args.js';

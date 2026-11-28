@@ -10,6 +10,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { executeGenerateCommand } from '../../../src/cli/generate-command.js';
 import { executeValidateCommand } from '../../../src/cli/validate-command.js';
 
@@ -95,5 +97,21 @@ describe('validate: checks before running', { timeout: 30_000 }, () => {
 
     expect(await validate(['SCN-9999'])).toBe(1);
     expect(logs).toContain('not in plan plan-v2: SCN-9999');
+  });
+
+  it('blocks every runnable candidate and runs nothing when the target is not reachable (pre-flight)', async () => {
+    // A closed local port: connection refused.
+    const closed = createServer();
+    await new Promise<void>((resolve) => closed.listen(0, '127.0.0.1', resolve));
+    const baseUrl = `http://localhost:${(closed.address() as AddressInfo).port}/`;
+    await new Promise((resolve) => closed.close(resolve));
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    writeFileSync(configPath, JSON.stringify({ ...config, baseUrl, allowedDomains: ['localhost'] }));
+
+    expect(await validate(['SCN-0001'])).toBe(1);
+    const reason = `Target ${baseUrl} is not reachable; start the application and try again`;
+    expect(logs).toContain(`SCN-0001: blocked: ${reason}`);
+    expect(logs).not.toContain('Execution');
+    expect(readPlan().scenarios[0]).toMatchObject({ status: 'blocked', validation: { verdict: 'blocked', reason, runs: [], candidateSha256: expect.stringMatching(/^[0-9a-f]{64}$/) } });
   });
 });

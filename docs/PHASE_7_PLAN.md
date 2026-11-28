@@ -163,11 +163,7 @@ Task R3 (docs/PHASE_7_PLAN.md). Implement exactly acceptance criteria 1–5 of R
 Follow AGENTS.md "Scope discipline". Reuse reconcileRunResult and the parsed report; do not parse Playwright JSON again.
 run without --release must behave exactly as today. No AI calls. Size budget ~300 source lines. Verify: typecheck, build,
 npm run test:unit. Report the criterion table, raw Vitest lines and git status --short.
-Carry-over note:
-(a) The CLI help text is out of date: the header says "AI QA Automation Platform - Phase 1 CLI", and the Exit Codes section says
-    "PROVISIONAL until report parsing is implemented" plus a note about Task 1.7. Report parsing exists since Phase 1. Change the
-    header to "AI QA Automation Platform - CLI", remove the PROVISIONAL wording and the Task 1.7 note, and add the new run --release
-    option and release report usage. Change no other help text.
+
 ```
 
 ---
@@ -197,6 +193,18 @@ Task R4 (docs/PHASE_7_PLAN.md). Implement exactly acceptance criteria 1–5 of R
 AGENTS.md "Scope discipline". No framework or new dependency. V1 must stay byte-for-byte unchanged. Size budget ~150 source lines
 (HTML excluded). Verify: typecheck, build, npm run test:unit, and start npm run demo:v2 and fetch / and check the sign-out flow.
 Report the criterion table, raw Vitest lines and git status --short.
+Carry-over notes (from the first live run --release):
+(a) Unreachable target: with the demo app stopped, every test failed with net::ERR_CONNECTION_REFUSED and the run was recorded as
+    "failed", so a release report would call those failures regressions, and validate would mark candidates needs-revision.
+    Add one shared pre-flight check used by `run --release` and by `validate`: before Playwright starts, send one HTTP request to
+    the project's baseUrl with a 10-second timeout. Any HTTP response (any status) counts as reachable. With no response
+    (connection refused, DNS failure, timeout):
+    - `run --release` refuses with "Target <baseUrl> is not reachable; start the application and try again" and records nothing
+      in the release;
+    - `validate` marks every selected candidate blocked with that reason and runs nothing.
+    `run` without --release is unchanged. Tests: a closed local port (refused) and a running local HTTP server (reachable).
+(b) src/cli/index.ts:24: the comment still says results are PROVISIONAL until Task 1.7; update it to match the current behaviour.
+Size: these add about 40 lines to the R4 budget.
 
 --- requirements-v2.md ---
 # Release Demo Requirements — V2

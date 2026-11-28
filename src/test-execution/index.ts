@@ -17,6 +17,7 @@ export {
   type CreateRunDirectoryOptions,
 } from './runner.js';
 export { generateRunId } from './run-id.js';
+export { checkTargetReachable } from './reachability.js';
 export { resolvePlaywrightCli } from './playwright-cli.js';
 export {
   launchPlaywrightProcess,

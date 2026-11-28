@@ -24,6 +24,7 @@ import {
   runPlaywrightTests,
   ProcessStartupError,
   createCollisionSafeRunDirectory,
+  checkTargetReachable,
 } from '../test-execution/index.js';
 import {
   reconcileRunResult,
@@ -134,6 +135,12 @@ export async function executeRunCommand(configPath: string, rootDir: string = pr
     }
     if (!exists) {
       displayError(`Run refused: release ${releaseId} does not exist`, 'Create it first with release create.');
+      return EXIT_FAILURE;
+    }
+    // Pre-flight: an unreachable target would record every test as failed; refuse and record nothing.
+    const unreachable = await checkTargetReachable(config.baseUrl);
+    if (unreachable) {
+      displayError(`Run refused: ${unreachable}`);
       return EXIT_FAILURE;
     }
   }

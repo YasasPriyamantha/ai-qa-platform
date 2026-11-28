@@ -12,7 +12,7 @@ import { join, resolve } from 'node:path';
 import { atomicWriteRegistry } from '../documents/atomic-fs.js';
 import { loadPhase2ProjectConfig, ConfigValidationError, getProjectStoragePaths } from '../projects/index.js';
 import { loadRequirementRegistry } from '../requirements/index.js';
-import { runPlaywrightTests } from '../test-execution/index.js';
+import { runPlaywrightTests, checkTargetReachable } from '../test-execution/index.js';
 import { reconcileRunResult } from '../reporting/index.js';
 import { SCENARIO_SET, type ScenarioSet, type ScenarioValidation } from '../planning/scenario.js';
 import { decideVerdict, preCheck, VALIDATION_RUNS, type Execution } from '../planning/validator.js';
@@ -73,6 +73,15 @@ export async function executeValidateCommand(options: ValidateCommandOptions): P
     else results.set(s.scenarioId, { validatedAt: now, verdict: 'blocked', reason: check.reason, candidateSha256: check.sha256, runs: [] });
   }
   if (runnable.size + results.size === 0) return refuse(`plan ${set.planId} has no candidate to validate`);
+
+  // Pre-flight before Playwright starts: with the target unreachable, block every runnable candidate and run nothing.
+  const unreachable = runnable.size > 0 ? await checkTargetReachable(config.baseUrl) : null;
+  if (unreachable) {
+    for (const [scenarioId, { sha256 }] of runnable) {
+      results.set(scenarioId, { validatedAt: now, verdict: 'blocked', reason: unreachable, candidateSha256: sha256, runs: [] });
+    }
+    runnable.clear();
+  }
 
   // Three separate executions, one Playwright process each for all runnable candidates (§3.4).
   const executions: Execution[] = [];

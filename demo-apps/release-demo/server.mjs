@@ -9,7 +9,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const PORT = 4310;
 const DEMO_USERNAME = 'release_tester';
 const DEMO_PASSWORD = 'rt-pass-2026';
-const INITIAL_TASKS = ['Prepare release notes', 'Review test results', 'Approve deployment'];
+// Per-version behaviour (DEC-043 §3.7–§3.8). V2's empty-password message is missing its final
+// period on purpose: the planted regression for the Phase 7 demonstration (README), fixed in R5.
+const VERSIONS = {
+  v1: {
+    initialTasks: ['Prepare release notes', 'Review test results', 'Approve deployment'],
+    emptyPasswordMessage: 'Password is required.',
+    emptyTitleMessage: 'Task title is required.',
+    signOut: false,
+  },
+  v2: {
+    initialTasks: [],
+    emptyPasswordMessage: 'Password is required',
+    emptyTitleMessage: 'Please enter a task title.',
+    signOut: true,
+  },
+};
 const MAX_BODY_BYTES = 10_000;
 
 const escapeHtml = (text) =>
@@ -18,13 +33,14 @@ const escapeHtml = (text) =>
 const messageHtml = (message) => (message ? `<p role="alert">${escapeHtml(message)}</p>` : '');
 
 /**
- * Create the request handler for one version folder (for example "v1").
+ * Create the request handler for one version folder (for example "v1"), with that version's settings.
  * Sessions and their tasks live in memory, so they reset when the server restarts.
- * Each session gets its own copy of the initial tasks, so test runs do not affect each other.
+ * Each session gets its own copy of the version's initial tasks, so test runs do not affect each other.
  */
 export function createDemoHandler(version) {
   const dir = join(dirname(fileURLToPath(import.meta.url)), version);
-  if (!/^v\d+$/.test(version) || !existsSync(dir)) {
+  const settings = Object.hasOwn(VERSIONS, version) ? VERSIONS[version] : undefined;
+  if (!settings || !existsSync(dir)) {
     throw new Error(`Unknown demo version '${version}'`);
   }
   const loginPage = readFileSync(join(dir, 'index.html'), 'utf-8');
@@ -46,9 +62,10 @@ export function createDemoHandler(version) {
       .replace('<!--TASKS-->', tasks.map((t) => `      <li>${escapeHtml(t)}</li>`).join('\n'))
       .replace('<!--MESSAGE-->', messageHtml(message));
 
+  const sessionId = (req) => /(?:^|;\s*)sid=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
   const sessionTasks = (req) => {
-    const match = /(?:^|;\s*)sid=([^;]+)/.exec(req.headers.cookie ?? '');
-    return match ? sessions.get(match[1]) : undefined;
+    const sid = sessionId(req);
+    return sid ? sessions.get(sid) : undefined;
   };
 
   const readForm = (req) =>
@@ -68,18 +85,18 @@ export function createDemoHandler(version) {
     const username = (form.get('username') ?? '').trim();
     const password = form.get('password') ?? '';
     if (!username) return sendHtml(res, 200, renderLogin('Username is required.'));
-    if (!password) return sendHtml(res, 200, renderLogin('Password is required.'));
+    if (!password) return sendHtml(res, 200, renderLogin(settings.emptyPasswordMessage));
     if (username !== DEMO_USERNAME || password !== DEMO_PASSWORD) {
       return sendHtml(res, 200, renderLogin('Username or password is incorrect.'));
     }
     const sid = randomUUID();
-    sessions.set(sid, [...INITIAL_TASKS]);
+    sessions.set(sid, [...settings.initialTasks]);
     redirect(res, '/tasks.html', { 'Set-Cookie': `sid=${sid}; Path=/; HttpOnly; SameSite=Lax` });
   };
 
   const handleAddTask = async (req, res, tasks) => {
     const title = ((await readForm(req)).get('title') ?? '').trim();
-    if (!title) return sendHtml(res, 200, renderTasks(tasks, 'Task title is required.'));
+    if (!title) return sendHtml(res, 200, renderTasks(tasks, settings.emptyTitleMessage));
     tasks.push(title);
     redirect(res, '/tasks.html');
   };
@@ -92,6 +109,10 @@ export function createDemoHandler(version) {
     };
     if (route === 'GET /' || route === 'GET /index.html') return sendHtml(res, 200, renderLogin());
     if (route === 'POST /') return handleLogin(req, res).catch(fail);
+    if (route === 'POST /signout' && settings.signOut) {
+      sessions.delete(sessionId(req) ?? '');
+      return redirect(res, '/', { 'Set-Cookie': 'sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' });
+    }
     if (path === '/tasks.html' && (req.method === 'GET' || req.method === 'POST')) {
       const tasks = sessionTasks(req);
       if (!tasks) return redirect(res, '/');
