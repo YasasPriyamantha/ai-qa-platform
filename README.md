@@ -4,10 +4,10 @@ An AI-powered QA automation platform for browser-based web applications. Combine
 
 ## Current Status
 
-**Phase 5, Requirements, Test Planning and Generation**: complete (requirement import, requirement-guided exploration, traced scenario plans and template-generated candidate tests, shown on SauceDemo and the local demo app). **Next:** Phase 6 (in progress), candidate validation, human approval and CI with approved AI-planned tests. See [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md).
+**Phase 6, Validation, Approval and CI**: complete (2026-11-28): three-run candidate validation, human approval into `tests/approved/`, and CI running 10 approved AI-planned tests for SauceDemo and the local demo app with credentials from GitHub secrets. **Next:** a small planner fix for the defects validation found, then the Phase 7 plan (release comparison, demo app V2).
 
 - Works today: running a project's approved Playwright tests through the CLI, with trustworthy pass/fail reporting.
-- Phase 5 is complete. Phase 6 (candidate validation, human approval and promotion) is in progress: see [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md).
+- Phase 6 is complete (see [`docs/PHASE_6_PLAN.md`](docs/PHASE_6_PLAN.md)). Next: the planner fix, then the Phase 7 plan.
 - Detailed progress: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ### Two operating modes

@@ -1,6 +1,6 @@
 # Implementation Plan — AI-Powered QA Automation Platform
 
-**Document status:** Phase 3 in progress
+**Document status:** Phase 6 complete
 **Planning style:** Small, verifiable increments
 **Estimated focused effort:** Approximately 113–196 hours, including the separate hosted-provider/MCP feasibility spike; re-estimate after each phase
 **Actual Phase 1 effort:** To be filled in by the user
@@ -787,6 +787,55 @@ Tasks:
 
 **Task breakdown:** `docs/PHASE_6_PLAN.md` (Tasks V1–V4; design decisions DEC-042). Every item below is mapped to a task there. Item 9 (AI failure hypotheses) and `storageState` are deferred (DEC-042 §3, §8).
 
+**Status: Phase 6 complete (2026-11-28).**
+
+Tasks:
+- V1 `687e924`: `run` passes role credentials from `.env` (or the inherited environment) to Playwright and warns about missing names.
+- V2 `3c73a65` (+ `da94409`, live validations): `validate`, three separate executions per plan with a recorded verdict per scenario.
+- V3 `2877330`: `approve` / `reject` by a named reviewer; ANSI codes stripped from new validation reasons.
+- V4 `bfb9270`: CI runs approved tests of both apps with role credentials from GitHub secrets; README and AGENTS updated.
+
+Live results (read from the plan files; reviewer `Yasas`, all decisions 2026-11-28 UTC):
+
+| Plan | Scenario | Requirements | Final status | Verdict | Validation reason | Decision reason |
+|---|---|---|---|---|---|---|
+| saucedemo `plan-20261127T102111Z-8b4e28` | SCN-0001–0005 | REQ-001 (0001–0004), REQ-002 (0005) | approved | validated | – | – |
+| | SCN-0006 | REQ-003 | draft | – (never generated) | – | – |
+| saucedemo `plan-20261127T103359Z-4c3780` | SCN-0007 | REQ-003 | rejected | failing | 3/3: `locator.click` strict mode violation, "View details for Sauce Labs Backpack" resolved to 2 elements | Ambiguous button; REQ-003 says to open `/inventory-item.html?id=4` directly. Planner fix, then re-plan. |
+| release-demo `plan-20261127T171129Z-333e91` | SCN-0001–0005 | DEMO-001 (0001), DEMO-002 (0002–0005) | approved | validated | – | – |
+| | SCN-0006 | DEMO-002, DEMO-003 | rejected | failing | 3/3: `expect(locator).toBeVisible()` failed | `getByRole('listitem', { name })` never matches a list item's text. Planner fix, then re-plan. |
+| | SCN-0007 | DEMO-004 | rejected | failing | 3/3: `expect(locator).toBeVisible()` failed | Opens `/tasks.html` without signing in; redirected to sign-in. Planner fix, then re-plan. |
+| | SCN-0008 | DEMO-004 | rejected | failing | 3/3: test timeout of 30000 ms exceeded | Same as SCN-0007. |
+
+Validation runs: 8b4e28 `2026-11-28T08-22-08-771Z`, `…08-22-19-812Z`, `…08-22-28-619Z` (all passed); 4c3780 `2026-11-28T08-31-09-348Z`, `…08-31-12-802Z`, `…08-31-17-103Z`; 333e91 `2026-11-28T08-41-13-861Z`, `…08-42-00-644Z`, `…08-42-47-821Z` (each execution `failed` overall because SCN-0006–0008 failed; SCN-0001–0005 `passed` in all three). Approved: 10 files, `SCN-0001`–`SCN-0005.spec.ts` in each app's `tests/approved/`. Rejected: 4.
+
+CI: the GitHub Actions run on `bfb9270` is green (confirmed by the user): the approved-tests job ran the 10 approved AI-planned tests plus the two smoke tests, with role credentials from GitHub secrets.
+
+Requirement coverage by approved tests: SauceDemo REQ-001 and REQ-002; Release Demo DEMO-001 and DEMO-002. No approved test yet for SauceDemo REQ-003 or Release Demo DEMO-003 and DEMO-004. SauceDemo REQ-004/REQ-005 were never planned; REQ-006 is unresolved.
+
+Exit criteria (`docs/PHASE_6_PLAN.md` §1):
+1. *Validated and run in three executions with a recorded verdict:* met. Each scenario's `validation` field in the three plan files (verdict, reason, three run IDs); test `tests/integration/cli/validate.test.ts` "validates the passing candidate and marks the failing one needs-revision (failing), exiting 1".
+2. *Actual outcomes and evidence:* met. Each run directory under `project-data/<app>/artifacts/<run-id>/` holds `results.json`, `html-report/` and `logs/`; failed tests have `test-failed-1.png` and `trace.zip` (e.g. `saucedemo/artifacts/2026-11-28T08-31-09-348Z/test-output/SCN-0007-…/`); test "ran three separate executions, each in its own run directory with JSON and HTML reports".
+3. *Reviewers control promotion:* met. `src/cli/approve-command.ts:81-89` refuses unless `validated`, unchanged since validation, requirements unchanged and no existing file; `:126-129` writes the approval header with `flag: 'wx'`; tests in `tests/unit/planning/approve-command.test.ts`. All 10 approvals and 4 rejections name the reviewer.
+4. *Approved AI-planned tests for both apps green in CI with secrets:* met. `.github/workflows/ci.yml:46-49, 72-73`; green run on `bfb9270` (user-confirmed).
+
+**Next task, before Phase 7:** a small planner fix for the three defects found by validation:
+1. When a requirement names a URL path to open, use a `goto` step to that path (SauceDemo SCN-0007 clicked an ambiguous "View details" button: strict mode violation).
+2. A scenario with a role signs in through its credential placeholders before steps that need a signed-in user (Release Demo SCN-0007/0008 opened `/tasks.html` without signing in).
+3. `visible` checks and action targets use only roles whose accessible name is reliable; text shown on the page uses a `text` assertion (Release Demo SCN-0006 used `getByRole('listitem', { name })`, which never matches).
+
+Then re-plan, generate, validate and approve REQ-003, DEMO-003 and DEMO-004.
+
+Known limitations / LATER:
+- `storageState` deferred (DEC-042 §3.3); no AI failure analysis (§3.8).
+- Before any project with non-public credentials runs in CI, stop uploading traces and HTML reports (§3.2).
+- `approve`/`reject` argument parsing has no unit test.
+- The approval date in the header and record is UTC.
+- Validation reasons saved before V3 (all four rejected scenarios above) still contain ANSI colour codes in the plan files.
+- A hung execution can take up to the 30-minute runner timeout.
+- SauceDemo SCN-0006 (plan 8b4e28) was never generated and stays `draft`.
+- Phase 5 LATER items that are still open stay listed in §9.
+
 Tasks:
 
 1. Add candidate-test syntax and TypeScript checks.
@@ -856,7 +905,8 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Phase 6: follow `docs/PHASE_6_PLAN.md`, starting with Task V1 (role credentials in test runs).
+1. Planner fix for the three defects in the Phase 6 record, then re-plan REQ-003, DEMO-003 and DEMO-004.
+2. Write the Phase 7 plan.
 
 ## References
 

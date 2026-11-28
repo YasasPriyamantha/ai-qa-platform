@@ -1,6 +1,6 @@
 # Phase 6 Plan: Candidate Validation, Approval and CI
 
-**Status:** Ready to start (Phase 5 complete, 2026-11-27).
+**Status:** Complete (2026-11-28).
 **Rules:** `AGENTS.md` → *Scope discipline* and `docs/REVIEW_RULES.md` apply to every task. One task at a time, one correction round at most. Design decisions are recorded as **DEC-042**.
 
 ## 1. Goal and exit criteria

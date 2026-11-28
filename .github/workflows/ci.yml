@@ -1,5 +1,4 @@
-# Task N2 (docs/PHASE_3_PLAN.md): approved-test CI pipeline.
-# Copy to .github/workflows/ci.yml AFTER Task N1 (N1 makes the unit tests pass on Linux).
+# CI: typecheck, build and platform unit tests, then the approved Playwright tests of SauceDemo and the Release Demo app.
 # CI mode: runs approved Playwright tests only (never candidates); role credentials come from
 # GitHub Actions secrets (DEC-042 §3.9). A missing secret makes the tests that need it fail, never pass.
 # No AI provider, MCP, or usage ledger (DEC-039).

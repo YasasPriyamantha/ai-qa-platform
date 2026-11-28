@@ -4,7 +4,7 @@
 
 This is the AI-Powered QA Automation Platform, a TypeScript/Node.js project that provides AI-assisted browser test automation using Playwright Test.
 
-**Current status:** Phase 5 complete (2026-11-27; Phases 3–5 complete, MVP-first per DEC-039). Phase 6 in progress: candidate validation, human approval and CI with approved AI-planned tests. The current task list is in `docs/PHASE_6_PLAN.md` (DEC-042). Progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
+**Current status:** Phase 6 complete (2026-11-28; Phases 3–6 complete, MVP-first per DEC-039): candidate validation, human approval and CI with approved AI-planned tests (`docs/PHASE_6_PLAN.md`, DEC-042). Next: a small planner fix for the three defects found by validation (recorded in `docs/IMPLEMENTATION_PLAN.md` §10), then the Phase 7 plan (release comparison, demo app V2). Progress is recorded only in `docs/IMPLEMENTATION_PLAN.md`.
 **Module system:** ES Modules (ESM)
 **Working directory:** D:\ai-qa-platform
 
@@ -103,10 +103,10 @@ Vitest is configured to discover only `tests/unit/**/*.test.ts` and `tests/integ
 - **CI mode:** CI runs only approved Playwright tests. It never calls AI providers, MCP or the usage ledger.
 
 - **Phase 4 (complete):** Playwright MCP read-only exploration; observations saved with evidence (DEC-040).
-- **Phase 5 (complete, 2026-11-27):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Never write to `tests/approved/`.
-- **Phase 6 (current):** role credentials in runs, three-run candidate validation, human approval into `tests/approved/`, and CI running approved AI-planned tests (DEC-042, `docs/PHASE_6_PLAN.md`). `storageState` is deferred. Only `approve` writes to `tests/approved/`; never edit candidate or approved files by hand.
+- **Phase 5 (complete, 2026-11-27):** requirement import, interactive exploration, requirement-traced planning and template-based candidate generation (DEC-041, `docs/PHASE_5_PLAN.md`). The AI plans; the platform writes test code. Phase 5 code never wrote to `tests/approved/` (the current rule is in the Phase 6 line).
+- **Phase 6 (complete, 2026-11-28):** role credentials in runs, three-run candidate validation, human approval into `tests/approved/`, and CI running approved AI-planned tests (DEC-042, `docs/PHASE_6_PLAN.md`). `storageState` is deferred. Only `approve` writes to `tests/approved/`; never edit candidate or approved files by hand.
 
-Later phases add candidate validation and approval (Phase 6), release comparison (Phase 7) and a local UI (Phase 8).
+Phase 6 added candidate validation and approval. Later phases add release comparison (Phase 7) and a local UI (Phase 8).
 
 ## Decision record
 
