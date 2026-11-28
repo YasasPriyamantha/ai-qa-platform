@@ -1,6 +1,6 @@
 # Implementation Plan — AI-Powered QA Automation Platform
 
-**Document status:** Phase 6 complete
+**Document status:** Phase 6 complete; Phase 7 in progress
 **Planning style:** Small, verifiable increments
 **Estimated focused effort:** Approximately 113–196 hours, including the separate hosted-provider/MCP feasibility spike; re-estimate after each phase
 **Actual Phase 1 effort:** To be filled in by the user
@@ -826,6 +826,8 @@ Exit criteria (`docs/PHASE_6_PLAN.md` §1):
 
 Then re-plan, generate, validate and approve REQ-003, DEMO-003 and DEMO-004.
 
+**Done (2026-11-28):** F1 (`69c0023`) added the sign-in and reliable-role checks and the open-by-URL instruction to the planner. Re-planning (`30f8121`) produced SauceDemo SCN-0008 (REQ-003) and Release Demo SCN-0009–0011 (DEMO-003, DEMO-004); all four were validated 3/3 and approved by Yasas. Every testable requirement now has approved tests: 14 approved AI-planned tests in total, green in CI. Still uncovered: SauceDemo REQ-004/REQ-005 (never explored or planned) and REQ-006 (unresolved).
+
 Known limitations / LATER:
 - `storageState` deferred (DEC-042 §3.3); no AI failure analysis (§3.8).
 - Before any project with non-public credentials runs in CI, stop uploading traces and HTML reports (§3.2).
@@ -855,6 +857,8 @@ Tasks:
 ## 11. Phase 7 — Release comparison and regression memory
 
 **Goal:** Preserve valid tests and compare releases.
+
+**Task breakdown:** `docs/PHASE_7_PLAN.md` (Tasks R1–R5 and a live walkthrough; design decisions DEC-043). Every item below is mapped to a task there. Item 4 (AI semantic-change suggestions) is deferred (DEC-043 §2).
 
 Tasks:
 
@@ -905,8 +909,7 @@ Tasks:
 
 ## 14. Immediate next actions
 
-1. Planner fix for the three defects in the Phase 6 record, then re-plan REQ-003, DEMO-003 and DEMO-004.
-2. Write the Phase 7 plan.
+1. Phase 7: follow `docs/PHASE_7_PLAN.md`, starting with Task R1 (release records and requirement comparison).
 
 ## References
 
