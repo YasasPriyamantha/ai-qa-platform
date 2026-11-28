@@ -8,16 +8,18 @@
  * - Phase 1: execution fields (baseUrl, testDirectory, etc.)
  * - Phase 2: role profiles, credential references, document references
  *
- * Credential environment-variable NAMES are validated, but their values
- * are not required during ordinary loading or execution.
- * Authenticated execution remains deferred under DEC-024.
+ * Role credentials (DEC-042 §3.2): each role credential variable is passed to
+ * Playwright from the parsed root .env, otherwise the inherited environment value.
+ * Missing names are warned about; the run still goes ahead. Values are never printed.
  */
 
-import { resolve, isAbsolute } from 'node:path';
+import { resolve, isAbsolute, join } from 'node:path';
 import {
   loadPhase2ProjectConfig,
   ConfigValidationError,
+  checkCredentialPresence,
 } from '../projects/index.js';
+import { parseEnvFile, getEnvSecret } from '../provider-secrets/index.js';
 import {
   runPlaywrightTests,
   ProcessStartupError,
@@ -53,9 +55,10 @@ export const EXIT_FAILURE = 1;
  * Execute the run command.
  *
  * @param configPath - Path to the project configuration file
+ * @param rootDir - Directory holding the root .env (default: current directory)
  * @returns Exit code (0 for success, non-zero for failure)
  */
-export async function executeRunCommand(configPath: string): Promise<number> {
+export async function executeRunCommand(configPath: string, rootDir: string = process.cwd()): Promise<number> {
   // Resolve config path to absolute
   const absoluteConfigPath = isAbsolute(configPath)
     ? configPath
@@ -76,14 +79,29 @@ export async function executeRunCommand(configPath: string): Promise<number> {
     return EXIT_FAILURE;
   }
 
+  // Role credentials: .env value wins, otherwise the inherited value (CI secrets). Only role variables.
+  const envFile = parseEnvFile(join(rootDir, '.env'));
+  const credentialEnv: Record<string, string> = {};
+  for (const variable of (config.roles ?? []).flatMap((r) => Object.values(r.credentials))) {
+    const value = (envFile.success ? getEnvSecret(envFile.values, variable) : undefined) ?? process.env[variable];
+    if (value !== undefined && value.trim() !== '') credentialEnv[variable] = value;
+  }
+
   // Display run start information
   displayRunStart(config);
+
+  const presence = checkCredentialPresence(config.roles, credentialEnv);
+  if (!presence.allPresent) {
+    console.log(`  Warning: role credential variables not set in .env or the environment: ${presence.missingVariables.join(', ')}`);
+    console.log('');
+  }
 
   // Execute tests with default timeout
   let metadata;
   try {
     metadata = await runPlaywrightTests(config, {
       timeoutMs: DEFAULT_TIMEOUT_MS,
+      extraEnv: credentialEnv,
       // Stream output to console for progress visibility
       onStdout: (chunk) => process.stdout.write(chunk),
       onStderr: (chunk) => process.stderr.write(chunk),

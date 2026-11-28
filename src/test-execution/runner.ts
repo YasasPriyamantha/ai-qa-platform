@@ -144,6 +144,12 @@ export interface RunOptions {
    * Called with each chunk as it arrives, before the process exits.
    */
   onStderr?: (chunk: string) => void;
+
+  /**
+   * Extra environment variables for the Playwright child process (role credentials, DEC-042 §3.2).
+   * Added through createFilteredChildEnv() additions; values are never logged or written.
+   */
+  extraEnv?: Record<string, string>;
 }
 
 /**
@@ -274,6 +280,7 @@ export async function runPlaywrightTests(
     // Note: registeredKeyVars could be loaded from provider config in future,
     // but the built-in names and AI_PROVIDER_* prefix cover all current cases
     additions: {
+      ...options.extraEnv,
       QA_PROJECT_CONFIG_PATH: config.configPath,
       QA_RUN_DIR: runDirectory,
     },
