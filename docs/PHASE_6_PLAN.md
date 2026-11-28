@@ -133,6 +133,10 @@ Follow AGENTS.md "Scope discipline". Reuse the V2 scenario schema and plan write
 config's resolved test directory. approve must be the only platform code that writes to the approved test folder. No AI calls.
 Size budget ~250 source lines. Verify: typecheck, build, npm run test:unit. Report the criterion table, raw Vitest lines and
 git status --short.
+Carry-over note (from the first live validations):
+(a) V2 fix: Playwright error messages contain ANSI colour codes (for example "\x1b[2m"), which validate currently copies into
+    validation reasons, the plan file and the console. Strip ANSI escape sequences from the error text before it is stored or
+    printed. Add one test with a coloured error message. Keep the reason's first line only, as now.
 ```
 
 ---

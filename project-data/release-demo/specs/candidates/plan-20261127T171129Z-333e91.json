@@ -105,8 +105,31 @@
       "requirementVersions": {
         "DEMO-001": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0001.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0001.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "0262d217998f073ab11ad04788122688653f7591ffe273735c74b35ec68310ce",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Sign in with the demo account",
@@ -195,8 +218,31 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0002.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0002.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "8ebb60092627fa269d51a1912c2964f8dad6aa3e83fdda7c29d56c8dd697766a",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login when the username is empty",
@@ -272,8 +318,31 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0003.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0003.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "ca850dd104741f7af01c6312cf1cf0be3640f968dfebdc2e5f802925a9a13ff8",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login when the password is empty",
@@ -349,8 +418,31 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0004.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0004.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "75b402bea56e16b0a7cd712bf12152558049f2eb64d06b2789f60bc9b033aa67",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login with an incorrect password",
@@ -436,8 +528,31 @@
       "requirementVersions": {
         "DEMO-002": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0005.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0005.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "d23d596bad1e1de7cd8a7c8c9ebced42bde3a8c0e931b5cc1a1920cc8c348083",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Display the predefined task list after login",
@@ -541,8 +656,31 @@
         "DEMO-002": 1,
         "DEMO-003": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0006.spec.ts"
+      "status": "needs-revision",
+      "candidateFile": "tests/candidates/SCN-0006.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "failing",
+        "reason": "failed in 3 of 3 executions: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "candidateSha256": "6e81ec7db0fa114209e5b788aea6c33402285294028b26ba53c6a81513fabb07",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          }
+        ]
+      }
     },
     {
       "title": "Add a task with a non-empty title",
@@ -639,8 +777,31 @@
       "requirementVersions": {
         "DEMO-004": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0007.spec.ts"
+      "status": "needs-revision",
+      "candidateFile": "tests/candidates/SCN-0007.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "failing",
+        "reason": "failed in 3 of 3 executions: Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+        "candidateSha256": "e26cf20dd27c1860d95eea9e8dcdc321484ce024279d05d187a7974a34eddd53",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent adding a task with an empty title",
@@ -700,8 +861,31 @@
       "requirementVersions": {
         "DEMO-004": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0008.spec.ts"
+      "status": "needs-revision",
+      "candidateFile": "tests/candidates/SCN-0008.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:41:13.854Z",
+        "verdict": "failing",
+        "reason": "failed in 3 of 3 executions: \u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+        "candidateSha256": "0afafad04c2ddf091bbb4943091ac32f6c83678f3620a45c6242e8d9e67427ed",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-41-13-861Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-00-644Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-42-47-821Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          }
+        ]
+      }
     }
   ],
   "rejected": [],

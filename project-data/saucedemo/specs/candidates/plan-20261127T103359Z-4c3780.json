@@ -124,8 +124,31 @@
       "requirementVersions": {
         "REQ-003": 2
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0007.spec.ts"
+      "status": "needs-revision",
+      "candidateFile": "tests/candidates/SCN-0007.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:31:09.342Z",
+        "verdict": "failing",
+        "reason": "failed in 3 of 3 executions: Error: locator.click: Error: strict mode violation: getByRole('button', { name: 'View details for Sauce Labs Backpack', exact: true }) resolved to 2 elements:",
+        "candidateSha256": "086b9ac6bf18fedf1fe64e266b34048de6c651d1202bed35516a2ce65bfe087d",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-31-09-348Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-31-12-802Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          },
+          {
+            "runId": "2026-11-28T08-31-17-103Z",
+            "runStatus": "failed",
+            "testStatus": "failed"
+          }
+        ]
+      }
     }
   ],
   "rejected": [],
