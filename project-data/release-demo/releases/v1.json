@@ -139,6 +139,68 @@
           "status": "failed"
         }
       ]
+    },
+    {
+      "runId": "2026-11-28T16-04-22-757Z",
+      "finishedAt": "2026-11-28T16:04:27.020Z",
+      "runStatus": "passed",
+      "reportStatus": "complete",
+      "tests": [
+        {
+          "file": "SCN-0001.spec.ts",
+          "title": "SCN-0001.spec.ts > SCN-0001: Display the login form",
+          "scenarioId": "SCN-0001",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0002.spec.ts",
+          "title": "SCN-0002.spec.ts > SCN-0002: Sign in with the demo account",
+          "scenarioId": "SCN-0002",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0003.spec.ts",
+          "title": "SCN-0003.spec.ts > SCN-0003: Prevent login when the username is empty",
+          "scenarioId": "SCN-0003",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0004.spec.ts",
+          "title": "SCN-0004.spec.ts > SCN-0004: Prevent login when the password is empty",
+          "scenarioId": "SCN-0004",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0005.spec.ts",
+          "title": "SCN-0005.spec.ts > SCN-0005: Prevent login with an incorrect password",
+          "scenarioId": "SCN-0005",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0009.spec.ts",
+          "title": "SCN-0009.spec.ts > SCN-0009: Display the predefined task titles",
+          "scenarioId": "SCN-0009",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0010.spec.ts",
+          "title": "SCN-0010.spec.ts > SCN-0010: Add a task with a non-empty title",
+          "scenarioId": "SCN-0010",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0011.spec.ts",
+          "title": "SCN-0011.spec.ts > SCN-0011: Submit an empty task title",
+          "scenarioId": "SCN-0011",
+          "status": "passed"
+        },
+        {
+          "file": "smoke.spec.ts",
+          "title": "smoke.spec.ts > login page shows the sign-in heading",
+          "scenarioId": null,
+          "status": "passed"
+        }
+      ]
     }
   ]
 }
