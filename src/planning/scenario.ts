@@ -56,15 +56,36 @@ export const SCENARIO_PLAN_SCHEMA = createCanonicalSchema({
 /** Where a step's locator was observed; `needs-observation` when it was not (§3). */
 const LOCATOR_SOURCES = ['summary', 'evidence', 'needs-observation'] as const;
 
+/** Scenario lifecycle (DEC-042 §3.6); "awaiting approval" is `validated`. */
+export const SCENARIO_STATUSES = ['draft', 'validated', 'needs-revision', 'blocked', 'approved', 'rejected'] as const;
+
+/** The last `validate` result (DEC-042 §3.4): `failing` and `unstable` are the two kinds of needs-revision. */
+const validation = z.object({
+  validatedAt: z.string(),
+  verdict: z.enum(['validated', 'failing', 'unstable', 'blocked']),
+  reason: z.string().nullable(),
+  /** SHA-256 of the candidate file that was checked, or null when it was missing. */
+  candidateSha256: z.string().nullable(),
+  runs: z.array(z.object({
+    runId: z.string(),
+    runStatus: z.enum(['passed', 'failed', 'timed_out', 'infrastructure_error']),
+    testStatus: z.enum(['passed', 'failed', 'skipped', 'no-result']),
+  }).strict()),
+}).strict();
+
+export type ScenarioValidation = z.infer<typeof validation>;
+
 /** The canonical stored scenario. */
 export const TEST_SCENARIO = plannedScenario.extend({
   scenarioId: z.string().regex(/^SCN-\d{4,}$/),
   /** Content version of each requirement when the scenario was planned (§4). */
   requirementVersions: z.record(z.string(), z.number().int().positive()),
   steps: z.array(step.extend({ locatorSource: z.enum(LOCATOR_SOURCES).nullable() }).strict()),
-  status: z.literal('draft'),
+  status: z.enum(SCENARIO_STATUSES),
   /** Workspace-relative candidate file, set by `generate` (Task Q4). */
   candidateFile: z.string().optional(),
+  /** Set by `validate` (Task V2). */
+  validation: validation.optional(),
 }).strict();
 
 export type TestScenario = z.infer<typeof TEST_SCENARIO>;

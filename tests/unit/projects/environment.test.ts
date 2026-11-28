@@ -6,6 +6,7 @@ import {
   loadPlaywrightConfig,
   ENV_PROJECT_CONFIG_PATH,
   ENV_RUN_DIR,
+  ENV_TEST_SET,
 } from '../../../src/projects/environment.js';
 import { ConfigValidationError } from '../../../src/projects/config.js';
 
@@ -74,6 +75,26 @@ describe('loadPlaywrightConfig', () => {
       const result = loadPlaywrightConfig(env);
       expect(result.outputDir).toContain('test-output');
       expect(result.outputDir.startsWith(runDir)).toBe(true);
+    });
+  });
+
+  describe('test set (DEC-042 §3.1)', () => {
+    const env = (testSet?: string) => ({ [ENV_PROJECT_CONFIG_PATH]: configPath, [ENV_RUN_DIR]: runDir, ...(testSet === undefined ? {} : { [ENV_TEST_SET]: testSet }) });
+
+    it('defaults to the approved folder and selects tests/candidates/ only when asked', () => {
+      writeConfig(validConfig);
+      expect(loadPlaywrightConfig(env()).testDir).toBe(testDir);
+      expect(loadPlaywrightConfig(env('approved')).testDir).toBe(testDir);
+      mkdirSync(join(tempDir, 'tests', 'candidates'));
+      expect(loadPlaywrightConfig(env('candidates')).testDir).toBe(join(tempDir, 'tests', 'candidates'));
+    });
+
+    it('refuses any other value and a missing candidates folder', () => {
+      writeConfig(validConfig);
+      for (const bad of ['', 'Candidates', 'all', '../tests']) {
+        expect(() => loadPlaywrightConfig(env(bad))).toThrow(/QA_TEST_SET must be "approved" or "candidates"/);
+      }
+      expect(() => loadPlaywrightConfig(env('candidates'))).toThrow(/Candidate test folder does not exist/);
     });
   });
 

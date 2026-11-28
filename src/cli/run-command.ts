@@ -43,13 +43,27 @@ import {
  * This is supplied through RunOptions.timeoutMs, not hard-coded in the runner
  * or added to project.config.json.
  */
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
+export const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 
 /**
  * Exit codes for the CLI.
  */
 export const EXIT_SUCCESS = 0;
 export const EXIT_FAILURE = 1;
+
+/**
+ * Role credential values for Playwright (DEC-042 §3.2): the root .env value wins, otherwise the
+ * inherited value (CI secrets). Only role variables; empty values count as missing. Never printed.
+ */
+export function roleCredentialEnv(roles: ReadonlyArray<{ credentials: Record<string, string> }> | undefined, rootDir: string): Record<string, string> {
+  const envFile = parseEnvFile(join(rootDir, '.env'));
+  const credentialEnv: Record<string, string> = {};
+  for (const variable of (roles ?? []).flatMap((r) => Object.values(r.credentials))) {
+    const value = (envFile.success ? getEnvSecret(envFile.values, variable) : undefined) ?? process.env[variable];
+    if (value !== undefined && value.trim() !== '') credentialEnv[variable] = value;
+  }
+  return credentialEnv;
+}
 
 /**
  * Execute the run command.
@@ -80,12 +94,7 @@ export async function executeRunCommand(configPath: string, rootDir: string = pr
   }
 
   // Role credentials: .env value wins, otherwise the inherited value (CI secrets). Only role variables.
-  const envFile = parseEnvFile(join(rootDir, '.env'));
-  const credentialEnv: Record<string, string> = {};
-  for (const variable of (config.roles ?? []).flatMap((r) => Object.values(r.credentials))) {
-    const value = (envFile.success ? getEnvSecret(envFile.values, variable) : undefined) ?? process.env[variable];
-    if (value !== undefined && value.trim() !== '') credentialEnv[variable] = value;
-  }
+  const credentialEnv = roleCredentialEnv(config.roles, rootDir);
 
   // Display run start information
   displayRunStart(config);

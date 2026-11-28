@@ -8,7 +8,7 @@
 /**
  * Supported CLI commands.
  */
-export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'help';
+export type Command = 'run' | 'ai-check' | 'mcp-check' | 'explore' | 'requirements' | 'plan' | 'generate' | 'validate' | 'help';
 
 /**
  * Parsed CLI arguments.
@@ -68,6 +68,13 @@ export interface ParsedArgs {
     configPath: string;
     planId: string;
     replace: boolean;
+  };
+
+  /** Options for the validate command */
+  validateOptions?: {
+    configPath: string;
+    planId: string;
+    scenarioIds?: string[];
   };
 
   /** Parse errors encountered */
@@ -254,6 +261,25 @@ export function parseArgs(args: string[]): ParsedArgs {
     return { command: 'generate', generateOptions: { configPath: parsed.runOptions.configPath, planId, replace: replaceAt !== -1 }, errors: [] };
   }
 
+  // validate: --config as for run, plus required --plan <plan-id> and optional --scenario <SCN-…>[,…]
+  if (command === 'validate') {
+    const rest = args.slice(1);
+    const values: Record<string, string | undefined> = {};
+    for (const flag of ['--plan', '--scenario']) {
+      const at = rest.indexOf(flag);
+      if (at === -1) continue;
+      values[flag] = rest[at + 1];
+      rest.splice(at, 2);
+      if (!values[flag] || values[flag]!.startsWith('-')) return { command: 'validate', errors: [`${flag} requires a value`] };
+    }
+    if (!values['--plan']) return { command: 'validate', errors: ['--plan requires a plan ID'] };
+    const scenarioIds = values['--scenario']?.split(',').map((id) => id.trim()).filter((id) => id !== '');
+    if (scenarioIds && scenarioIds.length === 0) return { command: 'validate', errors: ['--scenario requires one or more scenario IDs'] };
+    const parsed = parseRunArgs(rest);
+    if (!parsed.runOptions) return { command: 'validate', errors: parsed.errors };
+    return { command: 'validate', validateOptions: { configPath: parsed.runOptions.configPath, planId: values['--plan'], ...(scenarioIds ? { scenarioIds } : {}) }, errors: [] };
+  }
+
   // Unknown command
   return {
     command: 'help',
@@ -360,6 +386,7 @@ Usage:
   npm run qa -- requirements review --config <project-config-path> --proposal <id> [--accept <IDs>] [--reject <IDs>]
   npm run qa -- plan --config <project-config-path> --requirements <IDs> --observations <exploration-IDs>
   npm run qa -- generate --config <project-config-path> --plan <plan-id> [--replace]
+  npm run qa -- validate --config <project-config-path> --plan <plan-id> [--scenario <IDs>]
   npm run qa -- help
 
 Commands:
@@ -378,6 +405,8 @@ Commands:
              observation records; saves specs/candidates/<plan-id>.json
   generate   Write type-checked candidate tests to tests/candidates/ from a
              plan with fixed templates (no AI)
+  validate   Run a plan's candidate tests in three separate executions and
+             record validated, needs-revision or blocked per scenario (no AI)
   help       Show this help message
 
 Run Command Options:
@@ -415,6 +444,12 @@ generate Options:
   --config, -c <path>   Path to the project configuration file (required)
   --plan <plan-id>      Plan from specs/candidates/ (required)
   --replace             Overwrite existing candidate files
+
+validate Options:
+  --config, -c <path>   Path to the project configuration file (required)
+  --plan <plan-id>      Plan from specs/candidates/ (required)
+  --scenario <IDs>      Comma-separated scenario IDs (default: all generated,
+                        not approved or rejected)
 
 ai-check Options:
   --live                Send one bounded request to the configured provider.

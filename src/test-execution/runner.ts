@@ -8,6 +8,7 @@
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ResolvedConfig } from '../projects/config.js';
+import { ENV_TEST_SET, type TestSet } from '../projects/environment.js';
 import { generateRunId } from './run-id.js';
 import { resolvePlaywrightCli } from './playwright-cli.js';
 import {
@@ -150,6 +151,9 @@ export interface RunOptions {
    * Added through createFilteredChildEnv() additions; values are never logged or written.
    */
   extraEnv?: Record<string, string>;
+
+  /** Test folder to run (DEC-042 §3.1); default approved. Only validate selects candidates. */
+  testSet?: TestSet;
 }
 
 /**
@@ -283,6 +287,7 @@ export async function runPlaywrightTests(
       ...options.extraEnv,
       QA_PROJECT_CONFIG_PATH: config.configPath,
       QA_RUN_DIR: runDirectory,
+      [ENV_TEST_SET]: options.testSet ?? 'approved',
     },
   });
 

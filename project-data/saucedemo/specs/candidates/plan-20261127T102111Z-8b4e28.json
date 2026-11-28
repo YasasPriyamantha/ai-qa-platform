@@ -114,8 +114,31 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0001.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0001.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:22:08.760Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "835f31a00b2e231b1af62024f2efc3c177f0319c43b229862249bc9e8863466f",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-22-08-771Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-19-812Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-28-619Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login when the username is empty",
@@ -184,8 +207,31 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0002.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0002.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:22:08.760Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "f65e0a8768e5243a87aada692078cf5dbd8a78e76da86bbdb315b88eecbbc230",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-22-08-771Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-19-812Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-28-619Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login with the standard username and a wrong password",
@@ -264,8 +310,31 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0003.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0003.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:22:08.760Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "446ddf26af89cda6d999d5dc43d65a4e1d46b9187ee988645be41a73aad3a87a",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-22-08-771Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-19-812Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-28-619Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Prevent login for a locked-out user",
@@ -344,8 +413,31 @@
       "requirementVersions": {
         "REQ-001": 4
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0004.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0004.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:22:08.760Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "5d54f88452acf0134f24ff2a2e17e609c15adb1c00dabcd459e83615859f9e27",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-22-08-771Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-19-812Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-28-619Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Verify login page controls",
@@ -414,8 +506,31 @@
       "requirementVersions": {
         "REQ-002": 1
       },
-      "status": "draft",
-      "candidateFile": "tests/candidates/SCN-0005.spec.ts"
+      "status": "validated",
+      "candidateFile": "tests/candidates/SCN-0005.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T08:22:08.760Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "48f49a750730b1068ba5310201dcceeba8bc6cf81a1e9036b583457551b5937e",
+        "runs": [
+          {
+            "runId": "2026-11-28T08-22-08-771Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-19-812Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T08-22-28-619Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      }
     },
     {
       "title": "Add the Sauce Labs Backpack to the cart from its product page",

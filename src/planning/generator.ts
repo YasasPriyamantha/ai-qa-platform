@@ -51,8 +51,8 @@ export interface GenerateContext {
   readonly credentialValues: ReadonlyMap<string, string>;
 }
 
-/** Render one scenario, or the reasons it cannot be generated (§2, §3, carry-over b–d). */
-function renderScenario(s: TestScenario, set: ScenarioSet, ctx: GenerateContext): { code: string } | { reasons: string[] } {
+/** Render one scenario, or the reasons it cannot be generated (§2, §3, carry-over b–d). `validate` reuses it (DEC-042 §3.5). */
+export function renderScenario(s: TestScenario, set: ScenarioSet, ctx: GenerateContext): { code: string } | { reasons: string[] } {
   const { baseUrl, allowedDomains, roles = [] } = ctx.config;
   const reasons: string[] = [];
   const quotes = s.expectedResults.map((e) => normalise(e.quote));

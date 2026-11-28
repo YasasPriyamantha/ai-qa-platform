@@ -41,9 +41,10 @@ export {
   loadPlaywrightConfig,
   ENV_PROJECT_CONFIG_PATH,
   ENV_RUN_DIR,
+  ENV_TEST_SET,
 } from './environment.js';
 
-export type { EnvironmentVariables } from './environment.js';
+export type { EnvironmentVariables, TestSet } from './environment.js';
 
 // Phase 2 type exports
 export type {

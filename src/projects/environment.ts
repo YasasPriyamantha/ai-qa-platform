@@ -9,12 +9,18 @@ import { existsSync, statSync } from 'node:fs';
 import { join, relative, parse as parsePath } from 'node:path';
 import { loadProjectConfig } from './loader.js';
 import { ConfigValidationError, type PlaywrightEnvConfig } from './config.js';
+import { PROJECT_DIRECTORIES } from './storage.js';
 
 /**
  * Environment variable names for Playwright configuration.
  */
 export const ENV_PROJECT_CONFIG_PATH = 'QA_PROJECT_CONFIG_PATH';
 export const ENV_RUN_DIR = 'QA_RUN_DIR';
+/** Optional: which test folder to run (DEC-042 §3.1); default approved. */
+export const ENV_TEST_SET = 'QA_TEST_SET';
+
+/** `approved`: the project's testDirectory; `candidates`: its tests/candidates/ folder (only through validate). */
+export type TestSet = 'approved' | 'candidates';
 
 /**
  * Interface for environment object to avoid direct process.env access.
@@ -99,11 +105,24 @@ export function loadPlaywrightConfig(env: EnvironmentVariables): PlaywrightEnvCo
   // Validate run directory is inside the artifact directory
   validateRunDirContainment(runDir, config.resolvedArtifactDirectory);
 
+  // Test set (DEC-042 §3.1): approved by default; candidates only when asked and present
+  const testSet = env[ENV_TEST_SET] ?? 'approved';
+  if (testSet !== 'approved' && testSet !== 'candidates') {
+    throw new ConfigValidationError(`${ENV_TEST_SET} must be "approved" or "candidates"`, ENV_TEST_SET, testSet);
+  }
+  let testDir = config.resolvedTestDirectory;
+  if (testSet === 'candidates') {
+    testDir = join(config.projectWorkspace, PROJECT_DIRECTORIES.TESTS_CANDIDATES);
+    if (!existsSync(testDir) || !statSync(testDir).isDirectory()) {
+      throw new ConfigValidationError(`Candidate test folder does not exist: ${testDir}`, ENV_TEST_SET, testDir);
+    }
+  }
+
   // Derive Playwright configuration
   return {
     config,
     runDir,
-    testDir: config.resolvedTestDirectory,
+    testDir,
     baseURL: config.baseUrl,
     outputDir: join(runDir, 'test-output'),
     jsonReportPath: join(runDir, 'results.json'),
