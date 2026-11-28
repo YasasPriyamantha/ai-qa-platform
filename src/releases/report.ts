@@ -4,6 +4,7 @@
  */
 
 import type { ScenarioSet } from '../planning/scenario.js';
+import { findNeedsTests } from './release.js';
 import type { ReleaseRecord, ReleaseRun } from './release.js';
 
 type TestClass = 'still passing' | 'newly failing' | 'still failing' | 'fixed' | 'new' | 'retired' | 'not run';
@@ -36,6 +37,8 @@ export interface ReleaseReport {
   notCompared: string | null;
   regressions: number;
   pending: string[];
+  /** Recomputed from the current plan files; the list stored in the release record is left unchanged. */
+  needsTests: string[];
   passed: boolean;
 }
 
@@ -47,6 +50,7 @@ export function buildReleaseReport(input: {
   isRetired: (file: string) => boolean;
 }): ReleaseReport {
   const { release, previous } = input;
+  const plans = [...input.plans];
   const latest = release.runs.at(-1) ?? null;
   const baselineRun = previous?.runs.at(-1) ?? null;
   const baseline = baselineRun && runState(baselineRun) !== 'blocked' ? baselineRun : null;
@@ -61,7 +65,7 @@ export function buildReleaseReport(input: {
 
   let tests: ReportTest[] | null = null;
   if (latest && !notCompared) {
-    const requirementsOf = new Map([...input.plans].flatMap((p) => p.scenarios).map((s) => [s.scenarioId, s.requirementIds]));
+    const requirementsOf = new Map(plans.flatMap((p) => p.scenarios).map((s) => [s.scenarioId, s.requirementIds]));
     const classOf = new Map(release.comparison.map((c) => [c.requirementId, c.classification]));
     // Tests match by file; the title only tells apart several tests in one file.
     const key = (t: { file: string; title: string }) => `${t.file}\n${t.title}`;
@@ -93,7 +97,7 @@ export function buildReleaseReport(input: {
   }
   const regressions = tests?.filter((t) => t.regression).length ?? 0;
   return {
-    release, latest, baseline, tests, notCompared, regressions, pending,
+    release, latest, baseline, tests, notCompared, regressions, pending, needsTests: findNeedsTests(release, plans),
     passed: regressions === 0 && pending.length === 0 && latest !== null && runState(latest) === 'passed',
   };
 }
@@ -148,6 +152,6 @@ export function renderReleaseReport(report: ReleaseReport, previous: ReleaseReco
   }
   lines.push('', `Unchanged requirements: ${release.comparison.filter((x) => x.classification === 'unchanged').length}`, '');
   lines.push('## Pending reviews', '', ...(report.pending.length ? report.pending.map((p) => `- ${p}`) : ['None.']), '');
-  lines.push('## Needs tests', '', ...(release.needsTests.length ? release.needsTests.map((id) => `- ${id}`) : ['None.']), '');
+  lines.push('## Needs tests', '', ...(report.needsTests.length ? report.needsTests.map((id) => `- ${id}`) : ['None.']), '');
   return lines.join('\n');
 }

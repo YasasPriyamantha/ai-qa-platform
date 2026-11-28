@@ -22,9 +22,10 @@ V2 implements `project-data/release-demo/docs/requirements-v2.md`:
 - the empty-title message is `Please enter a task title.` (DEMO-004 changed);
 - a `Sign out` button on `/tasks.html` ends the session and goes to `/` (DEMO-005 new).
 
-**Planted regression (deliberate):** in V2 the empty-password message is `Password is required`
-(the final period is missing), although DEMO-002 is unchanged. It exists so the Phase 7 release
-report can be shown catching a real regression (DEC-043 §3.8). It is fixed in Task R5.
+**Planted regression (fixed in Task R5):** V2 shipped with the empty-password message
+`Password is required` (the final period missing), although DEMO-002 is unchanged, so the Phase 7
+release report could be shown catching a real regression (DEC-043 §3.8). Task R5 fixed it; the
+message is `Password is required.` again.
 
 ## Demo credentials
 

@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "v2",
+  "projectId": "release-demo",
+  "createdAt": "2026-11-28T16:24:20.983Z",
+  "previousReleaseId": "v1",
+  "target": {
+    "baseUrl": "http://localhost:4310",
+    "environment": "local"
+  },
+  "documents": [
+    {
+      "documentId": "release-demo-requirements",
+      "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    }
+  ],
+  "requirements": [
+    {
+      "requirementId": "DEMO-001",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    },
+    {
+      "requirementId": "DEMO-002",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    },
+    {
+      "requirementId": "DEMO-003",
+      "status": "retired",
+      "unresolved": false,
+      "contentVersion": 2,
+      "sourceContentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    },
+    {
+      "requirementId": "DEMO-004",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 2,
+      "sourceContentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    },
+    {
+      "requirementId": "DEMO-005",
+      "status": "active",
+      "unresolved": false,
+      "contentVersion": 1,
+      "sourceContentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562"
+    }
+  ],
+  "comparison": [
+    {
+      "requirementId": "DEMO-001",
+      "classification": "unchanged",
+      "previousContentVersion": 1,
+      "currentContentVersion": 1,
+      "review": null
+    },
+    {
+      "requirementId": "DEMO-002",
+      "classification": "unchanged",
+      "previousContentVersion": 1,
+      "currentContentVersion": 1,
+      "review": null
+    },
+    {
+      "requirementId": "DEMO-003",
+      "classification": "retired",
+      "previousContentVersion": 1,
+      "currentContentVersion": 2,
+      "review": "reviewed"
+    },
+    {
+      "requirementId": "DEMO-004",
+      "classification": "changed",
+      "previousContentVersion": 1,
+      "currentContentVersion": 2,
+      "review": "reviewed"
+    },
+    {
+      "requirementId": "DEMO-005",
+      "classification": "new",
+      "previousContentVersion": null,
+      "currentContentVersion": 1,
+      "review": null
+    }
+  ],
+  "affectedTests": [
+    {
+      "scenarioId": "SCN-0009",
+      "approvedFile": "tests/approved/SCN-0009.spec.ts",
+      "requirements": [
+        {
+          "requirementId": "DEMO-003",
+          "classification": "retired"
+        }
+      ],
+      "review": "reviewed"
+    },
+    {
+      "scenarioId": "SCN-0010",
+      "approvedFile": "tests/approved/SCN-0010.spec.ts",
+      "requirements": [
+        {
+          "requirementId": "DEMO-004",
+          "classification": "changed"
+        }
+      ],
+      "review": "reviewed"
+    },
+    {
+      "scenarioId": "SCN-0011",
+      "approvedFile": "tests/approved/SCN-0011.spec.ts",
+      "requirements": [
+        {
+          "requirementId": "DEMO-004",
+          "classification": "changed"
+        }
+      ],
+      "review": "reviewed"
+    }
+  ],
+  "needsTests": [
+    "DEMO-004",
+    "DEMO-005"
+  ],
+  "reviews": [
+    {
+      "itemId": "DEMO-003",
+      "action": "confirm",
+      "reviewer": "Yasas",
+      "decidedAt": "2026-11-28T16:24:35.864Z",
+      "reason": "V2 removes the predefined task list (DEMO-003) and changes the empty-title message (DEMO-004)."
+    },
+    {
+      "itemId": "DEMO-004",
+      "action": "confirm",
+      "reviewer": "Yasas",
+      "decidedAt": "2026-11-28T16:24:35.864Z",
+      "reason": "V2 removes the predefined task list (DEMO-003) and changes the empty-title message (DEMO-004)."
+    },
+    {
+      "itemId": "SCN-0009",
+      "action": "retire",
+      "reviewer": "Yasas",
+      "decidedAt": "2026-11-28T16:24:48.676Z",
+      "reason": "DEMO-003 is retired in V2: the predefined task list is gone."
+    },
+    {
+      "itemId": "SCN-0011",
+      "action": "retire",
+      "reviewer": "Yasas",
+      "decidedAt": "2026-11-28T16:24:59.007Z",
+      "reason": "DEMO-004 changed the empty-title message; this test checks the old one."
+    },
+    {
+      "itemId": "SCN-0010",
+      "action": "keep",
+      "reviewer": "Yasas",
+      "decidedAt": "2026-11-28T16:25:10.108Z",
+      "reason": "DEMO-004's change only affects the empty-title message; adding a task is unchanged."
+    }
+  ],
+  "runs": [
+    {
+      "runId": "2026-11-28T16-41-21-292Z",
+      "finishedAt": "2026-11-28T16:41:30.200Z",
+      "runStatus": "failed",
+      "reportStatus": "complete",
+      "tests": [
+        {
+          "file": "SCN-0001.spec.ts",
+          "title": "SCN-0001.spec.ts > SCN-0001: Display the login form",
+          "scenarioId": "SCN-0001",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0002.spec.ts",
+          "title": "SCN-0002.spec.ts > SCN-0002: Sign in with the demo account",
+          "scenarioId": "SCN-0002",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0003.spec.ts",
+          "title": "SCN-0003.spec.ts > SCN-0003: Prevent login when the username is empty",
+          "scenarioId": "SCN-0003",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0004.spec.ts",
+          "title": "SCN-0004.spec.ts > SCN-0004: Prevent login when the password is empty",
+          "scenarioId": "SCN-0004",
+          "status": "failed"
+        },
+        {
+          "file": "SCN-0005.spec.ts",
+          "title": "SCN-0005.spec.ts > SCN-0005: Prevent login with an incorrect password",
+          "scenarioId": "SCN-0005",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0010.spec.ts",
+          "title": "SCN-0010.spec.ts > SCN-0010: Add a task with a non-empty title",
+          "scenarioId": "SCN-0010",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0014.spec.ts",
+          "title": "SCN-0014.spec.ts > SCN-0014: Sign out from the task list",
+          "scenarioId": "SCN-0014",
+          "status": "passed"
+        },
+        {
+          "file": "smoke.spec.ts",
+          "title": "smoke.spec.ts > login page shows the sign-in heading",
+          "scenarioId": null,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "runId": "2026-11-28T17-15-49-590Z",
+      "finishedAt": "2026-11-28T17:15:53.992Z",
+      "runStatus": "passed",
+      "reportStatus": "complete",
+      "tests": [
+        {
+          "file": "SCN-0001.spec.ts",
+          "title": "SCN-0001.spec.ts > SCN-0001: Display the login form",
+          "scenarioId": "SCN-0001",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0002.spec.ts",
+          "title": "SCN-0002.spec.ts > SCN-0002: Sign in with the demo account",
+          "scenarioId": "SCN-0002",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0003.spec.ts",
+          "title": "SCN-0003.spec.ts > SCN-0003: Prevent login when the username is empty",
+          "scenarioId": "SCN-0003",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0004.spec.ts",
+          "title": "SCN-0004.spec.ts > SCN-0004: Prevent login when the password is empty",
+          "scenarioId": "SCN-0004",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0005.spec.ts",
+          "title": "SCN-0005.spec.ts > SCN-0005: Prevent login with an incorrect password",
+          "scenarioId": "SCN-0005",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0010.spec.ts",
+          "title": "SCN-0010.spec.ts > SCN-0010: Add a task with a non-empty title",
+          "scenarioId": "SCN-0010",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0014.spec.ts",
+          "title": "SCN-0014.spec.ts > SCN-0014: Sign out from the task list",
+          "scenarioId": "SCN-0014",
+          "status": "passed"
+        },
+        {
+          "file": "SCN-0016.spec.ts",
+          "title": "SCN-0016.spec.ts > SCN-0016: Do not add a task when the title is empty",
+          "scenarioId": "SCN-0016",
+          "status": "passed"
+        },
+        {
+          "file": "smoke.spec.ts",
+          "title": "smoke.spec.ts > login page shows the sign-in heading",
+          "scenarioId": null,
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

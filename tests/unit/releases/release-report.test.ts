@@ -169,6 +169,27 @@ describe('release report: blocked, missing and baseline runs (criterion 3)', () 
     expect(md).toContain('Release v2 has no run yet.');
   });
 
+  it('recomputes "needs tests" from the current plan files and leaves the stored list unchanged (R5 carry-over)', () => {
+    writeRelease('v2', null, [run('run-v2', [test('SCN-0001.spec.ts', 'passed')])], {
+      requirements: [{ requirementId: 'REQ-D', status: 'active', unresolved: false, contentVersion: 1, sourceContentHash: 'h' }],
+      comparison: [comparison('REQ-D', 'new')],
+      needsTests: ['REQ-D'],
+    });
+    report();
+    expect(readFileSync(reportFile('v2'), 'utf-8')).toContain('## Needs tests\n\n- REQ-D\n');
+    expect(logs).toContain('needs tests: REQ-D');
+
+    // A test for REQ-D at its release content version is approved after the release was created.
+    const plan = readJson(join(workspace, 'specs', 'candidates', 'plan-r3.json'));
+    plan.scenarios.push(scenario(4, ['REQ-D']));
+    writeFileSync(join(workspace, 'specs', 'candidates', 'plan-r3.json'), JSON.stringify(plan));
+    logs = '';
+    report();
+    expect(readFileSync(reportFile('v2'), 'utf-8')).toContain('## Needs tests\n\nNone.\n');
+    expect(logs).toContain('needs tests: none');
+    expect(readJson(releaseFile('v2')).needsTests).toEqual(['REQ-D']);
+  });
+
   it('refuses an unknown release', () => {
     expect(executeReleaseReportCommand({ configPath, releaseId: 'v9' })).toBe(1);
     expect(logs).toContain('release v9 does not exist');

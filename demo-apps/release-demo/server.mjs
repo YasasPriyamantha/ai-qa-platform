@@ -9,8 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const PORT = 4310;
 const DEMO_USERNAME = 'release_tester';
 const DEMO_PASSWORD = 'rt-pass-2026';
-// Per-version behaviour (DEC-043 §3.7–§3.8). V2's empty-password message is missing its final
-// period on purpose: the planted regression for the Phase 7 demonstration (README), fixed in R5.
+// Per-version behaviour (DEC-043 §3.7–§3.8). V2's planted empty-password regression (README) was fixed in R5.
 const VERSIONS = {
   v1: {
     initialTasks: ['Prepare release notes', 'Review test results', 'Approve deployment'],
@@ -20,7 +19,7 @@ const VERSIONS = {
   },
   v2: {
     initialTasks: [],
-    emptyPasswordMessage: 'Password is required',
+    emptyPasswordMessage: 'Password is required.',
     emptyTitleMessage: 'Please enter a task title.',
     signOut: true,
   },

@@ -312,6 +312,13 @@ demo-apps/release-demo/ (server.mjs, README.md), tests/unit/demo-apps/release-de
 
 Task R5 (docs/PHASE_7_PLAN.md). Implement exactly acceptance criteria 1–3 of R5. Change nothing else. Size budget ~20 lines.
 Verify: typecheck, build, npm run test:unit. Report the criterion table, raw Vitest lines and git status --short.
+Carry-over note (from the live V2 report):
+(a) The release report prints the "needs tests" list that was stored when the release was created, so after new tests were
+    approved it still said "needs tests: DEMO-004, DEMO-005". Make release report (console and Markdown) recompute it from the
+    current plan files with the same rule as release create (src/releases/release.ts: a new or changed, active, resolved
+    requirement with no approved scenario at its current content version). Extract that rule into one shared function used by
+    both; do not change the list stored in the release record. Add a test: once a test for a needs-tests requirement is approved,
+    the report no longer lists it.
 ```
 
 ## 5. Live walkthrough (your steps after R4, before R5)

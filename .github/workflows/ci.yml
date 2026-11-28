@@ -57,9 +57,9 @@ jobs:
           path: project-data/saucedemo/artifacts/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Start Release Demo V1
+      - name: Start Release Demo V2
         run: |
-          npm run demo:v1 > release-demo-server.log 2>&1 &
+          npm run demo:v2 > release-demo-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:4310/ > /dev/null && exit 0
             sleep 1

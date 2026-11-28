@@ -134,7 +134,7 @@ describe('Release Demo V2 server (Task R4)', () => {
     return (res.headers.get('set-cookie') ?? '').split(';')[0];
   };
 
-  it('keeps the V1 login page and its messages, except the planted empty-password regression (§3.8)', async () => {
+  it('keeps the V1 login page and its messages, with the planted empty-password regression fixed (R5, §3.8)', async () => {
     const html = await (await fetch(base + '/')).text();
     expect(html).toContain('<h1>Sign in to Release Demo</h1>');
     expect(html).toContain('<label for="username">Username</label>');
@@ -142,7 +142,7 @@ describe('Release Demo V2 server (Task R4)', () => {
     expect(html).toContain('<button type="submit">Sign in</button>');
     const message = async (form: Record<string, string>) => (await (await post('/', form)).text()).match(/<p role="alert">(.*)<\/p>/)?.[1];
     expect(await message({ username: '', password: '' })).toBe('Username is required.');
-    expect(await message({ username: 'release_tester', password: '' })).toBe('Password is required');
+    expect(await message({ username: 'release_tester', password: '' })).toBe('Password is required.');
     expect(await message({ username: 'release_tester', password: 'wrong-password' })).toBe('Username or password is incorrect.');
   });
 

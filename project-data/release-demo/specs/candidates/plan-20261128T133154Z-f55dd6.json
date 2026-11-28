@@ -125,7 +125,7 @@
       "requirementVersions": {
         "DEMO-003": 1
       },
-      "status": "approved",
+      "status": "retired",
       "candidateFile": "tests/candidates/SCN-0009.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T13:36:11.619Z",
@@ -155,6 +155,12 @@
         "decidedAt": "2026-11-28T13:36:58.678Z",
         "approvedFile": "tests/approved/SCN-0009.spec.ts",
         "approvedSha256": "5837f68ab9045e653f983a6207448208966ee8945b83146048f5dbdd65af1035"
+      },
+      "retirement": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T16:24:48.676Z",
+        "reason": "DEMO-003 is retired in V2: the predefined task list is gone.",
+        "releaseId": "v2"
       }
     },
     {
@@ -420,7 +426,7 @@
       "requirementVersions": {
         "DEMO-004": 1
       },
-      "status": "approved",
+      "status": "retired",
       "candidateFile": "tests/candidates/SCN-0011.spec.ts",
       "validation": {
         "validatedAt": "2026-11-28T13:36:11.619Z",
@@ -450,6 +456,12 @@
         "decidedAt": "2026-11-28T13:36:58.678Z",
         "approvedFile": "tests/approved/SCN-0011.spec.ts",
         "approvedSha256": "7c1a76de654ff62b54ff9a9395520f78905583082150def6967644872ee20c9e"
+      },
+      "retirement": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T16:24:59.007Z",
+        "reason": "DEMO-004 changed the empty-title message; this test checks the old one.",
+        "releaseId": "v2"
       }
     }
   ],

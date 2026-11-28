@@ -163,7 +163,8 @@ export function buildReleaseRecord(input: {
   });
   const classOf = new Map(comparison.map((c) => [c.requirementId, c.classification]));
 
-  const approved = [...input.plans].flatMap((p) => p.scenarios).filter((s) => s.status === 'approved' && s.approval);
+  const plans = [...input.plans];
+  const approved = plans.flatMap((p) => p.scenarios).filter((s) => s.status === 'approved' && s.approval);
   const affectedTests = approved
     .filter((s) => s.requirementIds.some((id) => FLAGGED.includes(classOf.get(id)!)))
     .map((s) => ({
@@ -172,11 +173,6 @@ export function buildReleaseRecord(input: {
       requirements: s.requirementIds.filter((id) => classOf.has(id)).map((id) => ({ requirementId: id, classification: classOf.get(id)! })),
       review: 'pending' as const,
     }));
-
-  const needsTests = snapshot
-    .filter((r) => (classOf.get(r.requirementId) === 'new' || classOf.get(r.requirementId) === 'changed') && r.status === 'active' && !r.unresolved)
-    .filter((r) => !approved.some((s) => s.requirementVersions[r.requirementId] === r.contentVersion))
-    .map((r) => r.requirementId);
 
   return {
     schemaVersion: 1,
@@ -189,10 +185,23 @@ export function buildReleaseRecord(input: {
     requirements: snapshot,
     comparison,
     affectedTests,
-    needsTests,
+    needsTests: findNeedsTests({ requirements: snapshot, comparison }, plans),
     reviews: [],
     runs: [],
   };
+}
+
+/**
+ * "Needs tests" (§3.3): the release's active, resolved `new` or `changed` requirements with no
+ * approved scenario at their content version in the release. Used by `release create` and `release report`.
+ */
+export function findNeedsTests(release: Pick<ReleaseRecord, 'requirements' | 'comparison'>, plans: Iterable<ScenarioSet>): string[] {
+  const classOf = new Map(release.comparison.map((c) => [c.requirementId, c.classification]));
+  const approved = [...plans].flatMap((p) => p.scenarios).filter((s) => s.status === 'approved' && s.approval);
+  return release.requirements
+    .filter((r) => (classOf.get(r.requirementId) === 'new' || classOf.get(r.requirementId) === 'changed') && r.status === 'active' && !r.unresolved)
+    .filter((r) => !approved.some((s) => s.requirementVersions[r.requirementId] === r.contentVersion))
+    .map((r) => r.requirementId);
 }
 
 /** §3.2; the first release of a project has no previous release, so everything is `new`. */

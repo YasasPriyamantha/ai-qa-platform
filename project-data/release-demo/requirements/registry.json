@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "updatedAt": "2026-11-27T17:07:12.302Z",
+  "updatedAt": "2026-11-28T16:24:09.075Z",
   "requirements": {
     "DEMO-001": {
       "projectId": "release-demo",
@@ -13,7 +13,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "release-demo-requirements",
-        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562",
         "section": "DEMO-001: Display the login form",
         "lineRange": {
           "start": 3,
@@ -21,7 +21,7 @@
         }
       },
       "createdAt": "2026-11-27T17:07:12.301Z",
-      "updatedAt": "2026-11-27T17:07:12.301Z"
+      "updatedAt": "2026-11-28T16:24:09.074Z"
     },
     "DEMO-002": {
       "projectId": "release-demo",
@@ -47,7 +47,7 @@
       "status": "active",
       "sourceReference": {
         "documentId": "release-demo-requirements",
-        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562",
         "section": "DEMO-002: Log in with the demo account",
         "lineRange": {
           "start": 17,
@@ -56,7 +56,7 @@
       },
       "role": "demo_user",
       "createdAt": "2026-11-27T17:07:12.301Z",
-      "updatedAt": "2026-11-27T17:07:12.301Z"
+      "updatedAt": "2026-11-28T16:24:09.074Z"
     },
     "DEMO-003": {
       "projectId": "release-demo",
@@ -66,10 +66,10 @@
       "expectedResult": "The `/tasks.html` page displays all three task titles: `Prepare release notes`, `Review test results`, and `Approve deployment`.",
       "negativeCases": [],
       "priority": "high",
-      "status": "active",
+      "status": "retired",
       "sourceReference": {
         "documentId": "release-demo-requirements",
-        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562",
         "section": "DEMO-003: Display the predefined task list",
         "lineRange": {
           "start": 38,
@@ -78,7 +78,31 @@
       },
       "role": "demo_user",
       "createdAt": "2026-11-27T17:07:12.301Z",
-      "updatedAt": "2026-11-27T17:07:12.301Z"
+      "updatedAt": "2026-11-28T16:24:09.074Z",
+      "history": [
+        {
+          "title": "Display the predefined task list",
+          "description": "After a successful login, the task list page displays a small, predictable set of initial tasks.",
+          "expectedResult": "The `/tasks.html` page displays all three task titles: `Prepare release notes`, `Review test results`, and `Approve deployment`.",
+          "negativeCases": [],
+          "priority": "high",
+          "role": "demo_user",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "release-demo-requirements",
+            "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+            "section": "DEMO-003: Display the predefined task list",
+            "lineRange": {
+              "start": 38,
+              "end": 52
+            }
+          },
+          "supersededAt": "2026-11-28T16:24:09.075Z",
+          "reason": "Retired through document import"
+        }
+      ],
+      "retiredAt": "2026-11-28T16:24:09.074Z",
+      "retirementReason": "Retired through document import"
     },
     "DEMO-004": {
       "projectId": "release-demo",
@@ -89,23 +113,72 @@
       "negativeCases": [
         {
           "condition": "Empty task title",
-          "expectedOutcome": "no task is added and the message `Task title is required.` is displayed."
+          "expectedOutcome": "no task is added and the message `Please enter a task title.` is displayed."
         }
       ],
       "priority": "high",
       "status": "active",
       "sourceReference": {
         "documentId": "release-demo-requirements",
-        "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+        "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562",
         "section": "DEMO-004: Add a task with a required title",
         "lineRange": {
           "start": 53,
-          "end": 70
+          "end": 71
         }
       },
       "role": "demo_user",
       "createdAt": "2026-11-27T17:07:12.301Z",
-      "updatedAt": "2026-11-27T17:07:12.301Z"
+      "updatedAt": "2026-11-28T16:24:09.074Z",
+      "history": [
+        {
+          "title": "Add a task with a required title",
+          "description": "A signed-in user can add a task by entering a non-empty title in the task form.",
+          "expectedResult": "The `/tasks.html` page shows a text field labelled `Task title` with the placeholder `Enter a task title` and a button labelled `Add task`. When the user enters `Check deployment logs` and clicks `Add task`, `Check deployment logs` appears in the task list.",
+          "negativeCases": [
+            {
+              "condition": "Empty task title",
+              "expectedOutcome": "no task is added and the message `Task title is required.` is displayed."
+            }
+          ],
+          "priority": "high",
+          "role": "demo_user",
+          "status": "active",
+          "sourceReference": {
+            "documentId": "release-demo-requirements",
+            "contentHash": "6b8f32f954ce53d4622686acaec13abe49fc5a6ffb5b5ef73658c9db034a62ed",
+            "section": "DEMO-004: Add a task with a required title",
+            "lineRange": {
+              "start": 53,
+              "end": 70
+            }
+          },
+          "supersededAt": "2026-11-28T16:24:09.075Z",
+          "reason": "Content changed on import"
+        }
+      ]
+    },
+    "DEMO-005": {
+      "projectId": "release-demo",
+      "requirementId": "DEMO-005",
+      "title": "Sign out",
+      "description": "A signed-in user can end their session from the task list page.",
+      "expectedResult": "After signing in, when the user clicks `Sign out` on `/tasks.html`, the application navigates to `/` and displays the heading `Sign in to Release Demo`.",
+      "negativeCases": [],
+      "priority": "high",
+      "status": "active",
+      "sourceReference": {
+        "documentId": "release-demo-requirements",
+        "contentHash": "0deb29fc60e0da6da7830ccf92edfb2c73e5f86eaeb8534dc6991dbbc0fec562",
+        "section": "DEMO-005: Sign out",
+        "lineRange": {
+          "start": 72,
+          "end": 85
+        }
+      },
+      "role": "demo_user",
+      "createdAt": "2026-11-28T16:24:09.074Z",
+      "updatedAt": "2026-11-28T16:24:09.074Z"
     }
   }
 }

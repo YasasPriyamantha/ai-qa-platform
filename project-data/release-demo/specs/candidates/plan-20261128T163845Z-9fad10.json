@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "planId": "plan-20261128T163845Z-9fad10",
+  "projectId": "release-demo",
+  "status": "generated",
+  "createdAt": "2026-11-28T16:38:45.873Z",
+  "requirementIds": [
+    "DEMO-004"
+  ],
+  "excluded": [],
+  "explorationIds": [
+    "exp-20261128T162808Z-53cb93"
+  ],
+  "provider": {
+    "providerId": "openai",
+    "modelId": "gpt-6-luna"
+  },
+  "limits": {
+    "maxScenarios": 20,
+    "maxAiRequests": 1
+  },
+  "usage": {
+    "aiRequests": 1,
+    "inputTokens": 1270,
+    "outputTokens": 2568
+  },
+  "stopReason": "completed",
+  "error": null,
+  "scenarios": [
+    {
+      "title": "Add a task with a non-empty title",
+      "requirementIds": [
+        "DEMO-004"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "A demo_user account is available."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: {{credential:demo_user.password}}",
+        "Task title: Check deployment logs"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:demo_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/tasks.html",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "textbox",
+            "name": "Task title"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": "visible",
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Task title"
+          },
+          "value": "Check deployment logs",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Check deployment logs",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-004",
+          "quote": "The `/tasks.html` page shows a text field labelled `Task title` with the placeholder `Enter a task title` and a button labelled `Add task`. When the user enters `Check deployment logs` and clicks `Add task`, `Check deployment logs` appears in the task list."
+        }
+      ],
+      "questions": [
+        "The observation identifies the task-title textbox by its accessible name but does not expose its placeholder. How can the `Enter a task title` placeholder be verified?"
+      ],
+      "scenarioId": "SCN-0015",
+      "requirementVersions": {
+        "DEMO-004": 2
+      },
+      "status": "rejected",
+      "candidateFile": "tests/candidates/SCN-0015.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T16:53:19.152Z",
+        "verdict": "blocked",
+        "reason": "Target http://localhost:4310 is not reachable; start the application and try again",
+        "candidateSha256": "a29f60e4e035ae200cd1bf36f43bf4c64890aa3b2ba1e0452d393b23486fabac",
+        "runs": []
+      },
+      "rejection": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T16:54:19.535Z",
+        "reason": "Duplicate of SCN-0010, which was kept in the release v2 review: adding a task is unchanged in V2."
+      }
+    },
+    {
+      "title": "Do not add a task when the title is empty",
+      "requirementIds": [
+        "DEMO-004"
+      ],
+      "categories": [
+        "functional",
+        "end-to-end",
+        "black-box",
+        "regression"
+      ],
+      "priority": "high",
+      "risk": "medium",
+      "role": "demo_user",
+      "preconditions": [
+        "A demo_user account is available."
+      ],
+      "testData": [
+        "Username: {{credential:demo_user.username}}",
+        "Password: {{credential:demo_user.password}}",
+        "Task title: empty"
+      ],
+      "steps": [
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Username"
+          },
+          "value": "{{credential:demo_user.username}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Password"
+          },
+          "value": "{{credential:demo_user.password}}",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Sign in"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "goto",
+          "target": null,
+          "value": "/tasks.html",
+          "assertion": null,
+          "locatorSource": null
+        },
+        {
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Task title"
+          },
+          "value": "",
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Add task"
+          },
+          "value": null,
+          "assertion": null,
+          "locatorSource": "summary"
+        },
+        {
+          "action": "expect",
+          "target": null,
+          "value": "Please enter a task title.",
+          "assertion": "text",
+          "locatorSource": null
+        }
+      ],
+      "expectedResults": [
+        {
+          "requirementId": "DEMO-004",
+          "quote": "no task is added and the message `Please enter a task title.` is displayed."
+        }
+      ],
+      "questions": [
+        "The observation does not expose task-list items or a way to assert that an item was not added. How should the no-task-added outcome be verified?"
+      ],
+      "scenarioId": "SCN-0016",
+      "requirementVersions": {
+        "DEMO-004": 2
+      },
+      "status": "approved",
+      "candidateFile": "tests/candidates/SCN-0016.spec.ts",
+      "validation": {
+        "validatedAt": "2026-11-28T17:14:47.241Z",
+        "verdict": "validated",
+        "reason": null,
+        "candidateSha256": "5f3372bc39f422bd8d6432426b1c79da05980e32f332905d2a27fec7ddac9a11",
+        "runs": [
+          {
+            "runId": "2026-11-28T17-14-47-283Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T17-14-49-736Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          },
+          {
+            "runId": "2026-11-28T17-14-52-034Z",
+            "runStatus": "passed",
+            "testStatus": "passed"
+          }
+        ]
+      },
+      "approval": {
+        "reviewer": "Yasas",
+        "decidedAt": "2026-11-28T17:15:11.769Z",
+        "approvedFile": "tests/approved/SCN-0016.spec.ts",
+        "approvedSha256": "498e4174fed4e43b489db4e3e55f8185e9692b4cf54d16299fde488c64898da9"
+      }
+    }
+  ],
+  "rejected": [],
+  "notCovered": [],
+  "conflicts": [],
+  "questions": []
+}

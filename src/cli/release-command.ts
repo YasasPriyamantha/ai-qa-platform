@@ -236,7 +236,7 @@ export function executeReleaseReportCommand(options: ReleaseCreateOptions): numb
     console.log(`  Tests: ${[...counts].map(([c, n]) => `${n} ${c}`).join(', ') || 'none'}`);
     for (const t of report.tests.filter((x) => x.regression)) console.log(`  REGRESSION: ${t.title}`);
   }
-  console.log(`  Pending reviews: ${report.pending.length}; needs tests: ${release.needsTests.length === 0 ? 'none' : release.needsTests.join(', ')}`);
+  console.log(`  Pending reviews: ${report.pending.length}; needs tests: ${report.needsTests.length === 0 ? 'none' : report.needsTests.join(', ')}`);
   console.log(`  Result: ${report.passed ? 'PASS' : 'FAIL'} (${report.regressions} regression(s))`);
   console.log('');
   return report.passed ? EXIT_SUCCESS : EXIT_FAILURE;

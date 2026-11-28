@@ -1,4 +1,4 @@
-# Release Demo Requirements — V1
+# Release Demo Requirements — V2
 
 ## DEMO-001: Display the login form
 
@@ -37,7 +37,7 @@ When the user enters the demo account's username and password and clicks `Sign i
 
 ## DEMO-003: Display the predefined task list
 
-Status: Active
+Status: Retired
 Priority: High
 Role: demo_user
 
@@ -66,4 +66,19 @@ The `/tasks.html` page shows a text field labelled `Task title` with the placeho
 
 ### Negative cases
 
-- Empty task title: no task is added and the message `Task title is required.` is displayed.
+- Empty task title: no task is added and the message `Please enter a task title.` is displayed.
+
+
+## DEMO-005: Sign out
+
+Status: Active
+Priority: High
+Role: demo_user
+
+### Description
+
+A signed-in user can end their session from the task list page.
+
+### Expected result
+
+After signing in, when the user clicks `Sign out` on `/tasks.html`, the application navigates to `/` and displays the heading `Sign in to Release Demo`.
